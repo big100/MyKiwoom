@@ -15,7 +15,7 @@ class Strategy:
     def __init__(self, qlist):
         self.windowQ = qlist[0]
         self.workerQ = qlist[1]
-        self.stgtQ = qlist[2]
+        self.stgQ = qlist[2]
 
         self.list_buy = []
         self.list_sell = []
@@ -72,7 +72,7 @@ class Strategy:
         self.dict_intg['청산수익률2'] = df['청산수익률2'][0]
         con.close()
         while True:
-            data = self.stgtQ.get()
+            data = self.stgQ.get()
             if len(data) == 2:
                 self.UpdateList(data[0], data[1])
             elif len(data) == 14:

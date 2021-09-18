@@ -10,8 +10,8 @@ class TelegramMsg:
     def __init__(self, qlist):
         self.windowQ = qlist[0]
         self.workerQ = qlist[1]
-        self.queryQ = qlist[5]
-        self.teleQ = qlist[6]
+        self.queryQ = qlist[4]
+        self.teleQ = qlist[5]
         self.updater = None
 
         con = sqlite3.connect(db_stg)

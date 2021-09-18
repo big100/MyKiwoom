@@ -15,23 +15,23 @@ class UpdaterChart:
         self.windowQ = qlist[0]
         self.workerQ = qlist[1]
         if self.gubun == ui_num['차트P1']:
-            self.chartQ = qlist[9]
+            self.chartQ = qlist[8]
         elif self.gubun == ui_num['차트P2']:
-            self.chartQ = qlist[10]
+            self.chartQ = qlist[9]
         elif self.gubun == ui_num['차트P3']:
-            self.chartQ = qlist[11]
+            self.chartQ = qlist[10]
         elif self.gubun == ui_num['차트P4']:
-            self.chartQ = qlist[12]
+            self.chartQ = qlist[11]
         elif self.gubun == ui_num['차트P5']:
-            self.chartQ = qlist[13]
+            self.chartQ = qlist[12]
         elif self.gubun == ui_num['차트P6']:
-            self.chartQ = qlist[14]
+            self.chartQ = qlist[13]
         elif self.gubun == ui_num['차트P7']:
-            self.chartQ = qlist[15]
+            self.chartQ = qlist[14]
         elif self.gubun == ui_num['차트P8']:
-            self.chartQ = qlist[16]
+            self.chartQ = qlist[15]
         elif self.gubun == ui_num['차트P9']:
-            self.chartQ = qlist[17]
+            self.chartQ = qlist[16]
         self.df_ct = None
         self.df_ch = None
         self.bool_ctup = False

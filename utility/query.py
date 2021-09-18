@@ -6,7 +6,7 @@ class Query:
     def __init__(self, qlist):
         self.windowQ = qlist[0]
         self.workerQ = qlist[1]
-        self.queryQ = qlist[5]
+        self.queryQ = qlist[4]
         self.con = sqlite3.connect(db_stg)
         self.cur = self.con.cursor()
         self.Start()
