@@ -5,10 +5,10 @@ import pandas as pd
 from multiprocessing import Process, Queue
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.setting import db_tick, db_backfind
-from utility.static import now, strf_time
+from utility.static import now, strf_time, timedelta_sec, strp_time
 
 
-class BackFinderTick:
+class BackFinder:
     def __init__(self, q_, code_list_, df_mt_):
         self.q = q_
         self.code_list = code_list_
@@ -22,11 +22,29 @@ class BackFinderTick:
             columns = ['등락율', '시가대비등락율', '고저평균대비등락율', '거래대금', '누적거래대금', '전일거래량대비',
                        '체결강도', '체결강도차이', '거래대금차이', '전일거래량대비차이']
             df_bf = pd.DataFrame(columns=columns)
+            avgtime = 300
+            count_cond = 0
             df = pd.read_sql(f"SELECT * FROM '{code}'", conn)
             df = df.set_index('index')
-            avgtime = 300
+            lasth = len(df) - 1
 
             for h, index in enumerate(df.index):
+                try:
+                    if code not in self.df_mt['거래대금상위100'][index]:
+                        count_cond = 0
+                    else:
+                        count_cond += 1
+                except KeyError:
+                    continue
+                if count_cond < avgtime:
+                    continue
+                if strp_time('%Y%m%d%H%M%S', index) < \
+                        timedelta_sec(180, strp_time('%Y%m%d%H%M%S', df['VI발동시간'][index])):
+                    continue
+                if df['현재가'][index] >= df['상승VID5가격'][index]:
+                    continue
+                if h >= lasth - avgtime:
+                    break
                 if df['현재가'][h:h + avgtime].max() > df['현재가'][index] * 1.05:
                     per = df['등락율'][index]
                     oper = round((df['현재가'][index] / df['시가'][index] - 1) * 100, 2)
@@ -87,7 +105,7 @@ if __name__ == "__main__":
     workcount = int(last / 6) + 1
     for j in range(0, last, workcount):
         code_list = table_list[j:j + workcount]
-        p = Process(target=BackFinderTick, args=(q, code_list, df_mt))
+        p = Process(target=BackFinder, args=(q, code_list, df_mt))
         procs.append(p)
         p.start()
     for p in procs:

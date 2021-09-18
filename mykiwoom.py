@@ -18,20 +18,16 @@ os.system(f'python {system_path}/login/autologin1.py')
 time.sleep(5)
 
 os.system(f'python {system_path}/trader/window.py')
-time.sleep(5)
+time.sleep(30)
 
 if int(strf_time('%H%M%S')) < 100000:
     os.system('shutdown /s /t 60')
     sys.exit()
 
-if now().weekday() == 5:
-    os.system(f'python {system_path}/collector/download_daydata.py')
-    time.sleep(5)
-
-os.system(f'python {system_path}/updater/updater_short.py')
+os.system(f'python {system_path}/backtester/backtester1.py')
 time.sleep(5)
 
-os.system(f'python {system_path}/backtester/backtester_tick.py')
+os.system(f'python {system_path}/backtester/backtester2.py')
 time.sleep(5)
 
 os.system('shutdown /s /t 60')

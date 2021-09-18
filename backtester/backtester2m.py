@@ -5,19 +5,29 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from multiprocessing import Process, Queue
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-from utility.static import now, strf_time
-from utility.setting import db_day, db_backtest, db_stg, graph_path
+from utility.setting import db_stg, db_tick, db_backtest
+from utility.static import now, strf_time, strp_time, timedelta_sec, timedelta_day
 
-STARTDAY = 20150600     # 백테스팅 시작날짜
-BATTING = 5000000       # 단위 원
-PREMONEY = 300000       # 단위 백만
-AVGPERIOD = 7           # 돌파계수 평균기간
+BATTING = 5000000       # 종목당 배팅금액
+TESTPERIOD = 14         # 백테스팅 기간(14일 경우 과거 2주간의 데이터를 백테스팅한다)
+TOTALTIME = 198000      # 백테스팅 기간 동안 9시부터 10시까지의 시간 총합, 단위 초
 
 
-class BackTesterShort:
-    def __init__(self, q_, code_list_):
+class BackTester1m:
+    def __init__(self, q_, code_list_, num_, df_mt_):
         self.q = q_
         self.code_list = code_list_
+        self.df_mt = df_mt_
+
+        self.gap_ch = num_[0]
+        self.avg_time = num_[1]
+        self.gap_sm = num_[2]
+        self.ch_low = num_[3]
+        self.dm_low = num_[4]
+        self.per_low = num_[5]
+        self.per_high = num_[6]
+        self.cs_per = num_[7]
+
         self.code = None
         self.df = None
 
@@ -34,33 +44,39 @@ class BackTesterShort:
         self.sellprice = 0
         self.index = 0
         self.indexb = 0
+
         self.indexn = 0
+        self.ccond = 0
+        self.csell = 0
 
         self.Start()
 
     def Start(self):
-        conn = sqlite3.connect(db_day)
+        conn = sqlite3.connect(db_tick)
         tcount = len(self.code_list)
+        int_daylimit = int(strf_time('%Y%m%d', timedelta_day(-TESTPERIOD)))
         for k, code in enumerate(self.code_list):
             self.code = code
             self.df = pd.read_sql(f"SELECT * FROM '{code}'", conn)
-            self.df = self.df.set_index('일자')
-            self.df['고가저가폭'] = self.df['고가'] - self.df['저가']
-            self.df['종가시가폭'] = self.df['현재가'] - self.df['시가']
-            self.df[['종가시가폭']] = self.df[['종가시가폭']].abs()
-            self.df['돌파계수'] = self.df['종가시가폭'] / self.df['고가저가폭']
-            self.df[['돌파계수']] = self.df[['돌파계수']].astype(float).round(2)
-            self.df['평균돌파계수'] = self.df['돌파계수'].rolling(window=AVGPERIOD).mean()
-            self.df[['평균돌파계수']] = self.df[['평균돌파계수']].round(2)
+            self.df = self.df.set_index('index')
+            self.df['직전거래대금'] = self.df['거래대금'].shift(1)
+            self.df['직전체결강도'] = self.df['체결강도'].shift(1)
+            self.df['거래대금평균'] = self.df['직전거래대금'].rolling(window=self.avg_time).mean()
+            self.df['체결강도평균'] = self.df['직전체결강도'].rolling(window=self.avg_time).mean()
+            self.df['최고체결강도'] = self.df['직전체결강도'].rolling(window=self.avg_time).max()
+            self.df = self.df.fillna(0)
             self.totalcount = 0
             self.totalcount_p = 0
             self.totalcount_m = 0
             self.totalholdday = 0
             self.totaleyun = 0
             self.totalper = 0.
+            self.ccond = 0
             lasth = len(self.df) - 1
             for h, index in enumerate(self.df.index):
-                if int(index) < STARTDAY or h < AVGPERIOD:
+                if h != 0 and index[:8] != self.df.index[h - 1][:8]:
+                    self.ccond = 0
+                if int(index[:8]) < int_daylimit or int(index[8:]) <= 100000:
                     continue
                 self.index = index
                 self.indexn = h
@@ -68,45 +84,66 @@ class BackTesterShort:
                     self.Buy()
                 elif self.hold and self.SellTerm():
                     self.Sell()
-                if self.hold and h == lasth:
-                    self.Sell(lastcandle=True)
+                elif self.hold and (h == lasth or index[:8] != self.df.index[h + 1][:8]):
+                    self.Sell()
             self.Report(k + 1, tcount)
         conn.close()
 
     def BuyTerm(self):
-        if self.df['현재가'][self.index] == 0 or self.df['현재가'][self.indexn - 1] == 0 or \
-                self.df['현재가'][self.indexn - 2] == 0:
+        try:
+            if self.code not in self.df_mt['거래대금상위100'][self.index]:
+                self.ccond = 0
+            else:
+                self.ccond += 1
+        except KeyError:
             return False
-        k = self.df['고가저가폭'][self.indexn - 1] * self.df['평균돌파계수'][self.indexn - 1]
-        if self.df['거래대금'][self.indexn - 1] >= PREMONEY and \
-                self.df['고가'][self.index] >= self.df['시가'][self.index] + k:
-            return True
-        return False
+        if self.ccond < self.avg_time:
+            return False
+
+        # 전략 비공개
+
+        return True
 
     def Buy(self):
-        k = self.df['고가저가폭'][self.indexn - 1] * self.df['평균돌파계수'][self.indexn - 1]
-        self.buyprice = self.df['시가'][self.index] + k
-        self.buycount = int(BATTING / self.buyprice)
+        if self.df['매도1호가'][self.index] * self.df['매도1잔량'][self.index] >= BATTING:
+            s1hg = self.df['매도1호가'][self.index]
+            self.buycount = int(BATTING / s1hg)
+            self.buyprice = s1hg
+        else:
+            s1hg = self.df['매도1호가'][self.index]
+            s1jr = self.df['매도1잔량'][self.index]
+            s2hg = self.df['매도2호가'][self.index]
+            ng = BATTING - s1hg * s1jr
+            s2jc = int(ng / s2hg)
+            self.buycount = s1jr + s2jc
+            self.buyprice = round((s1hg * s1jr + s2hg * s2jc) / self.buycount, 2)
         if self.buycount == 0:
             return
-        self.indexb = self.indexn
         self.hold = True
+        self.indexb = self.indexn
+        self.csell = 0
 
     def SellTerm(self):
-        k = self.df['고가저가폭'][self.indexn - 1] * self.df['평균돌파계수'][self.indexn - 1]
-        low = self.df['시가'][self.index] - k
-        high = self.df['시가'][self.index] + k
-        if self.df['저가'][self.index] <= low:
-            self.sellprice = low
+        if self.df['등락율'][self.index] > 29:
             return True
-        if self.df['고가'][self.index] >= high:
-            self.sellprice = high
-            return True
+
+        bg = self.buycount * self.buyprice
+        cg = self.buycount * self.df['현재가'][self.index]
+        eyun, per = self.GetEyunPer(bg, cg)
+
+        # 전략 비공개
+
         return False
 
-    def Sell(self, lastcandle=False):
-        if lastcandle:
-            self.sellprice = self.df['현재가'][self.index]
+    def Sell(self):
+        if self.df['매수1잔량'][self.index] >= self.buycount:
+            self.sellprice = self.df['매수1호가'][self.index]
+        else:
+            b1hg = self.df['매수1호가'][self.index]
+            b1jr = self.df['매수1잔량'][self.index]
+            b2hg = self.df['매수2호가'][self.index]
+            nc = self.buycount - b1jr
+            self.sellprice = round((b1hg * b1jr + b2hg * nc) / self.buycount, 2)
         self.hold = False
         self.CalculationEyun()
         self.indexb = 0
@@ -146,7 +183,7 @@ class BackTesterShort:
                         plus_per, self.totalper, self.totaleyun])
             totalcount, avgholdday, totalcount_p, totalcount_m, plus_per, totalper, totaleyun = \
                 self.GetTotal(plus_per, avgholdday)
-            print(f" 종목코드 {self.code} | 평균보유기간 {avgholdday}일 | 거래횟수 {totalcount}회 | "
+            print(f" 종목코드 {self.code} | 평균보유기간 {avgholdday}초 | 거래횟수 {totalcount}회 | "
                   f" 익절 {totalcount_p}회 | 손절 {totalcount_m}회 | 승률 {plus_per}% |"
                   f" 수익률 {totalper}% | 수익금 {totaleyun}원 [{count}/{tcount}]")
         else:
@@ -157,8 +194,9 @@ class BackTesterShort:
         totalcount = '  ' + totalcount if len(totalcount) == 1 else totalcount
         totalcount = ' ' + totalcount if len(totalcount) == 2 else totalcount
         avgholdday = str(avgholdday)
-        avgholdday = '  ' + avgholdday if len(avgholdday.split('.')[0]) == 1 else avgholdday
-        avgholdday = ' ' + avgholdday if len(avgholdday.split('.')[0]) == 2 else avgholdday
+        avgholdday = '   ' + avgholdday if len(avgholdday.split('.')[0]) == 1 else avgholdday
+        avgholdday = '  ' + avgholdday if len(avgholdday.split('.')[0]) == 2 else avgholdday
+        avgholdday = ' ' + avgholdday if len(avgholdday.split('.')[0]) == 3 else avgholdday
         avgholdday = avgholdday + '0' if len(avgholdday.split('.')[1]) == 1 else avgholdday
         totalcount_p = str(self.totalcount_p)
         totalcount_p = '  ' + totalcount_p if len(totalcount_p) == 1 else totalcount_p
@@ -192,12 +230,20 @@ class BackTesterShort:
 
 
 class Total:
-    def __init__(self, q_, last_, totalday_, df1_):
+    def __init__(self, q_, last_, num_, df1_):
         super().__init__()
         self.q = q_
         self.last = last_
         self.name = df1_
-        self.totalday = totalday_
+
+        self.gap_ch = num_[0]
+        self.avg_time = num_[1]
+        self.gap_sm = num_[2]
+        self.ch_low = num_[3]
+        self.dm_low = num_[4]
+        self.per_low = num_[5]
+        self.per_high = num_[6]
+        self.cs_per = num_[7]
 
         self.Start()
 
@@ -232,29 +278,31 @@ class Total:
                 avghold = round(df_back_['평균보유기간'].sum() / len(df_back_), 2)
                 avgsp = round(df_back['수익률'].sum() / tc, 2)
                 tsg = int(df_back['수익금'].sum())
-                onedaycount = round(tc / self.totalday, 2)
+                onedaycount = round(tc / TOTALTIME, 4)
                 onegm = int(BATTING * onedaycount * avghold)
                 if onegm < BATTING:
                     onegm = BATTING
-                tsp = round(tsg / onegm * 100, 2)
+                tsp = round(tsg / onegm * 100, 4)
+                text = [self.gap_ch, self.avg_time, self.gap_sm, self.ch_low, self.dm_low,
+                        self.per_low, self.per_high, self.cs_per]
+                print(f' {text}')
                 text = f" 종목당 배팅금액 {format(BATTING, ',')}원, 필요자금 {format(onegm, ',')}원, "\
-                       f" 종목출현빈도수 {onedaycount}개/일, 거래횟수 {tc}회, 평균보유기간 {avghold}일, 익절 {pc}회, "\
+                       f" 종목출현빈도수 {onedaycount}개/초, 거래횟수 {tc}회, 평균보유기간 {avghold}초,\n 익절 {pc}회, "\
                        f" 손절 {mc}회, 승률 {pper}%, 평균수익률 {avgsp}%, 수익률합계 {tsp}%, 수익금합계 {format(tsg, ',')}원"
                 print(text)
                 conn = sqlite3.connect(db_backtest)
-                df_back.to_sql(f"{strf_time('%Y%m%d')}_short", conn, if_exists='replace', chunksize=1000)
+                df_back.to_sql(f"{strf_time('%Y%m%d')}_2cm", conn, if_exists='replace', chunksize=1000)
                 conn.close()
 
         if len(df_tsg) > 0:
-            df_tsg['일자'] = df_tsg.index
-            df_tsg.sort_values(by=['일자'], inplace=True)
+            df_tsg['체결시간'] = df_tsg.index
+            df_tsg.sort_values(by=['체결시간'], inplace=True)
             df_tsg['ttsg_cumsum'] = df_tsg['ttsg'].cumsum()
             df_tsg[['ttsg', 'ttsg_cumsum']] = df_tsg[['ttsg', 'ttsg_cumsum']].astype(int)
             conn = sqlite3.connect(db_backtest)
-            df_tsg.to_sql(f"{strf_time('%Y%m%d')}_short_day", conn, if_exists='replace', chunksize=1000)
+            df_tsg.to_sql(f"{strf_time('%Y%m%d')}_2tm", conn, if_exists='replace', chunksize=1000)
             conn.close()
-            df_tsg.plot(title='short', figsize=(12, 9), rot=45)
-            plt.savefig(f"{graph_path}/{strf_time('%Y%m%d')}_short.png")
+            df_tsg.plot(figsize=(12, 9), rot=45)
             plt.show()
 
 
@@ -266,31 +314,34 @@ if __name__ == "__main__":
     df1 = df1.set_index('index')
     con.close()
 
-    con = sqlite3.connect(db_day)
-    df = pd.read_sql("SELECT name FROM sqlite_master WHERE TYPE = 'table'", con)
-    table_list = list(df['name'].values)
-    last = len(table_list)
-
-    day_list = []
-    for i, codee in enumerate(table_list):
-        df = pd.read_sql(f"SELECT * FROM '{codee}'", con)
-        df = df.set_index('일자')
-        for indexx in df.index:
-            if int(indexx) >= STARTDAY and indexx not in day_list:
-                day_list.append(indexx)
-        print(f' 백테스팅 총 거래일수 계산 중 ... {i + 1}/{last}')
-    totalday = len(day_list)
+    con = sqlite3.connect(db_tick)
+    df2 = pd.read_sql("SELECT name FROM sqlite_master WHERE TYPE = 'table'", con)
+    df3 = pd.read_sql('SELECT * FROM moneytop', con)
     con.close()
 
-    q = Queue()
+    df3 = df3.set_index('index')
+    table_list = list(df2['name'].values)
+    table_list.remove('moneytop')
+    last = len(table_list)
 
-    w = Process(target=Total, args=(q, last, totalday, df1))
+    gap_ch = 4.8
+    avg_time = 60
+    gap_sm = 50
+    ch_low = 90
+    dm_low = 2000
+    per_low = 4.4
+    per_high = 25
+    cs_per = 3
+    num = [gap_ch, avg_time, gap_sm, ch_low, dm_low, per_low, per_high, cs_per]
+
+    q = Queue()
+    w = Process(target=Total, args=(q, last, num, df1))
     w.start()
     procs = []
     workcount = int(last / 6) + 1
     for j in range(0, last, workcount):
         code_list = table_list[j:j + workcount]
-        p = Process(target=BackTesterShort, args=(q, code_list))
+        p = Process(target=BackTester1m, args=(q, code_list, num, df3))
         procs.append(p)
         p.start()
     for p in procs:
@@ -298,4 +349,4 @@ if __name__ == "__main__":
     w.join()
 
     end = now()
-    print(f' 백테스팅 소요시간 {end - start}')
+    print(f" 백테스팅 소요시간 {end - start}")

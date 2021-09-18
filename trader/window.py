@@ -39,7 +39,7 @@ class Window(QtWidgets.QMainWindow):
                 lineedit.setStyleSheet(style_bc_bt)
             else:
                 lineedit.setStyleSheet(style_fc_bt)
-            lineedit.setFont(qfont1)
+            lineedit.setFont(qfont12)
             if returnPressed is not None:
                 lineedit.returnPressed.connect(returnPressed)
             return lineedit
@@ -47,7 +47,7 @@ class Window(QtWidgets.QMainWindow):
         def setPushbutton(name, groupbox, buttonclicked, cmd=None):
             pushbutton = QtWidgets.QPushButton(name, groupbox)
             pushbutton.setStyleSheet(style_bc_bt)
-            pushbutton.setFont(qfont1)
+            pushbutton.setFont(qfont12)
             if cmd is not None:
                 pushbutton.clicked.connect(lambda: buttonclicked(cmd))
             else:
@@ -63,7 +63,7 @@ class Window(QtWidgets.QMainWindow):
             if qfont is not None:
                 textedit.setFont(qfont)
             else:
-                textedit.setFont(qfont1)
+                textedit.setFont(qfont12)
             return textedit
 
         def setPg(tname, tabwidget, tab):
@@ -73,13 +73,13 @@ class Window(QtWidgets.QMainWindow):
             ctpg_01.showAxis('left', False)
             ctpg_01.showAxis('right', True)
             ctpg_01.getAxis('right').setStyle(tickTextWidth=45, autoExpandTextSpace=False)
-            ctpg_01.getAxis('right').setTickFont(qfont1)
-            ctpg_01.getAxis('bottom').setTickFont(qfont1)
+            ctpg_01.getAxis('right').setTickFont(qfont12)
+            ctpg_01.getAxis('bottom').setTickFont(qfont12)
             ctpg_02.showAxis('left', False)
             ctpg_02.showAxis('right', True)
             ctpg_02.getAxis('right').setStyle(tickTextWidth=45, autoExpandTextSpace=False)
-            ctpg_02.getAxis('right').setTickFont(qfont1)
-            ctpg_02.getAxis('bottom').setTickFont(qfont1)
+            ctpg_02.getAxis('right').setTickFont(qfont12)
+            ctpg_02.getAxis('bottom').setTickFont(qfont12)
             ctpg_02.setXLink(ctpg_01)
             qGraphicsGridLayout = ctpg.ci.layout
             qGraphicsGridLayout.setRowStretchFactor(0, 2)
@@ -182,8 +182,6 @@ class Window(QtWidgets.QMainWindow):
                     tableWidget.setColumnWidth(12, int(90 * resize))
                 if colcount >= 14:
                     tableWidget.setColumnWidth(13, int(90 * resize))
-                if colcount >= 15:
-                    tableWidget.setColumnWidth(14, int(90 * resize))
             if clicked is not None:
                 tableWidget.cellClicked.connect(clicked)
             if color:
@@ -193,7 +191,7 @@ class Window(QtWidgets.QMainWindow):
                     tableWidget.setItem(i, 0, tableitem)
             return tableWidget
 
-        self.setFont(qfont1)
+        self.setFont(qfont12)
         self.setWindowFlags(Qt.FramelessWindowHint)
 
         self.icon_open = setIcon(f'{system_path}/Icon/open.bmp')
@@ -308,17 +306,17 @@ class Window(QtWidgets.QMainWindow):
 
         self.gg_tabWidget = QtWidgets.QTabWidget(self)
         self.gg_tab = QtWidgets.QWidget()
-        self.gg_textEdit = setTextEdit(self.gg_tab, qfont3)
+        self.gg_textEdit = setTextEdit(self.gg_tab, qfont14)
         self.gg_tabWidget.addTab(self.gg_tab, '기업 개요')
 
         self.gs_tabWidget = QtWidgets.QTabWidget(self)
         self.gs_tab = QtWidgets.QWidget()
-        self.gs_tableWidget = setTablewidget(self.gs_tab, columns_gc, len(columns_gc), 22, qfont=qfont2)
+        self.gs_tableWidget = setTablewidget(self.gs_tab, columns_gc, len(columns_gc), 22, qfont=qfont13)
         self.gs_tabWidget.addTab(self.gs_tab, '기업 공시')
 
         self.ns_tabWidget = QtWidgets.QTabWidget(self)
         self.ns_tab = QtWidgets.QWidget()
-        self.ns_tableWidget = setTablewidget(self.ns_tab, columns_ns, len(columns_ns), 12, qfont=qfont2)
+        self.ns_tableWidget = setTablewidget(self.ns_tab, columns_ns, len(columns_ns), 12, qfont=qfont13)
         self.ns_tabWidget.addTab(self.ns_tab, '종목 뉴스')
 
         self.jj_tabWidget = QtWidgets.QTabWidget(self)
@@ -355,22 +353,22 @@ class Window(QtWidgets.QMainWindow):
         self.sj_lineEdit_02 = setLineedit(self.sj_groupBox_01)
         self.sj_pushButton_01 = setPushbutton('설정', self.sj_groupBox_01, self.ButtonClicked_3)
         self.sj_groupBox_02 = QtWidgets.QGroupBox(self.sj_tab)
-        self.sj_pushButton_02 = setPushbutton('데이터베이스 불러오기', self.sj_groupBox_02, self.ButtonClicked_3)
+        self.sj_pushButton_02 = setPushbutton('데이터베이스 로딩', self.sj_groupBox_02, self.ButtonClicked_3)
         self.sj_pushButton_03 = setPushbutton('OPENAPI 로그인', self.sj_groupBox_02, self.ButtonClicked_3)
         self.sj_pushButton_04 = setPushbutton('계좌평가 및 잔고', self.sj_groupBox_02, self.ButtonClicked_3)
         self.sj_pushButton_05 = setPushbutton('코스피 코스닥 차트', self.sj_groupBox_02, self.ButtonClicked_3)
         self.sj_pushButton_06 = setPushbutton('장운영시간 알림 등록', self.sj_groupBox_02, self.ButtonClicked_3)
         self.sj_pushButton_07 = setPushbutton('업종지수 주식체결 등록', self.sj_groupBox_02, self.ButtonClicked_3)
-        self.sj_pushButton_08 = setPushbutton('단중장기 주식체결 등록', self.sj_groupBox_02, self.ButtonClicked_3)
-        self.sj_pushButton_09 = setPushbutton('VI발동해제 등록', self.sj_groupBox_02, self.ButtonClicked_3)
-        self.sj_pushButton_10 = setPushbutton('장운영상태', self.sj_groupBox_02, self.ButtonClicked_3)
-        self.sj_pushButton_11 = setPushbutton('실시간 조건검색식 등록', self.sj_groupBox_02, self.ButtonClicked_3)
-        self.sj_pushButton_12 = setPushbutton('단타 목표수익률 달성', self.sj_groupBox_02, self.ButtonClicked_3)
-        self.sj_pushButton_13 = setPushbutton('단타 전략 중단', self.sj_groupBox_02, self.ButtonClicked_3)
-        self.sj_pushButton_14 = setPushbutton('잔고청산', self.sj_groupBox_02, self.ButtonClicked_3)
-        self.sj_pushButton_15 = setPushbutton('실시간 데이터 수신 중단', self.sj_groupBox_02, self.ButtonClicked_3)
-        self.sj_pushButton_16 = setPushbutton('단중장기 매수주문', self.sj_groupBox_02, self.ButtonClicked_3)
-        self.sj_pushButton_17 = setPushbutton('일별거래목록 저장', self.sj_groupBox_02, self.ButtonClicked_3)
+        self.sj_pushButton_08 = setPushbutton('VI발동해제 등록', self.sj_groupBox_02, self.ButtonClicked_3)
+        self.sj_pushButton_09 = setPushbutton('장운영상태', self.sj_groupBox_02, self.ButtonClicked_3)
+        self.sj_pushButton_10 = setPushbutton('실시간 조건검색식 등록', self.sj_groupBox_02, self.ButtonClicked_3)
+        self.sj_pushButton_11 = setPushbutton('장초 단타 전략 중단', self.sj_groupBox_02, self.ButtonClicked_3)
+        self.sj_pushButton_12 = setPushbutton('장초 단타 전략 잔고 청산', self.sj_groupBox_02, self.ButtonClicked_3)
+        self.sj_pushButton_13 = setPushbutton('장중 단타 전략 시작', self.sj_groupBox_02, self.ButtonClicked_3)
+        self.sj_pushButton_14 = setPushbutton('실시간 조건검색식 중단', self.sj_groupBox_02, self.ButtonClicked_3)
+        self.sj_pushButton_15 = setPushbutton('장중 단타 전략 잔고 청산', self.sj_groupBox_02, self.ButtonClicked_3)
+        self.sj_pushButton_16 = setPushbutton('실시간 데이터 수신 중단', self.sj_groupBox_02, self.ButtonClicked_3)
+        self.sj_pushButton_17 = setPushbutton('데이터베이스 저장', self.sj_groupBox_02, self.ButtonClicked_3)
         self.sj_pushButton_18 = setPushbutton('테스트모드 ON/OFF', self.sj_groupBox_02, self.ButtonClicked_3)
         self.sj_pushButton_19 = setPushbutton('모의투자 ON/OFF', self.sj_groupBox_02, self.ButtonClicked_3)
         self.sj_pushButton_20 = setPushbutton('알림소리 ON/OFF', self.sj_groupBox_02, self.ButtonClicked_3)
@@ -382,9 +380,6 @@ class Window(QtWidgets.QMainWindow):
         self.table_tabWidget = QtWidgets.QTabWidget(self)
         self.td_tab = QtWidgets.QWidget()
         self.gjt_tab = QtWidgets.QWidget()
-        self.gjs_tab = QtWidgets.QWidget()
-        self.gjm_tab = QtWidgets.QWidget()
-        self.gjl_tab = QtWidgets.QWidget()
         self.st_tab = QtWidgets.QWidget()
         self.sg_tab = QtWidgets.QWidget()
 
@@ -393,8 +388,7 @@ class Window(QtWidgets.QMainWindow):
         self.tj_tableWidget = setTablewidget(self.td_tab, columns_tj, len(columns_tj), 1)
         self.jg_tableWidget = setTablewidget(self.td_tab, columns_jg, len(columns_jg), 13, clicked=self.CellClicked_6)
         self.cj_tableWidget = setTablewidget(self.td_tab, columns_cj, len(columns_cj), 12, clicked=self.CellClicked_7)
-        self.gjt_tableWidget = setTablewidget(self.gjt_tab, columns_gjt3, len(columns_gjt3), 46, clicked=self.CellClicked_8)
-        self.gjs_tableWidget = setTablewidget(self.gjs_tab, columns_gjs, len(columns_gjs), 46, clicked=self.CellClicked_9)
+        self.gj_tableWidget = setTablewidget(self.gjt_tab, columns_gj3, len(columns_gj3), 46, clicked=self.CellClicked_8)
 
         self.st_groupBox = QtWidgets.QGroupBox(self.st_tab)
         self.calendarWidget = QtWidgets.QCalendarWidget(self.st_groupBox)
@@ -402,7 +396,7 @@ class Window(QtWidgets.QMainWindow):
         self.calendarWidget.setCurrentPage(todayDate.year(), todayDate.month())
         self.calendarWidget.clicked.connect(self.CalendarClicked)
         self.stn_tableWidget = setTablewidget(self.st_tab, columns_sn, len(columns_sn), 1)
-        self.stl_tableWidget = setTablewidget(self.st_tab, columns_st, len(columns_st), 31, clicked=self.CellClicked_10)
+        self.stl_tableWidget = setTablewidget(self.st_tab, columns_st, len(columns_st), 31, clicked=self.CellClicked_9)
 
         self.sg_groupBox = QtWidgets.QGroupBox(self.sg_tab)
         self.sg_pushButton_01 = setPushbutton('일별집계', self.sg_groupBox, self.ButtonClicked_3)
@@ -412,8 +406,7 @@ class Window(QtWidgets.QMainWindow):
         self.sgl_tableWidget = setTablewidget(self.sg_tab, columns_lt, len(columns_lt), 41)
 
         self.table_tabWidget.addTab(self.td_tab, '계좌평가')
-        self.table_tabWidget.addTab(self.gjt_tab, '단타')
-        self.table_tabWidget.addTab(self.gjs_tab, '단기')
+        self.table_tabWidget.addTab(self.gjt_tab, '관심종목')
         self.table_tabWidget.addTab(self.st_tab, '거래목록')
         self.table_tabWidget.addTab(self.sg_tab, '수익현황')
 
@@ -560,8 +553,7 @@ class Window(QtWidgets.QMainWindow):
         self.tj_tableWidget.setGeometry(int(5 * resize), int(377 * resize), int(668 * resize), int(42 * resize))
         self.jg_tableWidget.setGeometry(int(5 * resize), int(424 * resize), int(668 * resize), int(320 * resize))
         self.cj_tableWidget.setGeometry(int(5 * resize), int(749 * resize), int(668 * resize), int(320 * resize))
-        self.gjt_tableWidget.setGeometry(int(5 * resize), int(5 * resize), int(668 * resize), int(1063 * resize))
-        self.gjs_tableWidget.setGeometry(int(5 * resize), int(5 * resize), int(668 * resize), int(1063 * resize))
+        self.gj_tableWidget.setGeometry(int(5 * resize), int(5 * resize), int(668 * resize), int(1063 * resize))
 
         self.st_groupBox.setGeometry(int(5 * resize), int(3 * resize), int(668 * resize), int(278 * resize))
         self.calendarWidget.setGeometry(int(5 * resize), int(11 * resize), int(658 * resize), int(258 * resize))
@@ -576,12 +568,23 @@ class Window(QtWidgets.QMainWindow):
         self.sgl_tableWidget.setGeometry(int(5 * resize), int(104 * resize), int(668 * resize), int(965 * resize))
 
         self.dict_intg = {
-            '체결강도차이': 0.,
-            '거래대금차이': 0,
-            '평균시간': 0,
-            '체결강도하한': 0.,
-            '누적거래대금하한': 0,
-            '등락율상한': 0.
+            '체결강도차이1': 0.,
+            '평균시간1': 0,
+            '거래대금차이1': 0,
+            '체결강도하한1': 0.,
+            '누적거래대금하한1': 0,
+            '등락율하한1': 0.,
+            '등락율상한1': 0.,
+            '청산수익률1': 0.,
+
+            '체결강도차이2': 0.,
+            '평균시간2': 0,
+            '거래대금차이2': 0,
+            '체결강도하한2': 0.,
+            '누적거래대금하한2': 0,
+            '등락율하한2': 0.,
+            '등락율상한2': 0.,
+            '청산수익률2': 0.
         }
 
         self.dict_code = {}
@@ -611,8 +614,7 @@ class Window(QtWidgets.QMainWindow):
         self.writer.data0.connect(self.UpdateTexedit)
         self.writer.data1.connect(self.UpdateChart)
         self.writer.data2.connect(self.UpdateTick)
-        self.writer.data3.connect(self.UpdateLongMidShort)
-        self.writer.data4.connect(self.UpdateTablewidget)
+        self.writer.data3.connect(self.UpdateTablewidget)
         self.writer.start()
 
     def ReturnPressed_1(self):
@@ -672,32 +674,32 @@ class Window(QtWidgets.QMainWindow):
                 pushbutton = self.sj_pushButton_06
             elif msg[1] == '업종지수 주식체결 등록':
                 pushbutton = self.sj_pushButton_07
-            elif msg[1] == '단기 주식체결 등록':
-                pushbutton = self.sj_pushButton_08
             elif msg[1] == 'VI발동해제 등록':
                 self.ButtonClicked_4(2)
-                pushbutton = self.sj_pushButton_09
+                pushbutton = self.sj_pushButton_08
             elif msg[1] == '장운영상태':
-                pushbutton = self.sj_pushButton_10
+                pushbutton = self.sj_pushButton_09
             elif msg[1] == '실시간 조건검색식 등록':
-                pushbutton = self.sj_pushButton_11
+                pushbutton = self.sj_pushButton_10
             elif msg[1] == '장초 단타 전략 중단':
-                pushbutton = self.sj_pushButton_12
-            elif msg[1] == '실시간 조건검색식 중단':
-                pushbutton = self.sj_pushButton_13
-            elif msg[1] == '단타 실시간 데이터 수신 중단':
-                pushbutton = self.sj_pushButton_14
+                pushbutton = self.sj_pushButton_11
             elif msg[1] == '장초 단타 전략 잔고 청산':
+                pushbutton = self.sj_pushButton_12
+            elif msg[1] == '장중 단타 전략 시작':
+                pushbutton = self.sj_pushButton_13
+            elif msg[1] == '실시간 조건검색식 중단':
+                pushbutton = self.sj_pushButton_14
+            elif msg[1] == '장중 단타 전략 잔고 청산':
                 pushbutton = self.sj_pushButton_15
-            elif msg[1] == '모든 실시간 데이터 수신 중단':
+            elif msg[1] == '실시간 데이터 수신 중단':
                 pushbutton = self.sj_pushButton_16
-            elif msg[1] == '일별거래목록 저장':
+            elif msg[1] == '데이터베이스 저장':
                 pushbutton = self.sj_pushButton_17
             elif msg[1] == '시스템 종료':
                 pushbutton = self.sj_pushButton_21
             if pushbutton is not None:
                 pushbutton.setStyleSheet(style_bc_dk)
-                pushbutton.setFont(qfont1)
+                pushbutton.setFont(qfont12)
 
             pushbutton = None
             text = None
@@ -717,7 +719,7 @@ class Window(QtWidgets.QMainWindow):
                     pushbutton.setStyleSheet(style_bc_bt)
                 else:
                     pushbutton.setStyleSheet(style_bc_dk)
-                pushbutton.setFont(qfont1)
+                pushbutton.setFont(qfont12)
 
             if '텔레그램봇넘버' in msg[1]:
                 text = msg[1].split(' ')[-1]
@@ -758,8 +760,7 @@ class Window(QtWidgets.QMainWindow):
             chartq_size = chart1Q.qsize() + chart2Q.qsize() + chart3Q.qsize() + chart4Q.qsize() + chart5Q.qsize()
             chartq_size += chart6Q.qsize() + chart7Q.qsize() + chart8Q.qsize() + chart9Q.qsize()
             hogaq_size = hoga1Q.qsize() + hoga2Q.qsize()
-            stgq_size = stgtQ.qsize() + stgsQ.qsize()
-            label04text = f'Queue - windowQ {windowQ.qsize()} | workerQ {workerQ.qsize()} | stgQ {stgq_size} | '\
+            label04text = f'Queue - windowQ {windowQ.qsize()} | workerQ {workerQ.qsize()} | stgQ {stgQ.qsize()} | '\
                           f'chartQ {chartq_size} | hogaQ {hogaq_size} | queryQ {queryQ.qsize()} | '\
                           f'soundQ {soundQ.qsize()} | teleQ {teleQ.qsize()}'
 
@@ -781,17 +782,17 @@ class Window(QtWidgets.QMainWindow):
             self.dict_intt['스레드'] = msg[2]
             self.dict_intt['시피유'] = msg[3]
         elif msg[0] == 5:
-            self.dict_intl['메모리'] = msg[1]
-            self.dict_intl['스레드'] = msg[2]
-            self.dict_intl['시피유'] = msg[3]
+            self.dict_ints['메모리'] = msg[1]
+            self.dict_ints['스레드'] = msg[2]
+            self.dict_ints['시피유'] = msg[3]
         elif msg[0] == 6:
             self.dict_intm['메모리'] = msg[1]
             self.dict_intm['스레드'] = msg[2]
             self.dict_intm['시피유'] = msg[3]
         elif msg[0] == 7:
-            self.dict_ints['메모리'] = msg[1]
-            self.dict_ints['스레드'] = msg[2]
-            self.dict_ints['시피유'] = msg[3]
+            self.dict_intl['메모리'] = msg[1]
+            self.dict_intl['스레드'] = msg[2]
+            self.dict_intl['시피유'] = msg[3]
         elif msg[0] == 8:
             self.dict_code = msg[1]
         elif msg[0] == 9:
@@ -826,7 +827,7 @@ class Window(QtWidgets.QMainWindow):
                 main_pg.addItem(hLine, ignoreBounds=True)
                 main_vb = main_pg.getViewBox()
                 label = pg.TextItem(anchor=(0, 1), color=color_fg_bt, border=color_bg_bt, fill=color_bg_ld)
-                label.setFont(qfont1)
+                label.setFont(qfont12)
                 label.setPos(-0.25, yminn)
                 main_pg.addItem(label)
             if sub_pg is not None:
@@ -923,7 +924,7 @@ class Window(QtWidgets.QMainWindow):
                             arrow.setPos(i, int(price))
                             self.dict_ctpg[gubun][0].addItem(arrow)
                             text = pg.TextItem(anchor=(1, 0.5), color=color_fg_bt, border=color_bg_bt, fill=color_bg_ld)
-                            text.setFont(qfont1)
+                            text.setFont(qfont12)
                             text.setPos(i - 1, int(price))
                             text.setText(price)
                             self.dict_ctpg[gubun][0].addItem(text)
@@ -934,7 +935,7 @@ class Window(QtWidgets.QMainWindow):
                             arrow.setPos(i, int(price))
                             self.dict_ctpg[gubun][0].addItem(arrow)
                             text = pg.TextItem(anchor=(1, 0.5), color=color_fg_bt, border=color_bg_bt, fill=color_bg_ld)
-                            text.setFont(qfont1)
+                            text.setFont(qfont12)
                             text.setPos(i - 1, int(price))
                             text.setText(price)
                             self.dict_ctpg[gubun][0].addItem(text)
@@ -951,12 +952,12 @@ class Window(QtWidgets.QMainWindow):
             self.dict_ctpg[gubun][1].getAxis('bottom').setTicks(xticks)
             crosshair(ymin, prec, main_pg=self.dict_ctpg[gubun][0], sub_pg=self.dict_ctpg[gubun][1])
             self.dict_mcpg_legend1[gubun] = pg.TextItem(color=color_fg_bt, border=color_bg_bt, fill=color_bg_ld)
-            self.dict_mcpg_legend1[gubun].setFont(qfont1)
+            self.dict_mcpg_legend1[gubun].setFont(qfont12)
             self.dict_mcpg_legend1[gubun].setPos(-0.25, ymax)
             self.dict_mcpg_legend1[gubun].setText(getMainLegendText())
             self.dict_ctpg[gubun][0].addItem(self.dict_mcpg_legend1[gubun])
             self.dict_mcpg_legend2[gubun] = pg.TextItem(color=color_fg_bt, border=color_bg_bt, fill=color_bg_ld)
-            self.dict_mcpg_legend2[gubun].setFont(qfont1)
+            self.dict_mcpg_legend2[gubun].setFont(qfont12)
             self.dict_mcpg_legend2[gubun].setPos(-0.25, vmax)
             self.dict_mcpg_legend2[gubun].setText(getSubLegendText())
             self.dict_ctpg[gubun][1].addItem(self.dict_mcpg_legend2[gubun])
@@ -989,19 +990,29 @@ class Window(QtWidgets.QMainWindow):
 
         if gubun == ui_num['단타설정']:
             df = data[1]
-            self.dict_intg['체결강도차이'] = df['체결강도차이'][0]
-            self.dict_intg['거래대금차이'] = df['거래대금차이'][0]
-            self.dict_intg['평균시간'] = df['평균시간'][0]
-            self.dict_intg['체결강도하한'] = df['체결강도하한'][0]
-            self.dict_intg['누적거래대금하한'] = df['누적거래대금하한'][0]
-            self.dict_intg['등락율상한'] = df['등락율상한'][0]
+            self.dict_intg['체결강도차이1'] = df['체결강도차이1'][0]
+            self.dict_intg['평균시간1'] = df['평균시간1'][0]
+            self.dict_intg['거래대금차이1'] = df['거래대금차이1'][0]
+            self.dict_intg['체결강도하한1'] = df['체결강도하한1'][0]
+            self.dict_intg['누적거래대금하한1'] = df['누적거래대금하한1'][0]
+            self.dict_intg['등락율하한1'] = df['등락율하한1'][0]
+            self.dict_intg['등락율상한1'] = df['등락율상한1'][0]
+            self.dict_intg['청산수익률1'] = df['청산수익률1'][0]
+            self.dict_intg['체결강도차이2'] = df['체결강도차이2'][0]
+            self.dict_intg['평균시간2'] = df['평균시간2'][0]
+            self.dict_intg['거래대금차이2'] = df['거래대금차이2'][0]
+            self.dict_intg['체결강도하한2'] = df['체결강도하한2'][0]
+            self.dict_intg['누적거래대금하한2'] = df['누적거래대금하한2'][0]
+            self.dict_intg['등락율하한2'] = df['등락율하한2'][0]
+            self.dict_intg['등락율상한2'] = df['등락율상한2'][0]
+            self.dict_intg['청산수익률2'] = df['청산수익률2'][0]
             return
 
-        if gubun == ui_num['tick'] and self.table_tabWidget.currentWidget() != self.gjt_tab:
+        if gubun == ui_num['관심종목'] and self.table_tabWidget.currentWidget() != self.gjt_tab:
             return
 
         if len(dict_df) == 0:
-            self.gjt_tableWidget.clearContents()
+            self.gj_tableWidget.clearContents()
             return
 
         def changeFormat(text):
@@ -1015,88 +1026,64 @@ class Window(QtWidgets.QMainWindow):
                         format_data += '0'
             return format_data
 
-        self.gjt_tableWidget.setRowCount(len(dict_df))
+        self.gj_tableWidget.setRowCount(len(dict_df))
+        time = 1 if int(strf_time('%H%M%S')) < 1000000 else 2
         for j, code in enumerate(list(dict_df.keys())):
             item = QtWidgets.QTableWidgetItem(self.dict_name[code])
             item.setTextAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-            self.gjt_tableWidget.setItem(j, 0, item)
-            smavg = dict_df[code]['거래대금'][self.dict_intg['평균시간'] + 1]
+            self.gj_tableWidget.setItem(j, 0, item)
+
+            smavg = dict_df[code]['거래대금'][self.dict_intg[f'평균시간{time}'] + 1]
             item = QtWidgets.QTableWidgetItem(changeFormat(smavg))
             item.setTextAlignment(Qt.AlignVCenter | Qt.AlignRight)
-            self.gjt_tableWidget.setItem(j, 7, item)
-            chavg = dict_df[code]['체결강도'][self.dict_intg['평균시간'] + 1]
+            self.gj_tableWidget.setItem(j, columns_gj3.index('smavg'), item)
+
+            chavg = dict_df[code]['체결강도'][self.dict_intg[f'평균시간{time}'] + 1]
             item = QtWidgets.QTableWidgetItem(changeFormat(chavg))
             item.setTextAlignment(Qt.AlignVCenter | Qt.AlignRight)
-            self.gjt_tableWidget.setItem(j, 8, item)
-            chhigh = dict_df[code]['최고체결강도'][self.dict_intg['평균시간'] + 1]
+            self.gj_tableWidget.setItem(j, columns_gj3.index('chavg'), item)
+
+            chhigh = dict_df[code]['최고체결강도'][self.dict_intg[f'평균시간{time}'] + 1]
             item = QtWidgets.QTableWidgetItem(changeFormat(chhigh))
             item.setTextAlignment(Qt.AlignVCenter | Qt.AlignRight)
-            self.gjt_tableWidget.setItem(j, 9, item)
-            for i, column in enumerate(columns_gjt2):
+            self.gj_tableWidget.setItem(j, columns_gj3.index('chhigh'), item)
+
+            for i, column in enumerate(columns_gj2):
                 if column in ['거래대금', '누적거래대금']:
                     item = QtWidgets.QTableWidgetItem(changeFormat(dict_df[code][column][0]).split('.')[0])
                 else:
                     item = QtWidgets.QTableWidgetItem(changeFormat(dict_df[code][column][0]))
                 item.setTextAlignment(Qt.AlignVCenter | Qt.AlignRight)
-
-                # 전략별 글자 색상 변공 비공개
-
-                self.gjt_tableWidget.setItem(j, i + 1, item)
-        if len(dict_df) < 46:
-            self.gjt_tableWidget.setRowCount(46)
-
-    def UpdateLongMidShort(self, data):
-        gubun = data[0]
-        df = data[1]
-
-        if gubun == ui_num['short'] and self.table_tabWidget.currentWidget() != self.gjs_tab:
-            return
-
-        gj_tableWidget = self.gjs_tableWidget
-
-        if len(df) == 0:
-            gj_tableWidget.clearContents()
-            return
-
-        def changeFormat(text, bijung=False):
-            text = str(text)
-            try:
-                format_data = format(int(text), ',')
-            except ValueError:
-                format_data = format(float(text), ',')
-                if len(format_data.split('.')) >= 2:
-                    if bijung:
-                        if len(format_data.split('.')[1]) == 3:
-                            format_data += '0'
-                        elif len(format_data.split('.')[1]) == 2:
-                            format_data += '00'
-                        elif len(format_data.split('.')[1]) == 1:
-                            format_data += '000'
-                    else:
-                        if len(format_data.split('.')[1]) == 1:
-                            format_data += '0'
-            return format_data
-
-        gj_tableWidget.setRowCount(len(df))
-        for j, code in enumerate(df.index):
-            for i, column in enumerate(columns_gjs):
-                if column == '종목명':
-                    item = QtWidgets.QTableWidgetItem(self.dict_name[code])
-                    item.setTextAlignment(Qt.AlignVCenter | Qt.AlignLeft)
-                else:
-                    if column == '비중':
-                        item = QtWidgets.QTableWidgetItem(changeFormat(df[column][code], True))
-                    else:
-                        item = QtWidgets.QTableWidgetItem(changeFormat(df[column][code]))
-                    item.setTextAlignment(Qt.AlignVCenter | Qt.AlignRight)
-                if gubun in [ui_num['short'], ui_num['short'] + 100]:
-                    if df['현재가'][code] >= df['시가'][code] + df['변동성'][code]:
+                if column == '등락율':
+                    if self.dict_intg[f'등락율하한{time}'] <= dict_df[code][column][0] <= self.dict_intg[f'등락율상한{time}']:
                         item.setForeground(color_fg_bt)
                     else:
                         item.setForeground(color_fg_dk)
-                gj_tableWidget.setItem(j, i, item)
-        if len(df) < 46:
-            gj_tableWidget.setRowCount(46)
+                elif column == '고저평균대비등락율':
+                    if dict_df[code][column][0] >= 0:
+                        item.setForeground(color_fg_bt)
+                    else:
+                        item.setForeground(color_fg_dk)
+                elif column == '거래대금':
+                    if dict_df[code][column][0] >= smavg + self.dict_intg[f'거래대금차이{time}']:
+                        item.setForeground(color_fg_bt)
+                    else:
+                        item.setForeground(color_fg_dk)
+                elif column == '누적거래대금':
+                    if dict_df[code][column][0] >= self.dict_intg[f'누적거래대금하한{time}']:
+                        item.setForeground(color_fg_bt)
+                    else:
+                        item.setForeground(color_fg_dk)
+                elif column == '체결강도':
+                    if dict_df[code][column][0] >= self.dict_intg[f'체결강도하한{time}'] and \
+                            dict_df[code][column][0] >= chavg + self.dict_intg[f'체결강도차이{time}']:
+                        item.setForeground(color_fg_bt)
+                    else:
+                        item.setForeground(color_fg_dk)
+                self.gj_tableWidget.setItem(j, i + 1, item)
+
+        if len(dict_df) < 46:
+            self.gj_tableWidget.setRowCount(46)
 
     def UpdateTablewidget(self, data):
         gubun = data[0]
@@ -1257,9 +1244,9 @@ class Window(QtWidgets.QMainWindow):
                             else:
                                 hj_tableWidget = self.hoga_01_hj_tableWidget
                             if hj_tableWidget.item(0, 0) is not None:
-                                o = comma2int(hj_tableWidget.item(0, 7).text())
-                                h = comma2int(hj_tableWidget.item(0, 8).text())
-                                low = comma2int(hj_tableWidget.item(0, 9).text())
+                                o = comma2int(hj_tableWidget.item(0, columns_hj.index('시가')).text())
+                                h = comma2int(hj_tableWidget.item(0, columns_hj.index('고가')).text())
+                                low = comma2int(hj_tableWidget.item(0, columns_hj.index('저가')).text())
                                 if o != 0:
                                     if df[column][index] == o:
                                         item.setIcon(self.icon_open)
@@ -1278,8 +1265,8 @@ class Window(QtWidgets.QMainWindow):
                             else:
                                 hj_tableWidget = self.hoga_01_hj_tableWidget
                             if hj_tableWidget.item(0, 0) is not None:
-                                uvi = comma2int(hj_tableWidget.item(0, 13).text())
-                                dvi = comma2int(hj_tableWidget.item(0, 14).text())
+                                uvi = comma2int(hj_tableWidget.item(0, columns_hj.index('UVI')).text())
+                                dvi = comma2int(hj_tableWidget.item(0, columns_hj.index('DVI')).text())
                                 if df[column][index] != 0:
                                     if j < 11:
                                         if df['호가'][index] == uvi:
@@ -1350,8 +1337,9 @@ class Window(QtWidgets.QMainWindow):
                                 hg_tableWidget = self.hoga_00_hg_tableWidget
                             else:
                                 hg_tableWidget = self.hoga_01_hg_tableWidget
-                            if hg_tableWidget.item(0, 0) is not None and hg_tableWidget.item(10, 2).text() != '':
-                                c = comma2int(hg_tableWidget.item(10, 2).text())
+                            if hg_tableWidget.item(0, 0) is not None and \
+                                    hg_tableWidget.item(10, columns_hg.index('호가')).text() != '':
+                                c = comma2int(hg_tableWidget.item(10, columns_hg.index('호가')).text())
                                 if df[column][index] > 0:
                                     item.setForeground(color_fg_bt)
                                     if df[column][index] * c > 90000000:
@@ -1411,13 +1399,13 @@ class Window(QtWidgets.QMainWindow):
                             else:
                                 hj_tableWidget = self.hoga_01_hj_tableWidget
                             if hj_tableWidget.item(0, 0) is not None:
-                                c = comma2int(hj_tableWidget.item(0, 2).text())
+                                c = comma2int(hj_tableWidget.item(0, columns_hj.index('현재가')).text())
                                 if j not in [0, 21] and df[column][index] == c:
                                     item.setBackground(color_bf_bt)
-                                if hj_tableWidget.item(0, 1).text() != '0':
+                                if hj_tableWidget.item(0, columns_hj.index('매입가')).text() != '0':
                                     gap = df[column][19] - df[column][20]
-                                    bp = comma2int(hj_tableWidget.item(0, 1).text())
-                                    if df[column][index] <= bp < df[column][index] + gap:
+                                    buyprice = comma2int(hj_tableWidget.item(0, columns_hj.index('매입가')).text())
+                                    if df[column][index] <= buyprice < df[column][index] + gap:
                                         item.setBackground(color_bf_dk)
                 elif gubun in [ui_num['매도주문0'], ui_num['매도주문1'], ui_num['매수주문0'], ui_num['매수주문1']]:
                     item.setForeground(color_fg_bt)
@@ -1443,12 +1431,13 @@ class Window(QtWidgets.QMainWindow):
         if item is None:
             return
         name = item.text()
-        if self.hoga_00_hj_tableWidget.item(0, 11).text() == '':
+        if self.hoga_00_hj_tableWidget.item(0, columns_jg.index('보유수량')).text() == '':
             return
-        jc = comma2int(self.hoga_00_hj_tableWidget.item(0, 11).text())
-        if self.hoga_00_hg_tableWidget.item(row, 2).text() == '':
+        jc = comma2int(self.hoga_00_hj_tableWidget.item(0, columns_jg.index('보유수량')).text())
+        if self.hoga_00_hg_tableWidget.item(row, columns_hg.index('호가')).text() == '':
             return
-        hg = comma2int(self.hoga_00_hg_tableWidget.item(row, 2).text())
+        hg = comma2int(self.hoga_00_hg_tableWidget.item(row, columns_hg.index('호가')).text())
+
         bper = 0
         if self.hoga_00_sell_radioButton_01.isChecked():
             bper = 10
@@ -1465,11 +1454,11 @@ class Window(QtWidgets.QMainWindow):
         if bper == 0:
             windowQ.put([2, '시스템 명령 오류 알림 - 매도비율을 선택하십시오.'])
             return
+
         oc = int(jc * (bper / 100))
         if oc == 0:
             oc = 1
-        code = self.dict_code[self.hoga_00_hj_tableWidget.item(0, 0).text()]
-        order = ['매도', '4989', '', 2, code, oc, hg, '00', '', hg, name]
+        order = ['매도', self.dict_code[name], name, hg, oc]
         workerQ.put(order)
 
     @QtCore.pyqtSlot(int)
@@ -1478,9 +1467,10 @@ class Window(QtWidgets.QMainWindow):
         if item is None:
             return
         name = item.text()
-        if self.hoga_00_hg_tableWidget.item(row, 2).text() == '':
+        if self.hoga_00_hg_tableWidget.item(row, columns_hg.index('호가')).text() == '':
             return
-        hg = comma2int(self.hoga_00_hg_tableWidget.item(row, 2).text())
+        hg = comma2int(self.hoga_00_hg_tableWidget.item(row, columns_hg.index('호가')).text())
+
         og = 0
         if self.hoga_00_buy_radioButton_01.isChecked():
             og = 100000
@@ -1497,9 +1487,9 @@ class Window(QtWidgets.QMainWindow):
         if og == 0:
             windowQ.put([2, '시스템 명령 오류 알림 - 매수금액을 선택하십시오.'])
             return
+
         oc = int(og / hg)
-        code = self.dict_code[name]
-        order = ['매수', '4989', '', 1, code, oc, hg, '00', '', hg, name]
+        order = ['매수', self.dict_code[name], name, hg, oc]
         workerQ.put(order)
 
     @QtCore.pyqtSlot(int)
@@ -1508,12 +1498,13 @@ class Window(QtWidgets.QMainWindow):
         if item is None:
             return
         name = item.text()
-        if self.hoga_01_hj_tableWidget.item(0, 11).text() == '':
+        if self.hoga_01_hj_tableWidget.item(0, columns_jg.index('보유수량')).text() == '':
             return
-        jc = comma2int(self.hoga_01_hj_tableWidget.item(0, 11).text())
-        if self.hoga_01_hg_tableWidget.item(row, 2).text() == '':
+        jc = comma2int(self.hoga_01_hj_tableWidget.item(0, columns_jg.index('보유수량')).text())
+        if self.hoga_01_hg_tableWidget.item(row, columns_hg.index('호가')).text() == '':
             return
-        hg = comma2int(self.hoga_01_hg_tableWidget.item(row, 2).text())
+        hg = comma2int(self.hoga_01_hg_tableWidget.item(row, columns_hg.index('호가')).text())
+
         bper = 0
         if self.hoga_01_sell_radioButton_01.isChecked():
             bper = 10
@@ -1530,11 +1521,11 @@ class Window(QtWidgets.QMainWindow):
         if bper == 0:
             windowQ.put([2, '시스템 명령 오류 알림 - 매도비율을 선택하십시오.'])
             return
+
         oc = int(jc * (bper / 100))
         if oc == 0:
             oc = 1
-        code = self.dict_code[name]
-        order = ['매도', '4989', '', 2, code, oc, hg, '00', '', hg, name]
+        order = ['매도', self.dict_code[name], name, hg, oc]
         workerQ.put(order)
 
     @QtCore.pyqtSlot(int)
@@ -1543,9 +1534,10 @@ class Window(QtWidgets.QMainWindow):
         if item is None:
             return
         name = item.text()
-        if self.hoga_01_hg_tableWidget.item(row, 2).text() == '':
+        if self.hoga_01_hg_tableWidget.item(row, columns_hg.index('호가')).text() == '':
             return
-        hg = comma2int(self.hoga_01_hg_tableWidget.item(row, 2).text())
+        hg = comma2int(self.hoga_01_hg_tableWidget.item(row, columns_hg.index('호가')).text())
+
         og = 0
         if self.hoga_01_buy_radioButton_01.isChecked():
             og = 100000
@@ -1562,9 +1554,9 @@ class Window(QtWidgets.QMainWindow):
         if og == 0:
             windowQ.put([2, '시스템 명령 오류 알림 - 매수금액을 선택하십시오.'])
             return
+
         oc = int(og / hg)
-        code = self.dict_code[name]
-        order = ['매수', '4989', '', 1, code, oc, hg, '00', '', hg, name]
+        order = ['매수', self.dict_code[name], name, hg, oc]
         workerQ.put(order)
 
     @QtCore.pyqtSlot(int, int)
@@ -1601,7 +1593,7 @@ class Window(QtWidgets.QMainWindow):
     def CellClicked_8(self, row, col):
         if col > 1:
             return
-        item = self.gjt_tableWidget.item(row, 0)
+        item = self.gj_tableWidget.item(row, 0)
         if item is None:
             return
         code = self.dict_code[item.text()]
@@ -1609,16 +1601,6 @@ class Window(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot(int, int)
     def CellClicked_9(self, row, col):
-        if col > 1:
-            return
-        item = self.gjs_tableWidget.item(row, 0)
-        if item is None:
-            return
-        code = self.dict_code[item.text()]
-        self.PutWorkerQ(code, col)
-
-    @QtCore.pyqtSlot(int, int)
-    def CellClicked_10(self, row, col):
         if col > 1:
             return
         item = self.stl_tableWidget.item(row, 1)
@@ -1710,15 +1692,16 @@ class Window(QtWidgets.QMainWindow):
             if bper == 0:
                 windowQ.put([1, '시스템 명령 오류 알림 - 매도비율을 선택하십시오.'])
                 return
-            c = comma2int(hg_tableWidget.item(11, 2).text())
-            if hj_tableWidget.item(0, 11).text() == '':
+
+            c = comma2int(hg_tableWidget.item(11, columns_hg.index('호가')).text())
+            if hj_tableWidget.item(0, columns_jg.index('보유수량')).text() == '':
                 return
-            jc = comma2int(hj_tableWidget.item(0, 11).text())
+            jc = comma2int(hj_tableWidget.item(0, columns_jg.index('보유수량')).text())
             oc = int(jc * (bper / 10))
             if oc == 0:
                 oc = 1
             name = hj_tableWidget.item(0, 0).text()
-            order = ['매도', '4989', '', 2, code, oc, 0, '03', '', c, name]
+            order = ['매도', self.dict_code[name], name, c, oc]
             workerQ.put(order)
         elif '매도취소' in gubun:
             order = f'매도취소 {code}'
@@ -1764,10 +1747,11 @@ class Window(QtWidgets.QMainWindow):
             if og == 0:
                 windowQ.put([1, '시스템 명령 오류 알림 - 매수금액을 선택하십시오.'])
                 return
-            c = comma2int(hg_tableWidget.item(10, 2).text())
+
+            c = comma2int(hg_tableWidget.item(10, columns_hg.index('호가')).text())
             oc = int(og / c)
             name = hj_tableWidget.item(0, 0).text()
-            order = ['매수', '4989', '', 1, code, oc, 0, '03', '', c, name]
+            order = ['매수', self.dict_code[name], name, c, oc]
             workerQ.put(order)
         elif '매수취소' in gubun:
             order = f'매수취소 {code}'
@@ -1845,7 +1829,7 @@ class Window(QtWidgets.QMainWindow):
             self.chart_02_tabWidget.setCurrentWidget(self.chart_07_tab)
             self.chart_03_tabWidget.setCurrentWidget(self.chart_08_tab)
             self.etc_pushButton_00.setStyleSheet(style_bc_dk)
-            self.etc_pushButton_00.setFont(qfont1)
+            self.etc_pushButton_00.setFont(qfont12)
             self.ct_label_01.setGeometry(int(3500 * resize), int(5 * resize), int(140 * resize), int(20 * resize))
             self.ct_lineEdit_01.setGeometry(int(3500 * resize), int(5 * resize), int(100 * resize), int(20 * resize))
             self.ct_label_02.setGeometry(int(3500 * resize), int(702 * resize), int(140 * resize), int(20 * resize))
@@ -1857,7 +1841,7 @@ class Window(QtWidgets.QMainWindow):
             self.chart_02_tabWidget.setCurrentWidget(self.chart_02_tab)
             self.chart_03_tabWidget.setCurrentWidget(self.chart_03_tab)
             self.etc_pushButton_00.setStyleSheet(style_bc_bt)
-            self.etc_pushButton_00.setFont(qfont1)
+            self.etc_pushButton_00.setFont(qfont12)
             self.ct_label_01.setGeometry(int(1820 * resize), int(5 * resize), int(140 * resize), int(20 * resize))
             self.ct_lineEdit_01.setGeometry(int(1960 * resize), int(5 * resize), int(100 * resize), int(20 * resize))
             self.ct_label_02.setGeometry(int(1820 * resize), int(702 * resize), int(140 * resize), int(20 * resize))
@@ -1879,13 +1863,13 @@ class Window(QtWidgets.QMainWindow):
             self.jb_tabWidget.setGeometry(int(1379 * resize), int(1039 * resize), int(682 * resize), int(355 * resize))
             self.ch_tabWidget.setGeometry(int(2066 * resize), int(702 * resize), int(682 * resize), int(692 * resize))
             self.etc_pushButton_01.setStyleSheet(style_bc_dk)
-            self.etc_pushButton_01.setFont(qfont1)
+            self.etc_pushButton_01.setFont(qfont12)
             self.chart_00_tabWidget.setCurrentWidget(self.chart_00_tab)
             self.chart_01_tabWidget.setCurrentWidget(self.chart_01_tab)
             self.chart_02_tabWidget.setCurrentWidget(self.chart_02_tab)
             self.chart_03_tabWidget.setCurrentWidget(self.chart_03_tab)
             self.etc_pushButton_00.setStyleSheet(style_bc_bt)
-            self.etc_pushButton_00.setFont(qfont1)
+            self.etc_pushButton_00.setFont(qfont12)
             self.mode0 = 0
             self.ct_label_01.setGeometry(int(1820 * resize), int(5 * resize), int(140 * resize), int(20 * resize))
             self.ct_lineEdit_01.setGeometry(int(1960 * resize), int(5 * resize), int(100 * resize), int(20 * resize))
@@ -1919,12 +1903,12 @@ class Window(QtWidgets.QMainWindow):
             self.chart_02_tabWidget.setCurrentWidget(self.chart_02_tab)
             self.chart_03_tabWidget.setCurrentWidget(self.chart_03_tab)
             self.etc_pushButton_00.setStyleSheet(style_bc_bt)
-            self.etc_pushButton_00.setFont(qfont1)
+            self.etc_pushButton_00.setFont(qfont12)
             self.mode0 = 0
             self.hoga_00_tabWidget.setGeometry(int(2066 * resize), int(5 * resize), int(682 * resize), int(692 * resize))
             self.hoga_01_tabWidget.setGeometry(int(2066 * resize), int(702 * resize), int(682 * resize), int(692 * resize))
             self.etc_pushButton_01.setStyleSheet(style_bc_bt)
-            self.etc_pushButton_01.setFont(qfont1)
+            self.etc_pushButton_01.setFont(qfont12)
             self.ct_label_01.setGeometry(int(1820 * resize), int(5 * resize), int(140 * resize), int(20 * resize))
             self.ct_lineEdit_01.setGeometry(int(1960 * resize), int(5 * resize), int(100 * resize), int(20 * resize))
             self.ct_label_02.setGeometry(int(1820 * resize), int(702 * resize), int(140 * resize), int(20 * resize))
@@ -1952,7 +1936,7 @@ class Window(QtWidgets.QMainWindow):
             self.etc_pushButton_01.setGeometry(int(522 * resize), int(291 * resize), int(80 * resize), int(20 * resize))
             self.etc_pushButton_02.setGeometry(int(607 * resize), int(291 * resize), int(80 * resize), int(20 * resize))
             self.etc_pushButton_02.setStyleSheet(style_bc_dk)
-            self.etc_pushButton_02.setFont(qfont1)
+            self.etc_pushButton_02.setFont(qfont12)
             self.ct_label_01.setGeometry(int(3500 * resize), int(5 * resize), int(140 * resize), int(20 * resize))
             self.ct_lineEdit_01.setGeometry(int(3500 * resize), int(5 * resize), int(100 * resize), int(20 * resize))
             self.ct_label_02.setGeometry(int(3500 * resize), int(702 * resize), int(140 * resize), int(20 * resize))
@@ -1989,7 +1973,7 @@ class Window(QtWidgets.QMainWindow):
             self.etc_pushButton_01.setGeometry(int(3270 * resize), int(291 * resize), int(80 * resize), int(20 * resize))
             self.etc_pushButton_02.setGeometry(int(3355 * resize), int(291 * resize), int(80 * resize), int(20 * resize))
             self.etc_pushButton_02.setStyleSheet(style_bc_bt)
-            self.etc_pushButton_02.setFont(qfont1)
+            self.etc_pushButton_02.setFont(qfont12)
             if self.mode0 == 0 and self.mode1 == 0:
                 self.ct_label_01.setGeometry(int(1820 * resize), int(5 * resize), int(140 * resize), int(20 * resize))
                 self.ct_lineEdit_01.setGeometry(int(1960 * resize), int(5 * resize), int(100 * resize), int(20 * resize))
@@ -2013,36 +1997,33 @@ class Writer(QtCore.QThread):
     data1 = QtCore.pyqtSignal(list)
     data2 = QtCore.pyqtSignal(list)
     data3 = QtCore.pyqtSignal(list)
-    data4 = QtCore.pyqtSignal(list)
 
     def __init__(self):
         super().__init__()
+        self.windowQ = windowQ
 
     def run(self):
-        tlist = [ui_num['단타설정'], ui_num['tick'], ui_num['tick'] + 100]
+        tlist = [ui_num['단타설정'], ui_num['관심종목'], ui_num['관심종목'] + 100]
         clist = [ui_num['차트P1'], ui_num['차트P2'], ui_num['차트P3'], ui_num['차트P4'], ui_num['차트P5'],
                  ui_num['차트P6'], ui_num['차트P7'], ui_num['차트P8'], ui_num['차트P9']]
-        dlist = [ui_num['short'], ui_num['short'] + 100]
         while True:
-            data = windowQ.get()
+            data = self.windowQ.get()
             if data[0] not in tlist and type(data[1]) != pd.DataFrame:
                 self.data0.emit(data)
             elif data[0] in clist:
                 self.data1.emit(data)
             elif data[0] in tlist:
                 self.data2.emit(data)
-            elif data[0] in dlist:
-                self.data3.emit(data)
             else:
-                self.data4.emit(data)
+                self.data3.emit(data)
 
 
 if __name__ == '__main__':
-    windowQ, workerQ, stgtQ, stgsQ, soundQ, queryQ, teleQ, hoga1Q, hoga2Q, chart1Q, chart2Q, chart3Q,\
+    windowQ, workerQ, stgQ, soundQ, queryQ, teleQ, hoga1Q, hoga2Q, chart1Q, chart2Q, chart3Q,\
         chart4Q, chart5Q, chart6Q, chart7Q, chart8Q, chart9Q = Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), \
-        Queue(), Queue(), Queue(),  Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue()
+        Queue(), Queue(), Queue(),  Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue()
 
-    qlist = [windowQ, workerQ, stgtQ, stgsQ, soundQ, queryQ, teleQ, hoga1Q, hoga2Q,
+    qlist = [windowQ, workerQ, stgQ, soundQ, queryQ, teleQ, hoga1Q, hoga2Q,
              chart1Q, chart2Q, chart3Q, chart4Q, chart5Q, chart6Q, chart7Q, chart8Q, chart9Q]
 
     from utility.query import Query
@@ -2051,8 +2032,7 @@ if __name__ == '__main__':
     from worker import Worker
     from updater_hoga import UpdaterHoga
     from updater_chart import UpdaterChart
-    from strategy_tick import StrategyTick
-    from strategy_short import StrategyShort
+    from strategy import Strategy
 
     Process(target=Sound, args=(qlist,), daemon=True).start()
     Process(target=Query, args=(qlist,), daemon=True).start()
@@ -2068,8 +2048,7 @@ if __name__ == '__main__':
     Process(target=UpdaterChart, args=(qlist, ui_num['차트P7']), daemon=True).start()
     Process(target=UpdaterChart, args=(qlist, ui_num['차트P8']), daemon=True).start()
     Process(target=UpdaterChart, args=(qlist, ui_num['차트P9']), daemon=True).start()
-    Process(target=StrategyTick, args=(qlist,), daemon=True).start()
-    Process(target=StrategyShort, args=(qlist,), daemon=True).start()
+    Process(target=Strategy, args=(qlist,), daemon=True).start()
     Process(target=Worker, args=(qlist,), daemon=True).start()
 
     app = QtWidgets.QApplication(sys.argv)

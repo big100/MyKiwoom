@@ -5,15 +5,15 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from multiprocessing import Process, Queue
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-from utility.setting import db_backtest, db_tick, db_stg, graph_path
-from utility.static import now, strf_time, telegram_msg, timedelta_sec, strp_time, timedelta_day
+from utility.setting import db_stg, db_tick, db_backtest, graph_path
+from utility.static import now, strf_time, strp_time, timedelta_sec, timedelta_day, telegram_msg
 
 BATTING = 5000000       # 종목당 배팅금액
 TESTPERIOD = 14         # 백테스팅 기간(14일 경우 과거 2주간의 데이터를 백테스팅한다)
-TOTALTIME = 36000       # 백테스팅 기간 동안 9시부터 10시까지의 시간 총합, 단위 초
+TOTALTIME = 198000      # 백테스팅 기간 동안 9시부터 10시까지의 시간 총합, 단위 초
 
 
-class BackTesterTick:
+class BackTester1:
     def __init__(self, q_, code_list_, num_, df_mt_, high):
         self.q = q_
         self.code_list = code_list_
@@ -26,16 +26,18 @@ class BackTesterTick:
             self.gap_sm = num_[2][0]
             self.ch_low = num_[3][0]
             self.dm_low = num_[4][0]
-            self.per_high = num_[5][0]
-            self.cs_per = num_[6][0]
+            self.per_low = num_[5][0]
+            self.per_high = num_[6][0]
+            self.cs_per = num_[7][0]
         else:
             self.gap_ch = num_[0]
             self.avg_time = num_[1]
             self.gap_sm = num_[2]
             self.ch_low = num_[3]
             self.dm_low = num_[4]
-            self.per_high = num_[5]
-            self.cs_per = num_[6]
+            self.per_low = num_[5]
+            self.per_high = num_[6]
+            self.cs_per = num_[7]
 
         self.code = None
         self.df = None
@@ -81,18 +83,19 @@ class BackTesterTick:
             self.totaleyun = 0
             self.totalper = 0.
             self.ccond = 0
+            lasth = len(self.df) - 1
             for h, index in enumerate(self.df.index):
-                if int(index[:8]) < int_daylimit or (not self.hold and int(index[8:]) >= 100000):
+                if h != 0 and index[:8] != self.df.index[h - 1][:8]:
+                    self.ccond = 0
+                if int(index[:8]) < int_daylimit or int(index[8:]) <= 100000:
                     continue
                 self.index = index
                 self.indexn = h
-                if h != 0 and index[:8] != self.df.index[h - 1][:8]:
-                    self.ccond = 0
-                if not self.hold and int(index[8:]) < 100000 and self.BuyTerm():
+                if not self.hold and self.BuyTerm():
                     self.Buy()
                 elif self.hold and self.SellTerm():
                     self.Sell()
-                if h != 0 and self.hold and int(index[8:]) >= 100000 > int(self.df.index[h - 1][8:]):
+                elif self.hold and (h == lasth or index[:8] != self.df.index[h + 1][:8]):
                     self.Sell()
             self.Report(k + 1, tcount)
         conn.close()
@@ -134,6 +137,10 @@ class BackTesterTick:
     def SellTerm(self):
         if self.df['등락율'][self.index] > 29:
             return True
+
+        bg = self.buycount * self.buyprice
+        cg = self.buycount * self.df['현재가'][self.index]
+        eyun, per = self.GetEyunPer(bg, cg)
 
         # 전략 비공개
 
@@ -247,16 +254,18 @@ class Total:
             self.gap_sm = num_[2][0]
             self.ch_low = num_[3][0]
             self.dm_low = num_[4][0]
-            self.per_high = num_[5][0]
-            self.cs_per = num_[6][0]
+            self.per_low = num_[5][0]
+            self.per_high = num_[6][0]
+            self.cs_per = num_[7][0]
         else:
             self.gap_ch = num_[0]
             self.avg_time = num_[1]
             self.gap_sm = num_[2]
             self.ch_low = num_[3]
             self.dm_low = num_[4]
-            self.per_high = num_[5]
-            self.cs_per = num_[6]
+            self.per_low = num_[5]
+            self.per_high = num_[6]
+            self.cs_per = num_[7]
 
         self.Start()
 
@@ -264,7 +273,7 @@ class Total:
         columns1 = ['거래횟수', '평균보유기간', '익절', '손절', '승률', '수익률', '수익금']
         columns2 = ['필요자금', '종목출현빈도수', '거래횟수', '평균보유기간', '익절', '손절', '승률',
                     '평균수익률', '수익률합계', '수익금합계', '체결강도차이', '평균시간', '거래대금차이',
-                    '체결강도하한', '누적거래대금하한', '등락율상한', '청산수익률']
+                    '체결강도하한', '누적거래대금하한', '등락율하한', '등락율상한', '청산수익률']
         df_back = pd.DataFrame(columns=columns1)
         df_tsg = pd.DataFrame(columns=['종목명', 'per', 'ttsg'])
         k = 0
@@ -286,7 +295,7 @@ class Total:
 
         tsp = 0
         if len(df_back) > 0:
-            tc = sum(df_back['거래횟수'])
+            tc = df_back['거래횟수'].sum()
             if tc != 0:
                 pc = df_back['익절'].sum()
                 mc = df_back['손절'].sum()
@@ -295,23 +304,24 @@ class Total:
                 avghold = round(df_back_['평균보유기간'].sum() / len(df_back_), 2)
                 avgsp = round(df_back['수익률'].sum() / tc, 2)
                 tsg = int(df_back['수익금'].sum())
-                onedaycount = round(tc / TOTALTIME, 2)
+                onedaycount = round(tc / TOTALTIME, 4)
                 onegm = int(BATTING * onedaycount * avghold)
                 if onegm < BATTING:
                     onegm = BATTING
                 tsp = round(tsg / onegm * 100, 4)
-                text = [self.gap_ch, self.avg_time, self.gap_sm, self.ch_low, self.dm_low, self.per_high, self.cs_per]
+                text = [self.gap_ch, self.avg_time, self.gap_sm, self.ch_low, self.dm_low,
+                        self.per_low, self.per_high, self.cs_per]
                 print(f' {text}')
                 text = f" 종목당 배팅금액 {format(BATTING, ',')}원, 필요자금 {format(onegm, ',')}원, "\
                        f" 종목출현빈도수 {onedaycount}개/초, 거래횟수 {tc}회, 평균보유기간 {avghold}초,\n 익절 {pc}회, "\
                        f" 손절 {mc}회, 승률 {pper}%, 평균수익률 {avgsp}%, 수익률합계 {tsp}%, 수익금합계 {format(tsg, ',')}원"
                 print(text)
                 df_back = pd.DataFrame(
-                    [[onegm, onedaycount, tc, avghold, pc, mc, pper, avgsp, tsp, tsg,
-                      self.gap_ch, self.avg_time, self.gap_sm, self.ch_low, self.dm_low, self.per_high, self.cs_per]],
+                    [[onegm, onedaycount, tc, avghold, pc, mc, pper, avgsp, tsp, tsg, self.gap_ch, self.avg_time,
+                      self.gap_sm, self.ch_low, self.dm_low, self.per_low, self.per_high, self.cs_per]],
                     columns=columns2, index=[strf_time('%Y%m%d%H%M%S')])
                 conn = sqlite3.connect(db_backtest)
-                df_back.to_sql(f"{strf_time('%Y%m%d')}_tick", conn, if_exists='append', chunksize=1000)
+                df_back.to_sql(f"{strf_time('%Y%m%d')}_2c", conn, if_exists='append', chunksize=1000)
                 conn.close()
 
         if len(df_tsg) > 0:
@@ -320,15 +330,15 @@ class Total:
             df_tsg['ttsg_cumsum'] = df_tsg['ttsg'].cumsum()
             df_tsg[['ttsg', 'ttsg_cumsum']] = df_tsg[['ttsg', 'ttsg_cumsum']].astype(int)
             conn = sqlite3.connect(db_backtest)
-            df_tsg.to_sql(f"{strf_time('%Y%m%d')}_tick_time", conn, if_exists='replace', chunksize=1000)
+            df_tsg.to_sql(f"{strf_time('%Y%m%d')}_2t", conn, if_exists='replace', chunksize=1000)
             conn.close()
             df_tsg.plot(figsize=(12, 9), rot=45)
             plt.savefig(f"{graph_path}/{strf_time('%Y%m%d')}_tick.png")
             conn = sqlite3.connect(db_stg)
             cur = conn.cursor()
-            query = f"UPDATE setting SET 체결강도차이 = {self.gap_ch}, 평균시간 = {self.avg_time}, "\
-                    f"거래대금차이 = {self.gap_sm}, 체결강도하한 = {self.ch_low}, 누적거래대금하한 = {self.dm_low}, "\
-                    f"등락율상한 = {self.per_high}, 청산수익률 = {self.cs_per}"
+            query = f"UPDATE setting SET 체결강도차이2 = {self.gap_ch}, 평균시간2 = {self.avg_time}, "\
+                    f"거래대금차이2 = {self.gap_sm}, 체결강도하한2 = {self.ch_low}, 누적거래대금하한2 = {self.dm_low}, "\
+                    f"등락율하한2 = {self.per_low}, 등락율상한2 = {self.per_high}, 청산수익률2 = {self.cs_per}"
             cur.execute(query)
             conn.commit()
             conn.close()
@@ -362,14 +372,14 @@ if __name__ == "__main__":
 
     for gap_ch in gap_chs:
         for avg_time in avg_times:
-            num = [gap_ch, avg_time, 50, 50, 0, 25, 3]
+            num = [gap_ch, avg_time, 50, 50, 0, 0, 25, 3]
             w = Process(target=Total, args=(q, last, num, df1))
             w.start()
             procs = []
             workcount = int(last / 6) + 1
             for j in range(0, last, workcount):
                 code_list = table_list[j:j + workcount]
-                p = Process(target=BackTesterTick, args=(q, code_list, num, df3, False))
+                p = Process(target=BackTester1, args=(q, code_list, num, df3, False))
                 procs.append(p)
                 p.start()
             for p in procs:
@@ -385,10 +395,11 @@ if __name__ == "__main__":
     avg_time = [high_var[1], high_var[1], 30, 3]
     gap_sm = [50, 100, 10, 10]
     ch_low = [50, 100, 10, 10]
-    dm_low = [0, 10000, 1000, 1000]
+    dm_low = [0, 100000, 10000, 1000]
+    per_low = [0, 10, 1, 0.1]
     per_high = [25, 15, -1, -1]
     cs_per = [3, 10, 1, 0.2]
-    num = [gap_ch, avg_time, gap_sm, ch_low, dm_low, per_high, cs_per]
+    num = [gap_ch, avg_time, gap_sm, ch_low, dm_low, per_low, per_high, cs_per]
 
     ogin_var = high_var[0]
     high_var = high_var[0]
@@ -401,7 +412,7 @@ if __name__ == "__main__":
         workcount = int(last / 6) + 1
         for j in range(0, last, workcount):
             code_list = table_list[j:j + workcount]
-            p = Process(target=BackTesterTick, args=(q, code_list, num, df3, False))
+            p = Process(target=BackTester1, args=(q, code_list, num, df3, False))
             procs.append(p)
             p.start()
         for p in procs:
@@ -439,7 +450,7 @@ if __name__ == "__main__":
     workcount = int(last / 6) + 1
     for j in range(0, last, workcount):
         db_list = table_list[j:j + workcount]
-        p = Process(target=BackTesterTick, args=(q, db_list, num, df3, True))
+        p = Process(target=BackTester1, args=(q, db_list, num, df3, True))
         procs.append(p)
         p.start()
     for p in procs:
