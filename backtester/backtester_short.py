@@ -9,9 +9,9 @@ from utility.static import now, strf_time
 from utility.setting import db_day, db_backtest, db_stg, graph_path
 
 STARTDAY = 20150600     # 백테스팅 시작날짜
-BATTING = 1000000       # 단위 원
-PREMONEY = 10000        # 단위 백만
-AVGPERIOD = 20          # 돌파계수 평균기간
+BATTING = 5000000       # 단위 원
+PREMONEY = 300000       # 단위 백만
+AVGPERIOD = 7           # 돌파계수 평균기간
 
 
 class BackTesterShort:
@@ -74,9 +74,13 @@ class BackTesterShort:
         conn.close()
 
     def BuyTerm(self):
-
-        # 전략 비공개
-
+        if self.df['현재가'][self.index] == 0 or self.df['현재가'][self.indexn - 1] == 0 or \
+                self.df['현재가'][self.indexn - 2] == 0:
+            return False
+        k = self.df['고가저가폭'][self.indexn - 1] * self.df['평균돌파계수'][self.indexn - 1]
+        if self.df['거래대금'][self.indexn - 1] >= PREMONEY and \
+                self.df['고가'][self.index] >= self.df['시가'][self.index] + k:
+            return True
         return False
 
     def Buy(self):
@@ -89,9 +93,15 @@ class BackTesterShort:
         self.hold = True
 
     def SellTerm(self):
-
-        # 전략 비공개
-
+        k = self.df['고가저가폭'][self.indexn - 1] * self.df['평균돌파계수'][self.indexn - 1]
+        low = self.df['시가'][self.index] - k
+        high = self.df['시가'][self.index] + k
+        if self.df['저가'][self.index] <= low:
+            self.sellprice = low
+            return True
+        if self.df['고가'][self.index] >= high:
+            self.sellprice = high
+            return True
         return False
 
     def Sell(self, lastcandle=False):

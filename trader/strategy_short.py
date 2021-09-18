@@ -7,7 +7,7 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.setting import db_stg, ui_num
 from utility.static import now, timedelta_sec, thread_decorator
 
-tujagm_divide = 5
+TUJAGMDIVIDE = 5       # 종목당 투자금 분할계수
 
 
 class StrategyShort:
@@ -80,10 +80,14 @@ class StrategyShort:
 
         if code in self.list_buy:
             return
+        if intrade:
+            return
+        if injango:
+            return
+        if not (c >= o + self.df['변동성'][code] > prec != 0):
+            return
 
-        # 전략 비공개
-
-        oc = int(batting / tujagm_divide / c)
+        oc = int(batting / TUJAGMDIVIDE / c)
         if oc > 0:
             name = dict_name[code]
             self.list_buy.append(code)
@@ -94,9 +98,8 @@ class StrategyShort:
             return
 
         oc = 0
-
-        # 전략 비공개
-
+        if c >= o + self.df['변동성'][code] or c <= o - self.df['변동성'][code]:
+            oc = jc
         if oc > 0:
             self.list_sell.append(code)
             self.workerQ.put(['단기매도', code, name, c, jc])

@@ -53,7 +53,7 @@ class Worker:
         self.dict_intg = {
             '장운영상태': 1,
             '예수금': 0,
-            '초기예수금': 0,
+            '추정예탁자산': 0,
             '단타예수금': 0,
             '단기예수금': 0,
             '단타추정예수금': 0,
@@ -668,7 +668,6 @@ class Worker:
                     self.dict_intg['예수금'] = 100000000 - jggm + sigm
                 else:
                     self.dict_intg['예수금'] = int(df['D+2추정예수금'][0]) - jggm + sigm
-                self.dict_intg['초기예수금'] = self.dict_intg['예수금']
                 break
             else:
                 self.windowQ.put([1, '시스템 명령 오류 알림 - 오류가 발생하여 계좌평가현황을 재조회합니다.'])
@@ -679,11 +678,11 @@ class Worker:
                                     조회구분=2, output='계좌평가결과', next=0)
             if df['추정예탁자산'][0] != '':
                 if self.dict_bool['모의투자']:
-                    chujeongjasan = self.dict_intg['예수금'] + pggm
+                    self.dict_intg['추정예탁자산'] = self.dict_intg['예수금'] + pggm
                 else:
-                    chujeongjasan = int(df['추정예탁자산'][0])
-                self.dict_intg['단타투자금액'] = int(chujeongjasan * 0.495)
-                self.dict_intg['단기투자금액'] = int(chujeongjasan * 0.495)
+                    self.dict_intg['추정예탁자산'] = int(df['추정예탁자산'][0])
+                self.dict_intg['단타투자금액'] = int(self.dict_intg['추정예탁자산'] * 0.495)
+                self.dict_intg['단기투자금액'] = int(self.dict_intg['추정예탁자산'] * 0.495)
                 tick_pggm = self.dict_df['잔고목록'][self.dict_df['잔고목록']['전략구분'] == '단타']['평가금액'].sum()
                 short_pggm = self.dict_df['잔고목록'][self.dict_df['잔고목록']['전략구분'] == '단기']['평가금액'].sum()
                 self.dict_intg['단타예수금'] = self.dict_intg['단타투자금액'] - tick_pggm
@@ -692,14 +691,14 @@ class Worker:
                 self.dict_intg['단기추정예수금'] = self.dict_intg['단기예수금']
                 if self.dict_bool['모의투자']:
                     self.dict_df['잔고평가'].at[self.dict_strg['당일날짜']] = \
-                        chujeongjasan, self.dict_intg['예수금'], 0, 0, 0, 0, 0
+                        self.dict_intg['추정예탁자산'], self.dict_intg['예수금'], 0, 0, 0, 0, 0
                 else:
                     tsp = float(int(df['총수익률(%)'][0]) / 100)
                     tsg = int(df['총평가손익금액'][0])
                     tbg = int(df['총매입금액'][0])
                     tpg = int(df['총평가금액'][0])
                     self.dict_df['잔고평가'].at[self.dict_strg['당일날짜']] = \
-                        chujeongjasan, self.dict_intg['예수금'], 0, tsp, tsg, tbg, tpg
+                        self.dict_intg['추정예탁자산'], self.dict_intg['예수금'], 0, tsp, tsg, tbg, tpg
                 self.windowQ.put([ui_num['잔고평가'], self.dict_df['잔고평가']])
                 break
             else:
