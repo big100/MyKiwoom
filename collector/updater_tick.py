@@ -62,10 +62,16 @@ class UpdaterTick:
         if cmd != '틱데이터저장':
             return
         for code in list(self.dict_df.keys()):
+            columns = ['현재가', '시가', '고가', '거래대금', '누적거래대금', '상승VID5가격',
+                       '매도1잔량', '매도2잔량', '매수1잔량', '매수2잔량', '매도1호가', '매도2호가', '매수1호가', '매수2호가']
+            self.dict_df[code][columns] = self.dict_df[code][columns].astype(int)
+            """
+            당일 거래 종목만 저장용
             if code in codes:
                 columns = ['현재가', '시가', '고가', '거래대금', '누적거래대금', '상승VID5가격',
                            '매도1잔량', '매도2잔량', '매수1잔량', '매수2잔량', '매도1호가', '매도2호가', '매수1호가', '매수2호가']
                 self.dict_df[code][columns] = self.dict_df[code][columns].astype(int)
             else:
                 del self.dict_df[code]
+            """
         self.queryQ.put(self.dict_df)

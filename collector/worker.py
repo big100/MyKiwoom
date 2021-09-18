@@ -123,14 +123,15 @@ class Worker:
             if self.dict_intg['장운영상태'] == 3:
                 if not self.dict_bool['실시간조건검색시작']:
                     self.ConditionSearchStart()
-                if int(self.str_jcct[8:]) > 100500:
-                    if not self.dict_bool['실시간조건검색중단']:
-                        self.ConditionSearchStop()
-                    if not self.dict_bool['실시간데이터수신중단']:
-                        self.RemoveRealreg()
-                    if not self.dict_bool['DB저장']:
-                        self.SaveDatabase()
-                        self.SysExit(False)
+            if self.dict_intg['장운영상태'] == 2:
+                if not self.dict_bool['실시간조건검색중단']:
+                    self.ConditionSearchStop()
+            if self.dict_intg['장운영상태'] == 8:
+                if not self.dict_bool['실시간데이터수신중단']:
+                    self.RemoveRealreg()
+                if not self.dict_bool['DB저장']:
+                    self.SaveDatabase()
+                    self.SysExit(False)
 
             if now() > self.time_info:
                 if len(self.df_mt) > 0:
@@ -249,8 +250,6 @@ class Worker:
     def OnReceiveRealCondition(self, code, IorD, cname, cindex):
         if cname == "":
             return
-        if int(self.str_jcct[8:]) > 100500:
-            return
 
         if IorD == "I" and cindex == "0" and code not in self.list_code:
             self.list_code.append(code)
@@ -271,8 +270,6 @@ class Worker:
             else:
                 self.OperationAlert(current, remain)
         elif realtype == 'VI발동/해제':
-            if int(self.str_jcct[8:]) > 100500:
-                return
             try:
                 code = self.GetCommRealData(code, 9001).strip('A').strip('Q')
                 gubun = self.GetCommRealData(code, 9068)
@@ -285,8 +282,6 @@ class Worker:
                          (self.dict_vipr[code][0] and now() > self.dict_vipr[code][1])):
                     self.UpdateViPriceDown5(code, name)
         elif realtype == '주식체결':
-            if int(self.str_jcct[8:]) > 100500:
-                return
             self.dict_intg['초당주식체결수신횟수'] += 1
             try:
                 d = self.GetCommRealData(code, 20)
@@ -319,8 +314,6 @@ class Worker:
                     else:
                         self.UpdateTickData(code, c, o, h, low, per, dm, ch, vp, d)
         elif realtype == '주식호가잔량':
-            if int(self.str_jcct[8:]) > 100500:
-                return
             self.dict_intg['초당호가잔량수신횟수'] += 1
             try:
                 s1jr = int(self.GetCommRealData(code, 61))

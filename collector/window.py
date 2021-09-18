@@ -26,10 +26,10 @@ class Window(QtWidgets.QMainWindow):
             textedit.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
             textedit.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
             textedit.setStyleSheet(style_bc_dk)
-            textedit.setFont(qfont1)
+            textedit.setFont(qfont12)
             return textedit
 
-        self.setFont(qfont1)
+        self.setFont(qfont12)
         self.setWindowFlags(Qt.FramelessWindowHint)
         self.setGeometry(0, 0, 692, 292)
 
