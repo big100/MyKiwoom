@@ -332,7 +332,7 @@ class Total:
             df_tsg.to_sql(f"{strf_time('%Y%m%d')}_it", conn, if_exists='replace', chunksize=1000)
             conn.close()
             df_tsg.plot(figsize=(12, 9), rot=45)
-            plt.savefig(f"{graph_path}/{strf_time('%Y%m%d')}_tick.png")
+            plt.savefig(f"{graph_path}/{strf_time('%Y%m%d')}_1.png")
             conn = sqlite3.connect(db_stg)
             cur = conn.cursor()
             query = f"UPDATE setting SET 체결강도차이1 = {self.gap_ch}, 평균시간1 = {self.avg_time}, "\
