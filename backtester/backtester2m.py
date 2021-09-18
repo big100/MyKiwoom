@@ -10,7 +10,7 @@ from utility.static import now, strf_time, strp_time, timedelta_sec, timedelta_d
 
 BATTING = 5000000       # 종목당 배팅금액
 TESTPERIOD = 14         # 백테스팅 기간(14일 경우 과거 2주간의 데이터를 백테스팅한다)
-TOTALTIME = 198000      # 백테스팅 기간 동안 9시부터 10시까지의 시간 총합, 단위 초
+TOTALTIME = 198000      # 백테스팅 기간 동안 10시부터 장마감까지의 시간 총합, 단위 초
 
 
 class BackTester1m:
@@ -324,12 +324,12 @@ if __name__ == "__main__":
     table_list.remove('moneytop')
     last = len(table_list)
 
-    gap_ch = 4.8
-    avg_time = 60
+    gap_ch = 3.0
+    avg_time = 30
     gap_sm = 50
-    ch_low = 90
-    dm_low = 2000
-    per_low = 4.4
+    ch_low = 50
+    dm_low = 0
+    per_low = 0
     per_high = 25
     cs_per = 3
     num = [gap_ch, avg_time, gap_sm, ch_low, dm_low, per_low, per_high, cs_per]
