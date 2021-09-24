@@ -7,10 +7,11 @@ from multiprocessing import Process
 from PyQt5.QAxContainer import QAxWidget
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.setting import openapi_path
-app = QtWidgets.QApplication(sys.argv)
 
 
 class Window(QtWidgets.QMainWindow):
+    app = QtWidgets.QApplication(sys.argv)
+
     def __init__(self):
         super().__init__()
         self.bool_connected = False

@@ -1,5 +1,5 @@
 import sqlite3
-from utility.static import db_stg
+from utility.setting import db_stg
 
 
 class Query:

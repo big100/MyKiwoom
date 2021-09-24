@@ -321,29 +321,29 @@ class UpdaterChart:
         self.windowQ.put([ui_num['투자자'], df1])
         self.windowQ.put([ui_num['체결강도'], df2])
 
-    def UpdateRealChart(self, d, c, v):
+    def UpdateRealChart(self, t, c, v):
         if self.df_ct is None:
             return
         if self.gubun in [ui_num['차트P1'], ui_num['차트P3'], ui_num['차트P6'], ui_num['차트P8']]:
-            d = strf_time('%m-%d')
+            t = strf_time('%m-%d')
         else:
-            d = self.GetStrTime3Minute(d)
+            t = self.GetStrTime3Minute(t)
 
-        if d != self.df_ct.index[-1]:
+        if t != self.df_ct.index[-1]:
             prec = self.df_ct['전일종가'][-1]
             name = self.df_ct['종목명'][-1]
             v = abs(v)
-            if strp_time('%H:%M', self.df_ct.index[0]) <= strp_time('%H:%M', d):
+            if strp_time('%H:%M', self.df_ct.index[0]) <= strp_time('%H:%M', t):
                 self.df_ct.drop(index=self.df_ct.index[0], inplace=True)
             ema05, ema10, ema20, ema40, ema60, ema120 = self.GetMinema(-1, c)
             chuse = ema05 > self.df_ct['지수이평05'][-1] and ema10 > self.df_ct['지수이평10'][-1] and \
                 ema20 > self.df_ct['지수이평20'][-1]
-            self.df_ct.at[d] = c, c, c, c, v, ema05, ema10, ema20, ema40, ema60, ema120, prec, name, 0, chuse
+            self.df_ct.at[t] = c, c, c, c, v, ema05, ema10, ema20, ema40, ema60, ema120, prec, name, 0, chuse
             self.bool_ctup = True
         else:
             v = self.df_ct['거래량'][-1] + abs(v)
             if c == self.df_ct['현재가'][-1]:
-                self.df_ct.at[d, '거래량'] = v
+                self.df_ct.at[t, '거래량'] = v
             else:
                 o = self.df_ct['시가'][-1]
                 h = self.df_ct['고가'][-1]
@@ -360,12 +360,12 @@ class UpdaterChart:
                     if self.gubun in [ui_num['차트P1'], ui_num['차트P3']]:
                         columns = ['현재가', '시가', '고가', '저가', '거래량', '지수이평05', '지수이평20', '지수이평60',
                                    '지수이평120', '지수이평240', '지수이평480', '시종차', '추세']
-                        self.df_ct.at[d, columns] = \
+                        self.df_ct.at[t, columns] = \
                             c, o, h, low, v, ema05, ema20, ema60, ema120, ema240, ema480, gap, chuse
                     else:
                         columns = ['현재가', '시가', '고가', '저가', '거래량', '지수이평05', '지수이평20', '지수이평60',
                                    '시종차', '추세']
-                        self.df_ct.at[d, columns] = c, o, h, low, v, ema05, ema20, ema60, gap, chuse
+                        self.df_ct.at[t, columns] = c, o, h, low, v, ema05, ema20, ema60, gap, chuse
                     self.bool_ctup = True
                 else:
                     ema05, ema10, ema20, ema40, ema60, ema120 = self.GetMinema(-2, c)
@@ -374,20 +374,20 @@ class UpdaterChart:
                     columns = ['현재가', '시가', '고가', '저가', '거래량', '지수이평05', '지수이평10', '지수이평20',
                                '지수이평40', '지수이평60', '지수이평120', '시종차', '추세']
                     try:
-                        self.df_ct.at[d, columns] = c, o, h, low, v, ema05, ema10, ema20, ema40, ema60, ema120, gap, chuse
+                        self.df_ct.at[t, columns] = c, o, h, low, v, ema05, ema10, ema20, ema40, ema60, ema120, gap, chuse
                     except Exception as e:
                         self.windowQ.put([1, f'UpdateRealChart {e}'])
                     else:
                         self.bool_ctup = True
 
-    def UpdateRealChegeolH(self, code, d, c, per, ch):
+    def UpdateRealChegeolH(self, code, t, c, per, ch):
         if code == self.str_ccode:
-            d = d[:4] + '00'
-            if self.df_ch.index[-1] != d:
+            t = t[:4] + '00'
+            if self.df_ch.index[-1] != t:
                 ma05 = round((self.df_ch['체결강도'][-4:].sum() + ch) / 5, 2)
                 ma20 = round((self.df_ch['체결강도'][-19:].sum() + ch) / 20, 2)
                 ma60 = round((self.df_ch['체결강도'][-59:].sum() + ch) / 60, 2)
-                self.df_ch.at[d] = c, per, ch, ma05, ma20, ma60
+                self.df_ch.at[t] = c, per, ch, ma05, ma20, ma60
                 df = self.df_ch.copy()
                 df[['현재가']] = df[['현재가']].astype(int)
                 df['체결시간'] = df.index

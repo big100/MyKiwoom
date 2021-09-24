@@ -2,7 +2,6 @@ import os
 import sys
 import time
 import psutil
-import zipfile
 import pythoncom
 from PyQt5 import QtWidgets
 from threading import Timer, Lock
@@ -10,10 +9,11 @@ from PyQt5.QAxContainer import QAxWidget
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.static import *
 from utility.setting import *
-app = QtWidgets.QApplication(sys.argv)
 
 
 class Worker:
+    app = QtWidgets.QApplication(sys.argv)
+
     def __init__(self, qlist):
         self.windowQ = qlist[0]
         self.workerQ = qlist[1]
@@ -220,17 +220,14 @@ class Worker:
         self.list_kosd = self.GetCodeListByMarket('10')
         list_code = self.GetCodeListByMarket('0') + self.list_kosd
         dict_code = {}
-        df = pd.DataFrame(columns=['종목명'])
         for code in list_code:
             name = self.GetMasterCodeName(code)
-            df.at[code] = name
             self.dict_name[code] = name
             dict_code[name] = code
 
         self.chart9Q.put(self.dict_name)
         self.windowQ.put([8, dict_code])
         self.windowQ.put([9, self.dict_name])
-        self.queryQ.put([df, 'codename', 'replace'])
 
         self.dict_bool['CD수신'] = False
         self.ocx.dynamicCall('GetConditionLoad()')
@@ -663,7 +660,7 @@ class Worker:
                 time.sleep(3.35)
 
         if len(self.dict_df['거래목록']) > 0:
-            self.UpdateTotaltradelist()
+            self.UpdateTotaltradelist(first=True)
 
     def GetKospiKosdaqChart(self):
         self.dict_bool['업종차트조회'] = True
@@ -982,7 +979,7 @@ class Worker:
                 v = int(self.GetCommRealData(code, 15))
                 ch = float(self.GetCommRealData(code, 228))
                 dm = int(self.GetCommRealData(code, 14))
-                d = self.GetCommRealData(code, 20)
+                t = self.GetCommRealData(code, 20)
                 name = self.dict_name[code]
                 prec = self.GetMasterLastPrice(code)
             except Exception as e:
@@ -993,17 +990,17 @@ class Worker:
                         self.InsertViPrice(code, o)
                     elif not self.dict_vipr[code][0] and now() > self.dict_vipr[code][1]:
                         self.UpdateViPrice(code, c)
-                    if code in self.dict_gsjm.keys() and d != self.dict_gsjm[code]:
-                        self.dict_gsjm[code] = d
+                    if code in self.dict_gsjm.keys() and t != self.dict_gsjm[code]:
+                        self.dict_gsjm[code] = t
                         injango = code in self.dict_df['잔고목록'].index
                         vitimedown = now() < self.dict_vipr[code][2]
                         vid5priceup = c >= self.dict_vipr[code][5]
                         batting = self.dict_intg['단타투자금액']
-                        data = [code, name, c, o, h, low, per, ch, dm, d, injango, vitimedown, vid5priceup, batting]
+                        data = [code, name, c, o, h, low, per, ch, dm, t, injango, vitimedown, vid5priceup, batting]
                         self.stgQ.put(data)
                         if injango:
                             self.UpdateJango(code, name, c, o, h, low, per, ch)
-                self.UpdateChartHoga(code, name, c, o, h, low, per, ch, v, d, prec)
+                self.UpdateChartHoga(code, name, c, o, h, low, per, ch, v, t, prec)
         elif realtype == '주식호가잔량':
             if self.dict_bool['실시간데이터수신중단']:
                 return
@@ -1187,14 +1184,14 @@ class Worker:
         return pg, sg, sp
 
     @thread_decorator
-    def UpdateChartHoga(self, code, name, c, o, h, low, per, ch, v, d, prec):
+    def UpdateChartHoga(self, code, name, c, o, h, low, per, ch, v, t, prec):
         if ui_num['차트P1'] in self.dict_chat.keys() and code == self.dict_chat[ui_num['차트P1']]:
-            self.chart1Q.put([code, d, c, per, ch])
-            self.chart1Q.put([d, c, v])
-            self.chart2Q.put([d, c, v])
+            self.chart1Q.put([code, t, c, per, ch])
+            self.chart1Q.put([t, c, v])
+            self.chart2Q.put([t, c, v])
         elif ui_num['차트P3'] in self.dict_chat.keys() and code == self.dict_chat[ui_num['차트P3']]:
-            self.chart3Q.put([d, c, v])
-            self.chart4Q.put([d, c, v])
+            self.chart3Q.put([t, c, v])
+            self.chart4Q.put([t, c, v])
 
         if 0 in self.dict_hoga.keys() and code == self.dict_hoga[0][0]:
             self.hoga1Q.put([v, ch])
@@ -1264,7 +1261,7 @@ class Worker:
             op = int(self.GetChejanData(901))
             oc = int(self.GetChejanData(900))
             omc = int(self.GetChejanData(902))
-            d = self.dict_strg['당일날짜'] + self.GetChejanData(908)
+            dt = self.dict_strg['당일날짜'] + self.GetChejanData(908)
         except Exception as e:
             self.windowQ.put([1, f'OnReceiveChejanData {e}'])
         else:
@@ -1272,10 +1269,10 @@ class Worker:
                 cp = int(self.GetChejanData(910))
             except ValueError:
                 cp = 0
-            self.UpdateChejanData(code, name, ot, og, op, cp, oc, omc, on, d)
+            self.UpdateChejanData(code, name, ot, og, op, cp, oc, omc, on, dt)
 
     @thread_decorator
-    def UpdateChejanData(self, code, name, ot, og, op, cp, oc, omc, on, d):
+    def UpdateChejanData(self, code, name, ot, og, op, cp, oc, omc, on, dt):
         self.lock.acquire()
         if ot == '체결' and omc == 0 and cp != 0:
             if og == '매수':
@@ -1294,7 +1291,7 @@ class Worker:
                 self.windowQ.put([1, f"매매 시스템 체결 알림 - {name} {oc}주 {og}, 수익률 {sp}% 수익금{format(sg, ',')}원"])
             elif og == '시드부족':
                 self.stgQ.put(['매수완료', code])
-        self.UpdateChegeollist(name, og, oc, omc, op, cp, d, on)
+        self.UpdateChegeollist(name, og, oc, omc, op, cp, dt, on)
         self.lock.release()
 
     def UpdateChegeoljango(self, code, name, og, oc, cp):
@@ -1356,7 +1353,7 @@ class Worker:
         self.queryQ.put([df, 'tradelist', 'append'])
         self.UpdateTotaltradelist()
 
-    def UpdateTotaltradelist(self):
+    def UpdateTotaltradelist(self, first=False):
         tsg = self.dict_df['거래목록']['매도금액'].sum()
         tbg = self.dict_df['거래목록']['매수금액'].sum()
         tsig = self.dict_df['거래목록'][self.dict_df['거래목록']['수익금'] > 0]['수익금'].sum()
@@ -1368,30 +1365,30 @@ class Worker:
                                             columns=columns_tt, index=[self.dict_strg['당일날짜']])
         self.windowQ.put([ui_num['거래합계'], self.dict_df['실현손익']])
 
-        if self.dict_intg['장운영상태'] in [2, 3, 4]:
+        if not first:
             self.teleQ.put(
                 f"거래횟수 {len(self.dict_df['거래목록'])}회 / 총매수금액 {format(int(tbg), ',')}원 / "
                 f"총매도금액 {format(int(tsg), ',')}원 / 총수익금액 {format(int(tsig), ',')}원 / "
                 f"총손실금액 {format(int(tssg), ',')}원 / 수익률 {sp}% / 수익금합계 {format(int(sg), ',')}원")
 
-    def UpdateChegeollist(self, name, og, oc, omc, op, cp, d, on):
+    def UpdateChegeollist(self, name, og, oc, omc, op, cp, dt, on):
         if self.dict_bool['모의투자'] and len(self.dict_df['체결목록']) > 0:
             if on in self.dict_df['체결목록'].index:
                 while on in self.dict_df['체결목록'].index:
                     on = str(int(on) + 1)
-            if d in self.dict_df['체결목록']['체결시간'].values:
-                while d in self.dict_df['체결목록']['체결시간'].values:
-                    d = str(int(d) + 1)
+            if dt in self.dict_df['체결목록']['체결시간'].values:
+                while dt in self.dict_df['체결목록']['체결시간'].values:
+                    dt = str(int(dt) + 1)
 
         if on in self.dict_df['체결목록'].index:
-            self.dict_df['체결목록'].at[on, ['미체결수량', '체결가', '체결시간']] = omc, cp, d
+            self.dict_df['체결목록'].at[on, ['미체결수량', '체결가', '체결시간']] = omc, cp, dt
         else:
-            self.dict_df['체결목록'].at[on] = name, og, oc, omc, op, cp, d
+            self.dict_df['체결목록'].at[on] = name, og, oc, omc, op, cp, dt
         self.dict_df['체결목록'].sort_values(by=['체결시간'], ascending=False, inplace=True)
         self.windowQ.put([ui_num['체결목록'], self.dict_df['체결목록']])
 
         if omc == 0:
-            df = pd.DataFrame([[name, og, oc, omc, op, cp, d]], columns=columns_cj, index=[on])
+            df = pd.DataFrame([[name, og, oc, omc, op, cp, dt]], columns=columns_cj, index=[on])
             self.queryQ.put([df, 'chegeollist', 'append'])
 
     def OnReceiveConditionVer(self, ret, msg):
@@ -1417,8 +1414,8 @@ class Worker:
         else:
             self.dict_strg['TR종목명'] = ''
         trcode = args[0].lower()
-        liness = self.ReadEnc(trcode)
-        self.dict_item = self.ParseDat(trcode, liness)
+        liness = readEnc(trcode)
+        self.dict_item = parseDat(trcode, liness)
         self.dict_strg['TR명'] = kwargs['output']
         nnext = kwargs['next']
         for i in kwargs:
@@ -1490,35 +1487,6 @@ class Worker:
 
     def GetChejanData(self, fid):
         return self.ocx.dynamicCall('GetChejanData(int)', fid)
-
-    # noinspection PyMethodMayBeStatic
-    def ReadEnc(self, trcode):
-        enc = zipfile.ZipFile(f'{openapi_path}/data/{trcode}.enc')
-        lines = enc.read(trcode.upper() + '.dat').decode('cp949')
-        return lines
-
-    # noinspection PyMethodMayBeStatic
-    def ParseDat(self, trcode, lines):
-        lines = lines.split('\n')
-        start = [i for i, x in enumerate(lines) if x.startswith('@START')]
-        end = [i for i, x in enumerate(lines) if x.startswith('@END')]
-        block = zip(start, end)
-        enc_data = {'trcode': trcode, 'input': [], 'output': []}
-        for start, end in block:
-            block_data = lines[start - 1:end + 1]
-            block_info = block_data[0]
-            block_type = 'input' if 'INPUT' in block_info else 'output'
-            record_line = block_data[1]
-            tokens = record_line.split('_')[1].strip()
-            record = tokens.split('=')[0]
-            fields = block_data[2:-1]
-            field_name = []
-            for line in fields:
-                field = line.split('=')[0].strip()
-                field_name.append(field)
-            fields = {record: field_name}
-            enc_data['input'].append(fields) if block_type == 'input' else enc_data['output'].append(fields)
-        return enc_data
 
     def SysExit(self):
         self.windowQ.put([2, '시스템 종료'])

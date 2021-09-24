@@ -379,7 +379,7 @@ class Window(QtWidgets.QMainWindow):
 
         self.table_tabWidget = QtWidgets.QTabWidget(self)
         self.td_tab = QtWidgets.QWidget()
-        self.gjt_tab = QtWidgets.QWidget()
+        self.gj_tab = QtWidgets.QWidget()
         self.st_tab = QtWidgets.QWidget()
         self.sg_tab = QtWidgets.QWidget()
 
@@ -388,25 +388,25 @@ class Window(QtWidgets.QMainWindow):
         self.tj_tableWidget = setTablewidget(self.td_tab, columns_tj, len(columns_tj), 1)
         self.jg_tableWidget = setTablewidget(self.td_tab, columns_jg, len(columns_jg), 13, clicked=self.CellClicked_6)
         self.cj_tableWidget = setTablewidget(self.td_tab, columns_cj, len(columns_cj), 12, clicked=self.CellClicked_7)
-        self.gj_tableWidget = setTablewidget(self.gjt_tab, columns_gj3, len(columns_gj3), 46, clicked=self.CellClicked_8)
+        self.gj_tableWidget = setTablewidget(self.gj_tab, columns_gj3, len(columns_gj3), 46, clicked=self.CellClicked_8)
 
         self.st_groupBox = QtWidgets.QGroupBox(self.st_tab)
         self.calendarWidget = QtWidgets.QCalendarWidget(self.st_groupBox)
         todayDate = QtCore.QDate.currentDate()
         self.calendarWidget.setCurrentPage(todayDate.year(), todayDate.month())
         self.calendarWidget.clicked.connect(self.CalendarClicked)
-        self.stn_tableWidget = setTablewidget(self.st_tab, columns_sn, len(columns_sn), 1)
-        self.stl_tableWidget = setTablewidget(self.st_tab, columns_st, len(columns_st), 31, clicked=self.CellClicked_9)
+        self.dt_tableWidget = setTablewidget(self.st_tab, columns_dt, len(columns_dt), 1)
+        self.dd_tableWidget = setTablewidget(self.st_tab, columns_dd, len(columns_dd), 31, clicked=self.CellClicked_9)
 
         self.sg_groupBox = QtWidgets.QGroupBox(self.sg_tab)
         self.sg_pushButton_01 = setPushbutton('일별집계', self.sg_groupBox, self.ButtonClicked_3)
         self.sg_pushButton_02 = setPushbutton('월별집계', self.sg_groupBox, self.ButtonClicked_3)
         self.sg_pushButton_03 = setPushbutton('연도별집계', self.sg_groupBox, self.ButtonClicked_3)
-        self.sgt_tableWidget = setTablewidget(self.sg_tab, columns_ln, len(columns_ln), 1)
-        self.sgl_tableWidget = setTablewidget(self.sg_tab, columns_lt, len(columns_lt), 41)
+        self.nt_tableWidget = setTablewidget(self.sg_tab, columns_nt, len(columns_nt), 1)
+        self.nd_tableWidget = setTablewidget(self.sg_tab, columns_nd, len(columns_nd), 41)
 
         self.table_tabWidget.addTab(self.td_tab, '계좌평가')
-        self.table_tabWidget.addTab(self.gjt_tab, '관심종목')
+        self.table_tabWidget.addTab(self.gj_tab, '관심종목')
         self.table_tabWidget.addTab(self.st_tab, '거래목록')
         self.table_tabWidget.addTab(self.sg_tab, '수익현황')
 
@@ -613,7 +613,7 @@ class Window(QtWidgets.QMainWindow):
         self.writer = Writer()
         self.writer.data0.connect(self.UpdateTexedit)
         self.writer.data1.connect(self.UpdateChart)
-        self.writer.data2.connect(self.UpdateTick)
+        self.writer.data2.connect(self.UpdateGaonsimJongmok)
         self.writer.data3.connect(self.UpdateTablewidget)
         self.writer.start()
 
@@ -984,7 +984,7 @@ class Window(QtWidgets.QMainWindow):
             self.dict_ctpg[gubun][1].addItem(self.dict_mcpg_lastmoneybar[gubun])
             self.dict_mcpg_legend2[gubun].setText(getSubLegendText())
 
-    def UpdateTick(self, data):
+    def UpdateGaonsimJongmok(self, data):
         gubun = data[0]
         dict_df = data[1]
 
@@ -1008,7 +1008,7 @@ class Window(QtWidgets.QMainWindow):
             self.dict_intg['청산수익률2'] = df['청산수익률2'][0]
             return
 
-        if gubun == ui_num['관심종목'] and self.table_tabWidget.currentWidget() != self.gjt_tab:
+        if gubun == ui_num['관심종목'] and self.table_tabWidget.currentWidget() != self.gj_tab:
             return
 
         if len(dict_df) == 0:
@@ -1021,9 +1021,8 @@ class Window(QtWidgets.QMainWindow):
                 format_data = format(int(text), ',')
             except ValueError:
                 format_data = format(float(text), ',')
-                if len(format_data.split('.')) >= 2:
-                    if len(format_data.split('.')[1]) == 1:
-                        format_data += '0'
+                if len(format_data.split('.')) >= 2 and len(format_data.split('.')[1]) == 1:
+                    format_data += '0'
             return format_data
 
         self.gj_tableWidget.setRowCount(len(dict_df))
@@ -1034,7 +1033,7 @@ class Window(QtWidgets.QMainWindow):
             self.gj_tableWidget.setItem(j, 0, item)
 
             smavg = dict_df[code]['거래대금'][self.dict_intg[f'평균시간{time}'] + 1]
-            item = QtWidgets.QTableWidgetItem(changeFormat(smavg))
+            item = QtWidgets.QTableWidgetItem(changeFormat(smavg).split('.')[0])
             item.setTextAlignment(Qt.AlignVCenter | Qt.AlignRight)
             self.gj_tableWidget.setItem(j, columns_gj3.index('smavg'), item)
 
@@ -1104,9 +1103,8 @@ class Window(QtWidgets.QMainWindow):
                 format_data = format(int(text), ',')
             except ValueError:
                 format_data = format(float(text), ',')
-                if len(format_data.split('.')) >= 2:
-                    if len(format_data.split('.')[1]) == 1:
-                        format_data += '0'
+                if len(format_data.split('.')) >= 2 and len(format_data.split('.')[1]) == 1:
+                    format_data += '0'
             nnlist = [ui_num['체결수량0'], ui_num['호가0'], ui_num['체결수량1'], ui_num['호가1']]
             if gubun in nnlist and format_data in ['0', '0.00']:
                 format_data = ''
@@ -1141,13 +1139,13 @@ class Window(QtWidgets.QMainWindow):
         elif gubun == ui_num['체결강도']:
             tableWidget = self.ch_tableWidget
         elif gubun == ui_num['당일합계']:
-            tableWidget = self.stn_tableWidget
+            tableWidget = self.dt_tableWidget
         elif gubun == ui_num['당일상세']:
-            tableWidget = self.stl_tableWidget
+            tableWidget = self.dd_tableWidget
         elif gubun == ui_num['누적합계']:
-            tableWidget = self.sgt_tableWidget
+            tableWidget = self.nt_tableWidget
         elif gubun == ui_num['누적상세']:
-            tableWidget = self.sgl_tableWidget
+            tableWidget = self.nd_tableWidget
         elif gubun == ui_num['호가잔고0']:
             tableWidget = self.hoga_00_hj_tableWidget
         elif gubun == ui_num['매도주문0']:
@@ -1191,7 +1189,7 @@ class Window(QtWidgets.QMainWindow):
                         day = day[:4] + '.' + day[4:6] + '.' + day[6:]
                     item = QtWidgets.QTableWidgetItem(day)
                 elif column in ['종목명', '주문구분', '호가종목명', '기간', '매도미체결수량', '매수미체결수량',
-                                '공시', '정보제공', '언론사', '제목', '전략구분']:
+                                '공시', '정보제공', '언론사', '제목']:
                     item = QtWidgets.QTableWidgetItem(str(df[column][index]))
                 elif gubun in [ui_num['재무년도'], ui_num['재무분기'], ui_num['동업종비교']]:
                     try:
@@ -1207,7 +1205,7 @@ class Window(QtWidgets.QMainWindow):
                 if column in ['종목명', '호가종목명', '공시', '제목', '구분']:
                     item.setTextAlignment(Qt.AlignVCenter | Qt.AlignLeft)
                 elif column in ['거래횟수', '추정예탁자산', '추정예수금', '보유종목수', '주문구분', '체결시간', '거래일자', '기간',
-                                '일자', '매도미체결수량', '매도미체결수량', '정보제공', '언론사', '전략구분']:
+                                '일자', '매도미체결수량', '매도미체결수량', '정보제공', '언론사']:
                     item.setTextAlignment(Qt.AlignVCenter | Qt.AlignCenter)
                 else:
                     item.setTextAlignment(Qt.AlignVCenter | Qt.AlignRight)
@@ -1603,7 +1601,7 @@ class Window(QtWidgets.QMainWindow):
     def CellClicked_9(self, row, col):
         if col > 1:
             return
-        item = self.stl_tableWidget.item(row, 1)
+        item = self.dd_tableWidget.item(row, 1)
         if item is None:
             return
         code = self.dict_code[item.text()]
@@ -1640,15 +1638,15 @@ class Window(QtWidgets.QMainWindow):
         if len(df) > 0:
             df = df.set_index('index')
             df.sort_values(by=['체결시간'], ascending=True, inplace=True)
-            df = df[['체결시간', '종목명', '매수금액', '매도금액', '주문수량', '수익률', '수익금', '전략구분']].copy()
+            df = df[['체결시간', '종목명', '매수금액', '매도금액', '주문수량', '수익률', '수익금']].copy()
             nbg, nsg = df['매수금액'].sum(), df['매도금액'].sum()
             sp = round((nsg / nbg - 1) * 100, 2)
             npg, nmg, nsig = df[df['수익금'] > 0]['수익금'].sum(), df[df['수익금'] < 0]['수익금'].sum(), df['수익금'].sum()
-            df2 = pd.DataFrame(columns=columns_sn)
+            df2 = pd.DataFrame(columns=columns_dt)
             df2.at[0] = searchday, nbg, nsg, npg, nmg, sp, nsig
         else:
-            df = pd.DataFrame(columns=columns_st)
-            df2 = pd.DataFrame(columns=columns_sn)
+            df = pd.DataFrame(columns=columns_dd)
+            df2 = pd.DataFrame(columns=columns_dt)
         windowQ.put([ui_num['당일합계'], df2])
         windowQ.put([ui_num['당일상세'], df])
 
@@ -1778,7 +1776,7 @@ class Window(QtWidgets.QMainWindow):
                 sp = round((nsg / nbg - 1) * 100, 2)
                 npg, nmg = df['총수익금액'].sum(), df['총손실금액'].sum()
                 nsig = df['수익금합계'].sum()
-                df2 = pd.DataFrame(columns=columns_ln)
+                df2 = pd.DataFrame(columns=columns_nt)
                 df2.at[0] = pr, nbg, nsg, npg, nmg, sp, nsig
                 windowQ.put([ui_num['누적합계'], df2])
             else:
@@ -1788,7 +1786,7 @@ class Window(QtWidgets.QMainWindow):
                 windowQ.put([ui_num['누적상세'], df])
             elif cmd == '월별집계':
                 df['일자'] = df['index'].apply(lambda x: x[:6])
-                df2 = pd.DataFrame(columns=columns_lt)
+                df2 = pd.DataFrame(columns=columns_nd)
                 lastmonth = df['일자'][df.index[-1]]
                 month = strf_time('%Y%m')
                 while int(month) >= int(lastmonth):
@@ -1803,7 +1801,7 @@ class Window(QtWidgets.QMainWindow):
                 windowQ.put([ui_num['누적상세'], df2])
             elif cmd == '연도별집계':
                 df['일자'] = df['index'].apply(lambda x: x[:4])
-                df2 = pd.DataFrame(columns=columns_lt)
+                df2 = pd.DataFrame(columns=columns_nd)
                 lastyear = df['일자'][df.index[-1]]
                 year = strf_time('%Y')
                 while int(year) >= int(lastyear):
@@ -2000,14 +1998,13 @@ class Writer(QtCore.QThread):
 
     def __init__(self):
         super().__init__()
-        self.windowQ = windowQ
 
     def run(self):
         tlist = [ui_num['단타설정'], ui_num['관심종목'], ui_num['관심종목'] + 100]
         clist = [ui_num['차트P1'], ui_num['차트P2'], ui_num['차트P3'], ui_num['차트P4'], ui_num['차트P5'],
                  ui_num['차트P6'], ui_num['차트P7'], ui_num['차트P8'], ui_num['차트P9']]
         while True:
-            data = self.windowQ.get()
+            data = windowQ.get()
             if data[0] not in tlist and type(data[1]) != pd.DataFrame:
                 self.data0.emit(data)
             elif data[0] in clist:

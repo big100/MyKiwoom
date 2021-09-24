@@ -92,11 +92,11 @@ if __name__ == "__main__":
     con = sqlite3.connect(db_tick)
     df_name = pd.read_sql("SELECT name FROM sqlite_master WHERE TYPE = 'table'", con)
     df_mt = pd.read_sql('SELECT * FROM moneytop', con)
-    con.close()
-
     df_mt = df_mt.set_index('index')
+    con.close()
     table_list = list(df_name['name'].values)
     table_list.remove('moneytop')
+    table_list.remove('codename')
     last = len(table_list)
 
     w = Process(target=Total, args=(q, last))

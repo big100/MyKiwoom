@@ -90,9 +90,9 @@ class Strategy:
 
     def UpdateList(self, gubun, code):
         if '조건진입' in gubun:
-            time = 1 if int(strf_time('%H%M%S')) <= 100000 else 2
+            tn = 1 if int(strf_time('%H%M%S')) <= 100000 else 2
             if code not in self.dict_gsjm.keys():
-                data = np.zeros((self.dict_intg[f'평균시간{time}'] + 2, len(columns_gj1))).tolist()
+                data = np.zeros((self.dict_intg[f'평균시간{tn}'] + 2, len(columns_gj1))).tolist()
                 df = pd.DataFrame(data, columns=columns_gj1)
                 df['체결시간'] = '090000'
                 self.dict_gsjm[code] = df.copy()
@@ -102,7 +102,7 @@ class Strategy:
             data = np.zeros((self.dict_intg['평균시간2'] + 2, len(columns_gj1))).tolist()
             df = pd.DataFrame(data, columns=columns_gj1)
             df['체결시간'] = '100000'
-            for code in self.dict_gsjm.keys():
+            for code in list(self.dict_gsjm.keys()):
                 self.dict_gsjm[code] = df.copy()
             self.windowQ.put([ui_num['관심종목'] + 100, self.dict_gsjm])
         elif gubun == '조건이탈':
@@ -115,24 +115,25 @@ class Strategy:
             if code in self.list_sell:
                 self.list_sell.remove(code)
 
-    def BuyStrategy(self, code, name, c, o, h, low, per, ch, dm, d, injango, vitimedown, vid5priceup, batting):
+    def BuyStrategy(self, code, name, c, o, h, low, per, ch, dm, t, injango, vitimedown, vid5priceup, batting):
         if code not in self.dict_gsjm.keys():
             return
 
-        time = 1 if int(strf_time('%H%M%S')) <= 100000 else 2
+        tn = 1 if int(strf_time('%H%M%S')) <= 100000 else 2
         hlm = round((h + low) / 2)
         hlmp = round((c / hlm - 1) * 100, 2)
-        sm = int(dm - self.dict_gsjm[code]['누적거래대금'][1])
+        predm = self.dict_gsjm[code]['누적거래대금'][1]
+        sm = 0 if predm == 0 else int(dm - predm)
         self.dict_gsjm[code] = self.dict_gsjm[code].shift(1)
-        if len(self.dict_gsjm[code]) == self.dict_intg[f'평균시간{time}'] + 2 and \
-                self.dict_gsjm[code]['체결강도'][self.dict_intg[f'평균시간{time}']] != 0.:
-            avg_sm = round(self.dict_gsjm[code]['거래대금'][1:self.dict_intg[f'평균시간{time}'] + 1].mean(), 2)
-            avg_ch = round(self.dict_gsjm[code]['체결강도'][1:self.dict_intg[f'평균시간{time}'] + 1].mean(), 2)
-            high_ch = round(self.dict_gsjm[code]['체결강도'][1:self.dict_intg[f'평균시간{time}'] + 1].max(), 2)
-            self.dict_gsjm[code].at[self.dict_intg[f'평균시간{time}'] + 1] = 0., 0., avg_sm, 0, avg_ch, high_ch, d
-        self.dict_gsjm[code].at[0] = per, hlmp, sm, dm, ch, 0., d
+        if len(self.dict_gsjm[code]) == self.dict_intg[f'평균시간{tn}'] + 2 and \
+                self.dict_gsjm[code]['체결강도'][self.dict_intg[f'평균시간{tn}']] != 0.:
+            avg_sm = int(self.dict_gsjm[code]['거래대금'][1:self.dict_intg[f'평균시간{tn}'] + 1].mean())
+            avg_ch = round(self.dict_gsjm[code]['체결강도'][1:self.dict_intg[f'평균시간{tn}'] + 1].mean(), 2)
+            high_ch = round(self.dict_gsjm[code]['체결강도'][1:self.dict_intg[f'평균시간{tn}'] + 1].max(), 2)
+            self.dict_gsjm[code].at[self.dict_intg[f'평균시간{tn}'] + 1] = 0., 0., avg_sm, 0, avg_ch, high_ch, t
+        self.dict_gsjm[code].at[0] = per, hlmp, sm, dm, ch, 0., t
 
-        if self.dict_gsjm[code]['체결강도'][self.dict_intg[f'평균시간{time}']] == 0:
+        if self.dict_gsjm[code]['체결강도'][self.dict_intg[f'평균시간{tn}']] == 0:
             return
         if code in self.list_buy:
             return
@@ -152,7 +153,7 @@ class Strategy:
         if per >= 29:
             oc = jc
 
-        time = 1 if int(strf_time('%H%M%S')) <= 100000 else 2
+        tn = 1 if int(strf_time('%H%M%S')) <= 100000 else 2
 
         # 전략 비공개
 

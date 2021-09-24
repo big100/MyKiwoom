@@ -116,14 +116,14 @@ class BackTester1:
         return True
 
     def Buy(self):
-        if self.df['매도1호가'][self.index] * self.df['매도1잔량'][self.index] >= BATTING:
-            s1hg = self.df['매도1호가'][self.index]
+        if self.df['매도호가1'][self.index] * self.df['매도잔량1'][self.index] >= BATTING:
+            s1hg = self.df['매도호가1'][self.index]
             self.buycount = int(BATTING / s1hg)
             self.buyprice = s1hg
         else:
-            s1hg = self.df['매도1호가'][self.index]
-            s1jr = self.df['매도1잔량'][self.index]
-            s2hg = self.df['매도2호가'][self.index]
+            s1hg = self.df['매도호가1'][self.index]
+            s1jr = self.df['매도잔량1'][self.index]
+            s2hg = self.df['매도호가2'][self.index]
             ng = BATTING - s1hg * s1jr
             s2jc = int(ng / s2hg)
             self.buycount = s1jr + s2jc
@@ -147,12 +147,12 @@ class BackTester1:
         return False
 
     def Sell(self):
-        if self.df['매수1잔량'][self.index] >= self.buycount:
-            self.sellprice = self.df['매수1호가'][self.index]
+        if self.df['매수잔량1'][self.index] >= self.buycount:
+            self.sellprice = self.df['매수호가1'][self.index]
         else:
-            b1hg = self.df['매수1호가'][self.index]
-            b1jr = self.df['매수1잔량'][self.index]
-            b2hg = self.df['매수2호가'][self.index]
+            b1hg = self.df['매수호가1'][self.index]
+            b1jr = self.df['매수잔량1'][self.index]
+            b2hg = self.df['매수호가2'][self.index]
             nc = self.buycount - b1jr
             self.sellprice = round((b1hg * b1jr + b2hg * nc) / self.buycount, 2)
         self.hold = False
@@ -349,20 +349,17 @@ class Total:
 if __name__ == "__main__":
     start = now()
 
-    con = sqlite3.connect(db_stg)
+    con = sqlite3.connect(db_tick)
     df1 = pd.read_sql('SELECT * FROM codename', con)
     df1 = df1.set_index('index')
-    con.close()
-
-    con = sqlite3.connect(db_tick)
     df2 = pd.read_sql("SELECT name FROM sqlite_master WHERE TYPE = 'table'", con)
     df3 = pd.read_sql('SELECT * FROM moneytop', con)
-
     df3 = df3.set_index('index')
+    con.close()
     table_list = list(df2['name'].values)
     table_list.remove('moneytop')
+    table_list.remove('codename')
     last = len(table_list)
-    con.close()
 
     q = Queue()
     gap_chs = [3, 4, 5, 6, 7, 8, 9]
@@ -393,7 +390,7 @@ if __name__ == "__main__":
 
     gap_ch = [high_var[0] - 0.9, high_var[0] + 0.9, 0.1, 0.1]
     avg_time = [high_var[1], high_var[1], 30, 3]
-    gap_sm = [50, 100, 10, 10]
+    gap_sm = [0, 500, 50, 10]
     ch_low = [50, 100, 10, 10]
     dm_low = [0, 100000, 10000, 1000]
     per_low = [0, 10, 1, 0.1]
