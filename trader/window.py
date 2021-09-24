@@ -557,15 +557,15 @@ class Window(QtWidgets.QMainWindow):
 
         self.st_groupBox.setGeometry(int(5 * resize), int(3 * resize), int(668 * resize), int(278 * resize))
         self.calendarWidget.setGeometry(int(5 * resize), int(11 * resize), int(658 * resize), int(258 * resize))
-        self.stn_tableWidget.setGeometry(int(5 * resize), int(287 * resize), int(668 * resize), int(42 * resize))
-        self.stl_tableWidget.setGeometry(int(5 * resize), int(334 * resize), int(668 * resize), int(735 * resize))
+        self.dt_tableWidget.setGeometry(int(5 * resize), int(287 * resize), int(668 * resize), int(42 * resize))
+        self.dd_tableWidget.setGeometry(int(5 * resize), int(334 * resize), int(668 * resize), int(735 * resize))
 
         self.sg_groupBox.setGeometry(int(5 * resize), int(3 * resize), int(668 * resize), int(48 * resize))
         self.sg_pushButton_01.setGeometry(int(5 * resize), int(11 * resize), int(216 * resize), int(30 * resize))
         self.sg_pushButton_02.setGeometry(int(226 * resize), int(12 * resize), int(216 * resize), int(30 * resize))
         self.sg_pushButton_03.setGeometry(int(447 * resize), int(12 * resize), int(216 * resize), int(30 * resize))
-        self.sgt_tableWidget.setGeometry(int(5 * resize), int(57 * resize), int(668 * resize), int(42 * resize))
-        self.sgl_tableWidget.setGeometry(int(5 * resize), int(104 * resize), int(668 * resize), int(965 * resize))
+        self.nt_tableWidget.setGeometry(int(5 * resize), int(57 * resize), int(668 * resize), int(42 * resize))
+        self.nd_tableWidget.setGeometry(int(5 * resize), int(104 * resize), int(668 * resize), int(965 * resize))
 
         self.dict_intg = {
             '체결강도차이1': 0.,
