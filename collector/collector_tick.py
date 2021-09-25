@@ -51,8 +51,8 @@ class UpdaterTick:
             self.dict_df[code] = pd.DataFrame(
                 [[c, o, h, per, hlmp, dm, dm, ch, vp, vitime, vid5, s1jr, s2jr, b1jr, b2jr, s1hg, s2hg, b1hg, b2hg]],
                 columns=['현재가', '시가', '고가', '등락율', '고저평균대비등락율', '거래대금', '누적거래대금', '체결강도',
-                         '전일거래량대비', 'VI발동시간', '상승VID5가격', '매도잔량1', '매도잔량2', '매수잔량1', '매수잔량2',
-                         '매도호가1', '매도호가2', '매수호가1', '매수호가2'],
+                         '전일거래량대비', 'VI발동시간', '상승VID5가격', '매도호가2', '매도호가1', '매수호가1', '매수호가2',
+                         '매도잔량2', '매도잔량1', '매수잔량1', '매수잔량2'],
                 index=[d])
         else:
             sm = int(dm - self.dict_df[code]['누적거래대금'][-1])
@@ -72,13 +72,13 @@ class UpdaterTick:
             return
         for code in list(self.dict_df.keys()):
             columns = ['현재가', '시가', '고가', '거래대금', '누적거래대금', '상승VID5가격',
-                       '매도잔량1', '매도잔량2', '매수잔량1', '매수잔량2', '매도호가1', '매도호가2', '매수호가1', '매수호가2']
+                       '매도호가2', '매도호가1', '매수호가1', '매수호가2', '매도잔량2', '매도잔량1', '매수잔량1', '매수잔량2']
             self.dict_df[code][columns] = self.dict_df[code][columns].astype(int)
             """
             당일 거래 종목만 저장하기
             if code in codes:
                 columns = ['현재가', '시가', '고가', '거래대금', '누적거래대금', '상승VID5가격',
-                           '매도잔량1', '매도잔량2', '매수잔량1', '매수잔량2', '매도호가1', '매도호가2', '매수호가1', '매수호가2']
+                           '매도호가2', '매도호가1', '매수호가1', '매수호가2', '매도잔량2', '매도잔량1', '매수잔량1', '매수잔량2']
                 self.dict_df[code][columns] = self.dict_df[code][columns].astype(int)
             else:
                 del self.dict_df[code]
