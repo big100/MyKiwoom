@@ -158,3 +158,6 @@
 17. 텔레그램 사용자 버튼은 아래와 같이 4개로 설정되어 있습니다.
 
 ![P20210812_160357000_127FD7AC-B059-4E5C-BAEA-8401B325A423](https://user-images.githubusercontent.com/78009194/131397701-9b2e7d97-623e-471c-8582-bfbcf61e97c4.jpg)
+
+![화면 캡처 2021-09-29 231129](https://user-images.githubusercontent.com/78009194/135285966-aeefa516-287f-4df0-be90-bbf3c444c8ba.png)
+![화면 캡처 2021-09-29 231157](https://user-images.githubusercontent.com/78009194/135285989-91dffa30-4a71-4a1f-a557-72277e65d8a1.png)
