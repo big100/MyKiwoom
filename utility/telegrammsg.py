@@ -7,18 +7,18 @@ from telegram.ext import Updater, MessageHandler, Filters
 
 
 class TelegramMsg:
-    def __init__(self, qlist):
-        self.windowQ = qlist[0]
-        self.workerQ = qlist[1]
-        self.queryQ = qlist[4]
-        self.teleQ = qlist[5]
+    def __init__(self, windowQ, traderQ, queryQ, teleQ):
+        self.windowQ = windowQ
+        self.traderQ = traderQ
+        self.queryQ = queryQ
+        self.teleQ = teleQ
         self.updater = None
 
         con = sqlite3.connect(db_stg)
         df = pd.read_sql("SELECT name FROM sqlite_master WHERE TYPE = 'table'", con)
         if 'telegram' not in df['name'].values:
             df2 = pd.DataFrame({'str_bot': [''], 'int_id': [0]}, index=[0])
-            self.queryQ.put([df2, 'telegram', 'replace'])
+            self.queryQ.put([1, df2, 'telegram', 'replace'])
         time.sleep(2)
         df = pd.read_sql('SELECT * FROM telegram', con)
         self.str_botn = df['str_bot'][0]
@@ -58,7 +58,7 @@ class TelegramMsg:
     def ButtonClicked(self, update, context):
         if context == '':
             return
-        self.workerQ.put(update.message.text)
+        self.traderQ.put(update.message.text)
 
     def SendMsg(self, msg):
         if self.bot is not None:

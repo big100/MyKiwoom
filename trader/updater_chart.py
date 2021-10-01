@@ -1,43 +1,33 @@
 import os
 import sys
-import sqlite3
+import psutil
 import requests
-import pandas as pd
 from bs4 import BeautifulSoup
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.setting import *
-from utility.static import now, timedelta_sec, strf_time, strp_time
+from utility.static import now, timedelta_sec, strf_time, strp_time, thread_decorator
 
 
 class UpdaterChart:
-    def __init__(self, qlist, gubun):
+    def __init__(self, windowQ, traderQ, chartQ, gubun):
         self.gubun = gubun
-        self.windowQ = qlist[0]
-        self.workerQ = qlist[1]
-        if self.gubun == ui_num['차트P1']:
-            self.chartQ = qlist[8]
-        elif self.gubun == ui_num['차트P2']:
-            self.chartQ = qlist[9]
-        elif self.gubun == ui_num['차트P3']:
-            self.chartQ = qlist[10]
-        elif self.gubun == ui_num['차트P4']:
-            self.chartQ = qlist[11]
-        elif self.gubun == ui_num['차트P5']:
-            self.chartQ = qlist[12]
-        elif self.gubun == ui_num['차트P6']:
-            self.chartQ = qlist[13]
-        elif self.gubun == ui_num['차트P7']:
-            self.chartQ = qlist[14]
-        elif self.gubun == ui_num['차트P8']:
-            self.chartQ = qlist[15]
-        elif self.gubun == ui_num['차트P9']:
-            self.chartQ = qlist[16]
+        self.windowQ = windowQ
+        self.traderQ = traderQ
+        self.chartQ = chartQ
         self.df_ct = None
         self.df_ch = None
         self.bool_ctup = False
         self.str_ccode = str
         self.dict_name = {}
-        self.time_ctup = now()
+        self.dict_time = {
+            '차트갱신': now(),
+            '부가정보': now()
+        }
+        self.dict_intg = {
+            '스레드': 0,
+            '시피유': 0.,
+            '메모리': 0.
+        }
         self.Start()
 
     def Start(self):
@@ -58,11 +48,14 @@ class UpdaterChart:
                 elif len(chart) == 5:
                     self.UpdateRealChegeolH(chart[0], chart[1], chart[2], chart[3], chart[4])
 
-            if now() > self.time_ctup:
+            if now() > self.dict_time['차트갱신']:
                 if self.bool_ctup:
                     self.windowQ.put([self.gubun, self.df_ct])
                     self.bool_ctup = False
-                self.time_ctup = timedelta_sec(1)
+                self.dict_time['차트갱신'] = timedelta_sec(1)
+            if now() > self.dict_time['부가정보']:
+                self.UpdateInfo()
+                self.dict_time['부가정보'] = timedelta_sec(2)
 
     def WebCrawling(self, cmd, code):
         if cmd == '기업개요':
@@ -430,3 +423,15 @@ class UpdaterChart:
             minute = '30'
         t = t[:2] + ':' + minute
         return t
+
+    @thread_decorator
+    def UpdateInfo(self):
+        info = [self.gubun, self.dict_intg['메모리'], self.dict_intg['스레드'], self.dict_intg['시피유']]
+        self.windowQ.put(info)
+        self.UpdateSysinfo()
+
+    def UpdateSysinfo(self):
+        p = psutil.Process(os.getpid())
+        self.dict_intg['메모리'] = round(p.memory_info()[0] / 2 ** 20.86, 2)
+        self.dict_intg['스레드'] = p.num_threads()
+        self.dict_intg['시피유'] = round(p.cpu_percent(interval=2) / 2, 2)

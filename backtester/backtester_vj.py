@@ -8,12 +8,14 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.setting import db_tick, db_backtest
 from utility.static import now, strf_time, strp_time, timedelta_sec, timedelta_day
 
-BATTING = 5000000       # 종목당 배팅금액
-TESTPERIOD = 14         # 백테스팅 기간(14일 경우 과거 2주간의 데이터를 백테스팅한다)
-TOTALTIME = 198000      # 백테스팅 기간 동안 10시부터 장마감까지의 시간 총합, 단위 초
+BATTING = 5000000      # 종목당 배팅금액
+TESTPERIOD = 14        # 백테스팅 기간(14일 경우 과거 2주간의 데이터를 백테스팅한다)
+TOTALTIME = 3600       # 백테스팅 기간 동안 9시부터 10시까지의 시간 총합, 단위 초
+START_TIME = 90000
+END_TIME = 100000
 
 
-class BackTester1m:
+class BackTesterVj:
     def __init__(self, q_, code_list_, num_, df_mt_):
         self.q = q_
         self.code_list = code_list_
@@ -76,22 +78,23 @@ class BackTester1m:
             for h, index in enumerate(self.df.index):
                 if h != 0 and index[:8] != self.df.index[h - 1][:8]:
                     self.ccond = 0
-                if int(index[:8]) < int_daylimit or int(index[8:]) <= 100000:
+                if int(index[:8]) < int_daylimit or \
+                        (not self.hold and (END_TIME <= int(index[8:]) or int(index[8:]) < START_TIME)):
                     continue
                 self.index = index
                 self.indexn = h
-                if not self.hold and self.BuyTerm():
+                if not self.hold and START_TIME < int(index[8:]) < END_TIME and self.BuyTerm():
                     self.Buy()
-                elif self.hold and self.SellTerm():
+                elif self.hold and START_TIME < int(index[8:]) < END_TIME and self.SellTerm():
                     self.Sell()
-                elif self.hold and (h == lasth or index[:8] != self.df.index[h + 1][:8]):
+                elif self.hold and (h == lasth or int(index[8:]) >= END_TIME > int(self.df.index[h - 1][8:])):
                     self.Sell()
             self.Report(k + 1, tcount)
         conn.close()
 
     def BuyTerm(self):
         try:
-            if self.code not in self.df_mt['거래대금상위100'][self.index]:
+            if self.code not in self.df_mt['거래대금순위'][self.index]:
                 self.ccond = 0
             else:
                 self.ccond += 1
@@ -269,6 +272,9 @@ class Total:
                 break
 
         if len(df_back) > 0:
+            text = [self.gap_ch, self.avg_time, self.gap_sm, self.ch_low, self.dm_low,
+                    self.per_low, self.per_high, self.cs_per]
+            print(f' {text}')
             tc = df_back['거래횟수'].sum()
             if tc != 0:
                 pc = df_back['익절'].sum()
@@ -283,15 +289,12 @@ class Total:
                 if onegm < BATTING:
                     onegm = BATTING
                 tsp = round(tsg / onegm * 100, 4)
-                text = [self.gap_ch, self.avg_time, self.gap_sm, self.ch_low, self.dm_low,
-                        self.per_low, self.per_high, self.cs_per]
-                print(f' {text}')
                 text = f" 종목당 배팅금액 {format(BATTING, ',')}원, 필요자금 {format(onegm, ',')}원, "\
                        f" 종목출현빈도수 {onedaycount}개/초, 거래횟수 {tc}회, 평균보유기간 {avghold}초,\n 익절 {pc}회, "\
                        f" 손절 {mc}회, 승률 {pper}%, 평균수익률 {avgsp}%, 수익률합계 {tsp}%, 수익금합계 {format(tsg, ',')}원"
                 print(text)
                 conn = sqlite3.connect(db_backtest)
-                df_back.to_sql(f"{strf_time('%Y%m%d')}_2cm", conn, if_exists='replace', chunksize=1000)
+                df_back.to_sql(f"{strf_time('%Y%m%d')}_1cm", conn, if_exists='replace', chunksize=1000)
                 conn.close()
 
         if len(df_tsg) > 0:
@@ -300,7 +303,7 @@ class Total:
             df_tsg['ttsg_cumsum'] = df_tsg['ttsg'].cumsum()
             df_tsg[['ttsg', 'ttsg_cumsum']] = df_tsg[['ttsg', 'ttsg_cumsum']].astype(int)
             conn = sqlite3.connect(db_backtest)
-            df_tsg.to_sql(f"{strf_time('%Y%m%d')}_2tm", conn, if_exists='replace', chunksize=1000)
+            df_tsg.to_sql(f"{strf_time('%Y%m%d')}_1tm", conn, if_exists='replace', chunksize=1000)
             conn.close()
             df_tsg.plot(figsize=(12, 9), rot=45)
             plt.show()
@@ -321,14 +324,14 @@ if __name__ == "__main__":
     table_list.remove('codename')
     last = len(table_list)
 
-    gap_ch = 4.8
-    avg_time = 60
-    gap_sm = 50
+    gap_ch = 3.3
+    avg_time = 183
+    gap_sm = 120
     ch_low = 90
-    dm_low = 2000
-    per_low = 4.4
-    per_high = 25
-    cs_per = 3
+    dm_low = 10000
+    per_low = 1.8
+    per_high = 23
+    cs_per = 9.2
     num = [gap_ch, avg_time, gap_sm, ch_low, dm_low, per_low, per_high, cs_per]
 
     q = Queue()
@@ -338,7 +341,7 @@ if __name__ == "__main__":
     workcount = int(last / 6) + 1
     for j in range(0, last, workcount):
         code_list = table_list[j:j + workcount]
-        p = Process(target=BackTester1m, args=(q, code_list, num, df3))
+        p = Process(target=BackTesterVj, args=(q, code_list, num, df3))
         procs.append(p)
         p.start()
     for p in procs:

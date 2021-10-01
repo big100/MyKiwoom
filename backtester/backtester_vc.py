@@ -8,12 +8,14 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.setting import db_stg, db_tick, db_backtest, graph_path
 from utility.static import now, strf_time, strp_time, timedelta_sec, timedelta_day, telegram_msg
 
-BATTING = 5000000       # 종목당 배팅금액
-TESTPERIOD = 14         # 백테스팅 기간(14일 경우 과거 2주간의 데이터를 백테스팅한다)
-TOTALTIME = 198000      # 백테스팅 기간 동안 10시부터 장마감까지의 시간 총합, 단위 초
+BATTING = 5000000      # 종목당 배팅금액
+TESTPERIOD = 14        # 백테스팅 기간(14일 경우 과거 2주간의 데이터를 백테스팅한다)
+TOTALTIME = 3600       # 백테스팅 기간 동안 9시부터 10시까지의 시간 총합, 단위 초
+START_TIME = 90000
+END_TIME = 100000
 
 
-class BackTester1:
+class BackTesterVc:
     def __init__(self, q_, code_list_, num_, df_mt_, high):
         self.q = q_
         self.code_list = code_list_
@@ -87,22 +89,23 @@ class BackTester1:
             for h, index in enumerate(self.df.index):
                 if h != 0 and index[:8] != self.df.index[h - 1][:8]:
                     self.ccond = 0
-                if int(index[:8]) < int_daylimit or int(index[8:]) <= 100000:
+                if int(index[:8]) < int_daylimit or \
+                        (not self.hold and (END_TIME <= int(index[8:]) or int(index[8:]) < START_TIME)):
                     continue
                 self.index = index
                 self.indexn = h
-                if not self.hold and self.BuyTerm():
+                if not self.hold and START_TIME < int(index[8:]) < END_TIME and self.BuyTerm():
                     self.Buy()
-                elif self.hold and self.SellTerm():
+                elif self.hold and START_TIME < int(index[8:]) < END_TIME and self.SellTerm():
                     self.Sell()
-                elif self.hold and (h == lasth or index[:8] != self.df.index[h + 1][:8]):
+                elif self.hold and (h == lasth or int(index[8:]) >= END_TIME > int(self.df.index[h - 1][8:])):
                     self.Sell()
             self.Report(k + 1, tcount)
         conn.close()
 
     def BuyTerm(self):
         try:
-            if self.code not in self.df_mt['거래대금상위100'][self.index]:
+            if self.code not in self.df_mt['거래대금순위'][self.index]:
                 self.ccond = 0
             else:
                 self.ccond += 1
@@ -296,6 +299,9 @@ class Total:
         tsp = 0
         if len(df_back) > 0:
             tc = df_back['거래횟수'].sum()
+            text = [self.gap_ch, self.avg_time, self.gap_sm, self.ch_low, self.dm_low,
+                    self.per_low, self.per_high, self.cs_per]
+            print(f' {text}')
             if tc != 0:
                 pc = df_back['익절'].sum()
                 mc = df_back['손절'].sum()
@@ -309,9 +315,6 @@ class Total:
                 if onegm < BATTING:
                     onegm = BATTING
                 tsp = round(tsg / onegm * 100, 4)
-                text = [self.gap_ch, self.avg_time, self.gap_sm, self.ch_low, self.dm_low,
-                        self.per_low, self.per_high, self.cs_per]
-                print(f' {text}')
                 text = f" 종목당 배팅금액 {format(BATTING, ',')}원, 필요자금 {format(onegm, ',')}원, "\
                        f" 종목출현빈도수 {onedaycount}개/초, 거래횟수 {tc}회, 평균보유기간 {avghold}초,\n 익절 {pc}회, "\
                        f" 손절 {mc}회, 승률 {pper}%, 평균수익률 {avgsp}%, 수익률합계 {tsp}%, 수익금합계 {format(tsg, ',')}원"
@@ -321,7 +324,7 @@ class Total:
                       self.gap_sm, self.ch_low, self.dm_low, self.per_low, self.per_high, self.cs_per]],
                     columns=columns2, index=[strf_time('%Y%m%d%H%M%S')])
                 conn = sqlite3.connect(db_backtest)
-                df_back.to_sql(f"{strf_time('%Y%m%d')}_2c", conn, if_exists='append', chunksize=1000)
+                df_back.to_sql(f"{strf_time('%Y%m%d')}_1c", conn, if_exists='append', chunksize=1000)
                 conn.close()
 
         if len(df_tsg) > 0:
@@ -330,15 +333,15 @@ class Total:
             df_tsg['ttsg_cumsum'] = df_tsg['ttsg'].cumsum()
             df_tsg[['ttsg', 'ttsg_cumsum']] = df_tsg[['ttsg', 'ttsg_cumsum']].astype(int)
             conn = sqlite3.connect(db_backtest)
-            df_tsg.to_sql(f"{strf_time('%Y%m%d')}_2t", conn, if_exists='replace', chunksize=1000)
+            df_tsg.to_sql(f"{strf_time('%Y%m%d')}_it", conn, if_exists='replace', chunksize=1000)
             conn.close()
             df_tsg.plot(figsize=(12, 9), rot=45)
-            plt.savefig(f"{graph_path}/{strf_time('%Y%m%d')}_2.png")
+            plt.savefig(f"{graph_path}/{strf_time('%Y%m%d')}_1.png")
             conn = sqlite3.connect(db_stg)
             cur = conn.cursor()
-            query = f"UPDATE setting SET 체결강도차이2 = {self.gap_ch}, 평균시간2 = {self.avg_time}, "\
-                    f"거래대금차이2 = {self.gap_sm}, 체결강도하한2 = {self.ch_low}, 누적거래대금하한2 = {self.dm_low}, "\
-                    f"등락율하한2 = {self.per_low}, 등락율상한2 = {self.per_high}, 청산수익률2 = {self.cs_per}"
+            query = f"UPDATE setting SET 체결강도차이 = {self.gap_ch}, 평균시간 = {self.avg_time}, "\
+                    f"거래대금차이 = {self.gap_sm}, 체결강도하한 = {self.ch_low}, 누적거래대금하한 = {self.dm_low}, "\
+                    f"등락율하한 = {self.per_low}, 등락율상한 = {self.per_high}, 청산수익률 = {self.cs_per}"
             cur.execute(query)
             conn.commit()
             conn.close()
@@ -376,7 +379,7 @@ if __name__ == "__main__":
             workcount = int(last / 6) + 1
             for j in range(0, last, workcount):
                 code_list = table_list[j:j + workcount]
-                p = Process(target=BackTester1, args=(q, code_list, num, df3, False))
+                p = Process(target=BackTesterVc, args=(q, code_list, num, df3, False))
                 procs.append(p)
                 p.start()
             for p in procs:
@@ -409,7 +412,7 @@ if __name__ == "__main__":
         workcount = int(last / 6) + 1
         for j in range(0, last, workcount):
             code_list = table_list[j:j + workcount]
-            p = Process(target=BackTester1, args=(q, code_list, num, df3, False))
+            p = Process(target=BackTesterVc, args=(q, code_list, num, df3, False))
             procs.append(p)
             p.start()
         for p in procs:
@@ -447,7 +450,7 @@ if __name__ == "__main__":
     workcount = int(last / 6) + 1
     for j in range(0, last, workcount):
         db_list = table_list[j:j + workcount]
-        p = Process(target=BackTester1, args=(q, db_list, num, df3, True))
+        p = Process(target=BackTesterVc, args=(q, db_list, num, df3, True))
         procs.append(p)
         p.start()
     for p in procs:

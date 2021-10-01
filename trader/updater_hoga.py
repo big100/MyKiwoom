@@ -1,26 +1,32 @@
 import os
 import sys
+import psutil
 import pandas as pd
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-from utility.setting import ui_num
-from utility.static import now, timedelta_sec
+from utility.static import now, timedelta_sec, thread_decorator
 
 
 class UpdaterHoga:
-    def __init__(self, qlist, gubun):
+    def __init__(self, windowQ, hogaQ, gubun):
+        self.windowQ = windowQ
+        self.hogaQ = hogaQ
         self.gubun = gubun
-        self.windowQ = qlist[0]
-        if self.gubun == ui_num['호가P0']:
-            self.hogaQ = qlist[6]
-        else:
-            self.hogaQ = qlist[7]
+
         self.df_hc = None
         self.df_hg = None
         self.df_so = None
         self.df_bo = None
         self.bool_hcup = False
         self.bool_hgup = False
-        self.time_hgup = now()
+        self.dict_time = {
+            '호가갱신': now(),
+            '부가정보': now()
+        }
+        self.dict_intg = {
+            '스레드': 0,
+            '시피유': 0.,
+            '메모리': 0.
+        }
         self.UpdateHoga('초기화')
         self.Start()
 
@@ -37,14 +43,17 @@ class UpdaterHoga:
                 elif len(hoga) == 7:
                     self.UpdateHogajalryang(hoga[0], hoga[1], hoga[2], hoga[3], hoga[4], hoga[5], hoga[6])
 
-            if now() > self.time_hgup:
+            if now() > self.dict_time['호가갱신']:
                 if self.bool_hcup and self.df_hc is not None:
                     self.windowQ.put([self.gubun + 3, self.df_hc])
                     self.bool_hcup = False
                 if self.bool_hgup and self.df_hg is not None:
                     self.windowQ.put([self.gubun + 4, self.df_hg])
                     self.bool_hgup = False
-                self.time_hgup = timedelta_sec(0.25)
+                self.dict_time['호가갱신'] = timedelta_sec(0.25)
+            if now() > self.dict_time['부가정보']:
+                self.UpdateInfo()
+                self.dict_time['부가정보'] = timedelta_sec(2)
 
     def UpdateHoga(self, text):
         if text == '초기화':
@@ -114,3 +123,15 @@ class UpdaterHoga:
         else:
             self.df_hg = pd.DataFrame({'증감': vp, '잔량': jc, '호가': hg, '등락율': per})
         self.bool_hgup = True
+
+    @thread_decorator
+    def UpdateInfo(self):
+        info = [self.gubun, self.dict_intg['메모리'], self.dict_intg['스레드'], self.dict_intg['시피유']]
+        self.windowQ.put(info)
+        self.UpdateSysinfo()
+
+    def UpdateSysinfo(self):
+        p = psutil.Process(os.getpid())
+        self.dict_intg['메모리'] = round(p.memory_info()[0] / 2 ** 20.86, 2)
+        self.dict_intg['스레드'] = p.num_threads()
+        self.dict_intg['시피유'] = round(p.cpu_percent(interval=2) / 2, 2)

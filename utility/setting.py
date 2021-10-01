@@ -1,26 +1,39 @@
+import sqlite3
+import pandas as pd
 from PyQt5.QtGui import QFont, QColor
 
 openapi_path = 'D:/OpenAPI'
 system_path = 'D:/PythonProjects/MyKiwoom'
-database_path = f'{system_path}/database'
 graph_path = f'{system_path}/backtester/graph'
-db_stg = f'{database_path}/stg.db'
-db_tick = f'{database_path}/tick.db'
-db_backtest = f'{database_path}/backtest.db'
-db_backfind = f'{database_path}/backfind.db'
+db_stg = f'{system_path}/database/stg.db'
+db_tick = f'{system_path}/database/tick.db'
+db_backtest = f'{system_path}/database/backtest.db'
+db_backfind = f'{system_path}/database/backfind.db'
 
-screen_size = 3440
-resize = round(screen_size / 3440, 4)
+conn = sqlite3.connect(db_stg)
+df_s = pd.read_sql('SELECT * FROM setting', conn).set_index('index')
+conn.close()
+
+DICT_SET = {
+    '체결강도차이': df_s['체결강도차이'][0],
+    '평균시간': df_s['평균시간'][0],
+    '거래대금차이': df_s['거래대금차이'][0],
+    '체결강도하한': df_s['체결강도하한'][0],
+    '누적거래대금하한': df_s['누적거래대금하한'][0],
+    '등락율하한': df_s['등락율하한'][0],
+    '등락율상한': df_s['등락율상한'][0],
+    '청산수익률': df_s['청산수익률'][0]
+}
 
 qfont12 = QFont()
 qfont12.setFamily('나눔고딕')
-qfont12.setPixelSize(int(12 * resize))
+qfont12.setPixelSize(12)
 qfont13 = QFont()
 qfont13.setFamily('나눔고딕')
-qfont13.setPixelSize(int(12 * resize))
+qfont13.setPixelSize(13)
 qfont14 = QFont()
 qfont14.setFamily('나눔고딕')
-qfont14.setPixelSize(int(12 * resize))
+qfont14.setPixelSize(14)
 
 sn_brrq = 1000
 sn_brrd = 1001

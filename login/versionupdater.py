@@ -6,7 +6,6 @@ from PyQt5 import QtWidgets
 from multiprocessing import Process
 from PyQt5.QAxContainer import QAxWidget
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-from utility.static import telegram_msg
 from utility.setting import openapi_path
 
 
@@ -79,4 +78,3 @@ if __name__ == '__main__':
     else:
         proc.kill()
         print(' 버전처리용 로그인 프로세스 종료\n')
-    telegram_msg('OPENAPI를 업데이트하였습니다.')
