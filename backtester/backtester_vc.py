@@ -8,9 +8,9 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.setting import db_stg, db_tick, db_backtest, graph_path
 from utility.static import now, strf_time, strp_time, timedelta_sec, timedelta_day, telegram_msg
 
-BATTING = 5000000      # 종목당 배팅금액
+BATTING = 20000000     # 종목당 배팅금액
 TESTPERIOD = 14        # 백테스팅 기간(14일 경우 과거 2주간의 데이터를 백테스팅한다)
-TOTALTIME = 3600       # 백테스팅 기간 동안 9시부터 10시까지의 시간 총합, 단위 초
+TOTALTIME = 36000      # 백테스팅 기간 동안 9시부터 10시까지의 시간 총합, 단위 초
 START_TIME = 90000
 END_TIME = 100000
 
