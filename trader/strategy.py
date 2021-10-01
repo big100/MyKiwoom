@@ -117,7 +117,10 @@ class Strategy:
         if code in self.list_sell:
             return
 
+        """ 매도 조건 예시 """
         sell = False
+        if sp <= -2 or sp >= 3:
+            sell = True
 
         # 전략 비공개
 
