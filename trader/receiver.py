@@ -3,8 +3,8 @@ import sys
 import time
 import psutil
 import pythoncom
-from PyQt5 import QtCore
 from PyQt5 import QtWidgets
+from PyQt5.QtCore import QTimer
 from PyQt5.QAxContainer import QAxWidget
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.static import *
@@ -78,7 +78,7 @@ class Receiver:
         self.exit_time = exittime
         self.time_mtop = now()
 
-        self.timer = QtCore.QTimer()
+        self.timer = QTimer()
         self.timer.setInterval(60000)
         self.timer.timeout.connect(self.ConditionInsertDelete)
 
