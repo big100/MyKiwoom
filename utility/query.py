@@ -23,23 +23,21 @@ class Query:
                     try:
                         self.cur1.execute(query[1])
                     except Exception as e:
-                        self.windowQ.put([1, f'시스템 명령 오류 알림 - 입력값이 잘못되었습니다. {e}'])
+                        self.windowQ.put([1, f'시스템 명령 오류 알림 - execute {e}'])
                     else:
                         self.con1.commit()
                 elif len(query) == 4:
                     try:
                         query[1].to_sql(query[2], self.con1, if_exists=query[3], chunksize=1000)
                     except Exception as e:
-                        self.windowQ.put([1, f'시스템 명령 오류 알림 - {e}'])
+                        self.windowQ.put([1, f'시스템 명령 오류 알림 - to_sql {e}'])
             elif query[0] == 2:
-                if len(query) == 2:
-                    count = len(query[1])
-                    for i, code in enumerate(list(query[1].keys())):
-                        query[1][code].to_sql(code, self.con2, if_exists='append', chunksize=1000)
-                        text = f'시스템 명령 실행 알림 - 틱데이터 저장 중 ... [{i+1}/{count}]'
-                        self.windowQ.put([1, text])
-                elif len(query) == 4:
-                    try:
+                try:
+                    if len(query) == 2:
+                        for code in list(query[1].keys()):
+                            query[1][code].to_sql(code, self.con2, if_exists='append', chunksize=1000)
+                        self.windowQ.put([1, '시스템 명령 실행 알림 - 틱데이터 저장 완료'])
+                    elif len(query) == 4:
                         query[1].to_sql(query[2], self.con2, if_exists=query[3], chunksize=1000)
-                    except Exception as e:
-                        self.windowQ.put([1, f'시스템 명령 오류 알림 - {e}'])
+                except Exception as e:
+                    self.windowQ.put([1, f'시스템 명령 오류 알림 - to_sql {e}'])

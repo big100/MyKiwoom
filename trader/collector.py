@@ -16,6 +16,7 @@ class Collector:
         self.tickQ = tickQ
 
         self.dict_df = {}
+        self.dict_dm = {}
         self.dict_time = {
             '기록시간': now(),
             '부가정보': now()
@@ -31,12 +32,12 @@ class Collector:
     def Start(self):
         while True:
             tick = self.tickQ.get()
-            if len(tick) != 2:
+            if type(tick) == list:
                 self.UpdateTickData(tick[0], tick[1], tick[2], tick[3], tick[4], tick[5], tick[6], tick[7],
                                     tick[8], tick[9], tick[10], tick[11], tick[12], tick[13], tick[14],
                                     tick[15], tick[16], tick[17], tick[18], tick[19], tick[20], tick[21], tick[22])
-            elif tick[0] == '틱데이터저장':
-                self.SaveTickData(tick[1])
+            elif tick == '틱데이터저장':
+                self.queryQ.put([2, self.dict_df])
                 break
 
             if now() > self.dict_time['부가정보']:
@@ -53,10 +54,18 @@ class Collector:
         except ZeroDivisionError:
             return
 
+        try:
+            predm = self.dict_dm[code]
+        except KeyError:
+            predm = dm
+
+        self.dict_dm[code] = dm
+        sm = dm - predm
         d = self.str_tday + d
+
         if code not in self.dict_df.keys():
             self.dict_df[code] = pd.DataFrame(
-                [[c, o, h, per, hlmp, dm, dm, ch, vp, bids, asks, vitime, vid5,
+                [[c, o, h, per, hlmp, sm, dm, ch, vp, bids, asks, vitime, vid5,
                   s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr]],
                 columns=['현재가', '시가', '고가', '등락율', '고저평균대비등락율', '거래대금', '누적거래대금', '체결강도',
                          '전일거래량대비', '매수수량', '매도수량', 'VI발동시간', '상승VID5가격',
@@ -64,7 +73,6 @@ class Collector:
                          '매도잔량2', '매도잔량1', '매수잔량1', '매수잔량2'],
                 index=[d])
         else:
-            sm = int(dm - self.dict_df[code]['누적거래대금'][-1])
             self.dict_df[code].at[d] = \
                 c, o, h, per, hlmp, sm, dm, ch, vp, bids, asks, vitime, vid5,\
                 s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr
@@ -72,24 +80,11 @@ class Collector:
         if now() > self.dict_time['기록시간']:
             gap = (now() - receivetime).total_seconds()
             self.windowQ.put([1, f'콜렉터 수신 기록 알림 - 수신시간과 기록시간의 차이는 [{gap}]초입니다.'])
+            self.queryQ.put([2, self.dict_df])
+            self.dict_df = {}
             self.dict_time['기록시간'] = timedelta_sec(60)
 
     def SaveTickData(self, codes):
-        """
-        당일 거래종목만 저장
-        for code in list(self.dict_df.keys()):
-            if code in codes:
-                self.dict_df[code] = self.dict_df[code].dropna()
-                columns = ['현재가', '시가', '고가', '거래대금', '누적거래대금', '상승VID5가격', '매수수량', '매도수량',
-                           '매도호가2', '매도호가1', '매수호가1', '매수호가2', '매도잔량2', '매도잔량1', '매수잔량1', '매수잔량2']
-                self.dict_df[code][columns] = self.dict_df[code][columns].astype(int)
-            else:
-                del self.dict_df[code]
-        """
-        for code in list(self.dict_df.keys()):
-            columns = ['현재가', '시가', '고가', '거래대금', '누적거래대금', '상승VID5가격', '매수수량', '매도수량',
-                       '매도호가2', '매도호가1', '매수호가1', '매수호가2', '매도잔량2', '매도잔량1', '매수잔량1', '매수잔량2']
-            self.dict_df[code][columns] = self.dict_df[code][columns].astype(int)
         self.queryQ.put([2, self.dict_df])
 
     @thread_decorator

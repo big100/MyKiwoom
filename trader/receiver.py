@@ -265,16 +265,7 @@ class Receiver:
     def SaveDatabase(self):
         self.windowQ.put([2, '틱데이터 저장'])
         self.queryQ.put([2, self.df_mt, 'moneytop', 'append'])
-        con = sqlite3.connect(db_stg)
-        df = pd.read_sql(f"SELECT * FROM tradelist WHERE 체결시간 LIKE '{self.str_tday}%'", con)
-        con.close()
-        df = df.set_index('index')
-        codes = []
-        for index in df.index:
-            code = self.name_code[df['종목명'][index]]
-            if code not in codes:
-                codes.append(code)
-        self.tickQ.put(['틱데이터저장', codes])
+        self.tickQ.put('틱데이터저장')
         self.windowQ.put([1, '시스템 명령 실행 알림 - 틱데이터를 저장합니다.'])
 
     def UpdateMoneyTop(self):
