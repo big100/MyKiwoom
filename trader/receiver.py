@@ -14,12 +14,15 @@ from utility.setting import *
 class Receiver:
     app = QtWidgets.QApplication(sys.argv)
 
-    def __init__(self, windowQ, receivQ, stgQ, queryQ, tickQ):
+    def __init__(self, windowQ, receivQ, stgQ, queryQ, tick1Q, tick2Q, tick3Q, tick4Q):
         self.windowQ = windowQ
         self.receivQ = receivQ
         self.stgQ = stgQ
         self.queryQ = queryQ
-        self.tickQ = tickQ
+        self.tick1Q = tick1Q
+        self.tick2Q = tick2Q
+        self.tick3Q = tick3Q
+        self.tick4Q = tick4Q
 
         self.dict_bool = {
             '실시간조건검색시작': False,
@@ -53,8 +56,12 @@ class Receiver:
         self.list_trcd = []
         self.list_jang = []
         self.pre_top = []
-        self.list_code = None
         self.list_kosd = None
+        self.list_code = None
+        self.list_code1 = None
+        self.list_code2 = None
+        self.list_code3 = None
+        self.list_code4 = None
 
         self.df_tr = None
         self.dict_item = None
@@ -187,6 +194,10 @@ class Receiver:
     def OperationRealreg(self):
         self.receivQ.put([sn_oper, ' ', '215;20;214', 0])
         self.list_code = self.SendCondition(sn_oper, self.dict_cond[1], 1, 0)
+        self.list_code1 = [code for i, code in enumerate(self.list_code) if i % 4 == 0]
+        self.list_code2 = [code for i, code in enumerate(self.list_code) if i % 4 == 1]
+        self.list_code3 = [code for i, code in enumerate(self.list_code) if i % 4 == 2]
+        self.list_code4 = [code for i, code in enumerate(self.list_code) if i % 4 == 3]
         k = 0
         for i in range(0, len(self.list_code), 100):
             self.receivQ.put([sn_jchj + k, ';'.join(self.list_code[i:i + 100]), '10;12;14;30;228;41;61;71;81', 1])
@@ -265,7 +276,10 @@ class Receiver:
     def SaveDatabase(self):
         self.windowQ.put([2, '틱데이터 저장'])
         self.queryQ.put([2, self.df_mt, 'moneytop', 'append'])
-        self.tickQ.put('틱데이터저장')
+        self.tick1Q.put('틱데이터저장')
+        self.tick2Q.put('틱데이터저장')
+        self.tick3Q.put('틱데이터저장')
+        self.tick4Q.put('틱데이터저장')
         self.windowQ.put([1, '시스템 명령 실행 알림 - 틱데이터를 저장합니다.'])
 
     def UpdateMoneyTop(self):
@@ -489,7 +503,14 @@ class Receiver:
             s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr = 0, 0, 0, 0, 0, 0, 0, 0
         data = [code, c, o, h, low, per, dm, ch, vp, bids, asks, vitime, vid5,
                 s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr, t, receivetime]
-        self.tickQ.put(data)
+        if code in self.list_code1:
+            self.tick1Q.put(data)
+        elif code in self.list_code2:
+            self.tick2Q.put(data)
+        elif code in self.list_code3:
+            self.tick3Q.put(data)
+        elif code in self.list_code4:
+            self.tick4Q.put(data)
 
     def OnReceiveTrData(self, screen, rqname, trcode, record, nnext):
         if screen == '' and record == '':

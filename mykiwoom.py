@@ -47,18 +47,21 @@ class Window(QtWidgets.QMainWindow):
             [0., 0, 0.],    # 0 ui
             [0., 0, 0.],    # 1 strategy
             [0., 0, 0.],    # 2 receiver
-            [0., 0, 0.],    # 3 collector
-            [0., 0, 0.],    # 4 hoga1
-            [0., 0, 0.],    # 5 hoga2
-            [0., 0, 0.],    # 6 chart1
-            [0., 0, 0.],    # 7 chart2
-            [0., 0, 0.],    # 8 chart3
-            [0., 0, 0.],    # 9 chart4
-            [0., 0, 0.],    # 10 chart5
-            [0., 0, 0.],    # 11 chart6
-            [0., 0, 0.],    # 12 chart7
-            [0., 0, 0.],    # 13 chart8
-            [0., 0, 0.]     # 14 chart9
+            [0., 0, 0.],    # 3 collector1
+            [0., 0, 0.],    # 4 collector2
+            [0., 0, 0.],    # 5 collector3
+            [0., 0, 0.],    # 6 collector4
+            [0., 0, 0.],    # 7 hoga1
+            [0., 0, 0.],    # 8 hoga2
+            [0., 0, 0.],    # 9 chart1
+            [0., 0, 0.],    # 10 chart2
+            [0., 0, 0.],    # 11 chart3
+            [0., 0, 0.],    # 12 chart4
+            [0., 0, 0.],    # 13 chart5
+            [0., 0, 0.],    # 14 chart6
+            [0., 0, 0.],    # 15 chart7
+            [0., 0, 0.],    # 16 chart8
+            [0., 0, 0.]     # 17 chart9
         ]
 
         self.writer = Writer()
@@ -195,29 +198,33 @@ class Window(QtWidgets.QMainWindow):
             float_cpuper = float2str2p2(self.list_info[2][2])
             label02text = f"Receiver Process - Memory {float_memory}MB | Threads {int_thread}EA | CPU {float_cpuper}%"
 
-            float_memory = float2str3p2(self.list_info[3][0])
-            int_thread = self.list_info[3][1]
-            float_cpuper = float2str2p2(self.list_info[3][2])
+            float_memory = float2str3p2(
+                self.list_info[3][0] + self.list_info[4][0] + self.list_info[5][0] + self.list_info[6][0]
+            )
+            int_thread = self.list_info[3][1] + self.list_info[4][1] + self.list_info[5][1] + self.list_info[6][1]
+            float_cpuper = float2str2p2(
+                self.list_info[3][2] + self.list_info[4][2] + self.list_info[5][2] + self.list_info[6][2]
+            )
             label07text = f"Collector Process - Memory {float_memory}MB | Threads {int_thread}EA | CPU {float_cpuper}%"
 
-            float_memory = float2str3p2(self.list_info[4][0] + self.list_info[5][0])
-            int_thread = self.list_info[4][1] + self.list_info[4][1]
-            float_cpuper = float2str2p2(self.list_info[4][2] + self.list_info[5][2])
+            float_memory = float2str3p2(self.list_info[7][0] + self.list_info[8][0])
+            int_thread = self.list_info[7][1] + self.list_info[8][1]
+            float_cpuper = float2str2p2(self.list_info[7][2] + self.list_info[8][2])
             label03text = f"Hoga Process - Memory {float_memory}MB | Threads {int_thread}EA | CPU {float_cpuper}%"
 
             float_memory = float2str3p2(
-                self.list_info[6][0] + self.list_info[7][0] + self.list_info[8][0] +
                 self.list_info[9][0] + self.list_info[10][0] + self.list_info[11][0] +
-                self.list_info[12][0] + self.list_info[13][0] + self.list_info[14][0]
+                self.list_info[12][0] + self.list_info[13][0] + self.list_info[14][0] +
+                self.list_info[15][0] + self.list_info[16][0] + self.list_info[17][0]
             )
             int_thread = \
-                self.list_info[6][1] + self.list_info[7][1] + self.list_info[8][1] + \
                 self.list_info[9][1] + self.list_info[10][1] + self.list_info[11][1] + \
-                self.list_info[12][1] + self.list_info[13][1] + self.list_info[14][1]
+                self.list_info[12][1] + self.list_info[13][1] + self.list_info[14][1] + \
+                self.list_info[15][1] + self.list_info[16][1] + self.list_info[17][1]
             float_cpuper = float2str2p2(
-                self.list_info[6][2] + self.list_info[7][2] + self.list_info[8][2] +
                 self.list_info[9][2] + self.list_info[10][2] + self.list_info[11][2] +
-                self.list_info[12][2] + self.list_info[13][2] + self.list_info[14][2]
+                self.list_info[12][2] + self.list_info[13][2] + self.list_info[14][2] +
+                self.list_info[15][2] + self.list_info[16][2] + self.list_info[17][2]
             )
             label08text = f"Chart Process - Memory {float_memory}MB | Threads {int_thread}EA | CPU {float_cpuper}%"
 
@@ -263,28 +270,34 @@ class Window(QtWidgets.QMainWindow):
             self.list_info[2] = [msg[1], msg[2], msg[3]]
         elif msg[0] == 8:
             self.list_info[3] = [msg[1], msg[2], msg[3]]
-        elif msg[0] == ui_num['호가P0']:
+        elif msg[0] == 9:
             self.list_info[4] = [msg[1], msg[2], msg[3]]
-        elif msg[0] == ui_num['호가P1']:
+        elif msg[0] == 10:
             self.list_info[5] = [msg[1], msg[2], msg[3]]
-        elif msg[0] == ui_num['차트P1']:
+        elif msg[0] == 11:
             self.list_info[6] = [msg[1], msg[2], msg[3]]
-        elif msg[0] == ui_num['차트P2']:
+        elif msg[0] == ui_num['호가P0']:
             self.list_info[7] = [msg[1], msg[2], msg[3]]
-        elif msg[0] == ui_num['차트P3']:
+        elif msg[0] == ui_num['호가P1']:
             self.list_info[8] = [msg[1], msg[2], msg[3]]
-        elif msg[0] == ui_num['차트P4']:
+        elif msg[0] == ui_num['차트P1']:
             self.list_info[9] = [msg[1], msg[2], msg[3]]
-        elif msg[0] == ui_num['차트P5']:
+        elif msg[0] == ui_num['차트P2']:
             self.list_info[10] = [msg[1], msg[2], msg[3]]
-        elif msg[0] == ui_num['차트P6']:
+        elif msg[0] == ui_num['차트P3']:
             self.list_info[11] = [msg[1], msg[2], msg[3]]
-        elif msg[0] == ui_num['차트P7']:
+        elif msg[0] == ui_num['차트P4']:
             self.list_info[12] = [msg[1], msg[2], msg[3]]
-        elif msg[0] == ui_num['차트P8']:
+        elif msg[0] == ui_num['차트P5']:
             self.list_info[13] = [msg[1], msg[2], msg[3]]
-        elif msg[0] == ui_num['차트P9']:
+        elif msg[0] == ui_num['차트P6']:
             self.list_info[14] = [msg[1], msg[2], msg[3]]
+        elif msg[0] == ui_num['차트P7']:
+            self.list_info[15] = [msg[1], msg[2], msg[3]]
+        elif msg[0] == ui_num['차트P8']:
+            self.list_info[16] = [msg[1], msg[2], msg[3]]
+        elif msg[0] == ui_num['차트P9']:
+            self.list_info[17] = [msg[1], msg[2], msg[3]]
 
     def UpdateChart(self, data):
         gubun = data[0]
@@ -1487,9 +1500,9 @@ class Writer(QtCore.QThread):
 
 if __name__ == '__main__':
     windowQ, traderQ, receivQ, stgQ, soundQ, queryQ, teleQ, hoga1Q, hoga2Q, chart1Q, chart2Q, chart3Q, chart4Q, \
-        chart5Q, chart6Q, chart7Q, chart8Q, chart9Q, tickQ = \
+        chart5Q, chart6Q, chart7Q, chart8Q, chart9Q, tick1Q, tick2Q, tick3Q, tick4Q = \
         Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(),  Queue(), Queue(), Queue(), \
-        Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue()
+        Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue()
 
     Process(target=Sound, args=(soundQ,), daemon=True).start()
     Process(target=Query, args=(windowQ, queryQ), daemon=True).start()
@@ -1498,8 +1511,11 @@ if __name__ == '__main__':
     os.system(f'python {system_path}/login/versionupdater.py')
     os.system(f'python {system_path}/login/autologin2.py')
 
-    Process(target=Collector, args=(windowQ, queryQ, tickQ), daemon=True).start()
-    Process(target=Receiver, args=(windowQ, receivQ, stgQ, queryQ, tickQ), daemon=True).start()
+    Process(target=Collector, args=(windowQ, queryQ, tick1Q), daemon=True).start()
+    Process(target=Collector, args=(windowQ, queryQ, tick2Q), daemon=True).start()
+    Process(target=Collector, args=(windowQ, queryQ, tick3Q), daemon=True).start()
+    Process(target=Collector, args=(windowQ, queryQ, tick4Q), daemon=True).start()
+    Process(target=Receiver, args=(windowQ, receivQ, stgQ, queryQ, tick1Q, tick2Q, tick3Q, tick4Q), daemon=True).start()
     time.sleep(15)
 
     os.system(f'python {system_path}/login/autologin1.py')
