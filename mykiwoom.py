@@ -63,6 +63,13 @@ class Window(QtWidgets.QMainWindow):
             [0., 0, 0.],    # 16 chart8
             [0., 0, 0.]     # 17 chart9
         ]
+        self.rowcol = [     # Qt.Key_Return, Qt.Key_Enter
+            [-1, -1],       # self.td_tableWidget [row, col]
+            [-1, -1],       # self.jg_tableWidget [row, col]
+            [-1, -1],       # self.cj_tableWidget [row, col]
+            [-1, -1],       # self.gj_tableWidget [row, col]
+            [-1, -1]        # self.dd_tableWidget [row, col]
+        ]
 
         self.writer = Writer()
         self.writer.data0.connect(self.UpdateTexedit)
@@ -70,6 +77,52 @@ class Window(QtWidgets.QMainWindow):
         self.writer.data2.connect(self.UpdateGaonsimJongmok)
         self.writer.data3.connect(self.UpdateTablewidget)
         self.writer.start()
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            tableWidget = None
+            current = self.td_tableWidget.currentIndex()
+            row = current.row()
+            col = current.column()
+            if row != self.rowcol[0][0] or col != self.rowcol[0][0]:
+                tableWidget = self.td_tableWidget
+                self.rowcol[0] = [row, col]
+            current = self.jg_tableWidget.currentIndex()
+            row = current.row()
+            col = current.column()
+            if row != self.rowcol[1][0] or col != self.rowcol[1][0]:
+                tableWidget = self.jg_tableWidget
+                self.rowcol[1] = [row, col]
+            current = self.cj_tableWidget.currentIndex()
+            row = current.row()
+            col = current.column()
+            if row != self.rowcol[2][0] or col != self.rowcol[2][0]:
+                tableWidget = self.cj_tableWidget
+                self.rowcol[2] = [row, col]
+            current = self.gj_tableWidget.currentIndex()
+            row = current.row()
+            col = current.column()
+            if row != self.rowcol[3][0] or col != self.rowcol[3][0]:
+                tableWidget = self.gj_tableWidget
+                self.rowcol[3] = [row, col]
+            current = self.dd_tableWidget.currentIndex()
+            row = current.row()
+            col = current.column()
+            if row != self.rowcol[4][0] or col != self.rowcol[4][0]:
+                tableWidget = self.dd_tableWidget
+                self.rowcol[4] = [row, col]
+            if tableWidget is None:
+                return
+            if col > 1:
+                return
+            if tableWidget == self.dd_tableWidget:
+                item = tableWidget.item(row, 1)
+            else:
+                item = tableWidget.item(row, 0)
+            if item is None:
+                return
+            code = self.dict_code[item.text()]
+            self.PutTraderQ(code, col)
 
     def ReturnPressed_1(self):
         codeorname = self.ct_lineEdit_01.text()
