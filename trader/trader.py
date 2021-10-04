@@ -1123,8 +1123,6 @@ class Trader:
                 self.UpdateChegeoljango(code, name, og, oc, cp)
                 self.UpdateTradelist(name, oc, sp, sg, bg, pg, on)
                 self.windowQ.put([1, f"매매 시스템 체결 알림 - {name} {oc}주 {og}, 수익률 {sp}% 수익금{format(sg, ',')}원"])
-            elif og == '시드부족':
-                self.stgQ.put(['매수완료', code])
         self.UpdateChegeollist(name, og, oc, omc, op, cp, dt, on)
         self.lock.release()
 
