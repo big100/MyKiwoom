@@ -324,7 +324,7 @@ class Total:
                       self.gap_sm, self.ch_low, self.dm_low, self.per_low, self.per_high, self.cs_per]],
                     columns=columns2, index=[strf_time('%Y%m%d%H%M%S')])
                 conn = sqlite3.connect(db_backtest)
-                df_back.to_sql(f"{strf_time('%Y%m%d')}_1c", conn, if_exists='append', chunksize=1000)
+                df_back.to_sql(f"vc_{strf_time('%Y%m%d')}_1", conn, if_exists='append', chunksize=1000)
                 conn.close()
 
         if len(df_tsg) > 0:
@@ -333,10 +333,10 @@ class Total:
             df_tsg['ttsg_cumsum'] = df_tsg['ttsg'].cumsum()
             df_tsg[['ttsg', 'ttsg_cumsum']] = df_tsg[['ttsg', 'ttsg_cumsum']].astype(int)
             conn = sqlite3.connect(db_backtest)
-            df_tsg.to_sql(f"{strf_time('%Y%m%d')}_it", conn, if_exists='replace', chunksize=1000)
+            df_tsg.to_sql(f"vc_{strf_time('%Y%m%d')}_2", conn, if_exists='append', chunksize=1000)
             conn.close()
             df_tsg.plot(figsize=(12, 9), rot=45)
-            plt.savefig(f"{graph_path}/{strf_time('%Y%m%d')}_1.png")
+            plt.savefig(f"{graph_path}/vc_{strf_time('%Y%m%d')}.png")
             conn = sqlite3.connect(db_stg)
             cur = conn.cursor()
             query = f"UPDATE setting SET 체결강도차이 = {self.gap_ch}, 평균시간 = {self.avg_time}, "\
