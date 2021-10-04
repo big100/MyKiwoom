@@ -283,8 +283,19 @@ class Trader:
 
     def BuySell(self, gubun, code, name, c, oc):
         if gubun == '매수' and code in self.dict_df['잔고목록'].index:
+            self.stgQ.put(['매수취소', code])
             return
         elif gubun == '매도' and code not in self.dict_df['잔고목록'].index:
+            self.stgQ.put(['매도취소', code])
+            return
+
+        if gubun == '매수' and code in self.list_sell:
+            self.stgQ.put(['매수취소', code])
+            self.windowQ.put([1, '매매 시스템 오류 알림 - 현재 매도 주문중인 종목입니다.'])
+            return
+        if gubun == '매도' and code in self.list_buy:
+            self.stgQ.put(['매도취소', code])
+            self.windowQ.put([1, '매매 시스템 오류 알림 - 현재 매수 주문중인 종목입니다.'])
             return
 
         if gubun == '매수':
@@ -294,6 +305,7 @@ class Trader:
                 if len(df) == 0 or \
                         (len(df) > 0 and now() > timedelta_sec(180, strp_time('%Y%m%d%H%M%S%f', df['체결시간'][0]))):
                     self.Order('시드부족', code, name, c, oc)
+                self.stgQ.put(['매수취소', code])
                 return
 
         self.Order(gubun, code, name, c, oc)
