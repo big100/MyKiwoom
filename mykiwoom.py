@@ -707,7 +707,7 @@ class Window(QtWidgets.QMainWindow):
         for j, index in enumerate(df.index):
             for i, column in enumerate(df.columns):
                 if column == '체결시간':
-                    cgtime = df[column][index]
+                    cgtime = str(df[column][index])
                     if gubun == ui_num['체결강도']:
                         cgtime = f'{cgtime[:2]}:{cgtime[2:4]}:{cgtime[4:6]}'
                     else:
