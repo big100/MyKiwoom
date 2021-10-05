@@ -35,10 +35,6 @@ class Receiver:
             'CD수신': False,
             'CR수신': False
         }
-        self.dict_time = {
-            '거래대금순위': now(),
-            '부가정보': now()
-        }
         self.dict_intg = {
             '스레드': 0,
             '시피유': 0.,
@@ -78,6 +74,8 @@ class Receiver:
         exittime = timedelta_sec(remaintime) if remaintime > 0 else timedelta_sec(600)
         self.dict_time = {
             '휴무종료': exittime,
+            '거래대금순위': now(),
+            '부가정보': now(),
             '거래대금순위기록': now(),
             '거래대금순위저장': now()
         }
