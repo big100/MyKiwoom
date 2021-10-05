@@ -72,11 +72,15 @@ class Receiver:
         self.df_mc = pd.DataFrame(columns=['최근거래대금'])
         self.str_tday = strf_time('%Y%m%d')
         self.str_jcct = self.str_tday + '090000'
+        self.dt_mtct = None
 
         remaintime = (strp_time('%Y%m%d%H%M%S', self.str_tday + '090100') - now()).total_seconds()
         exittime = timedelta_sec(remaintime) if remaintime > 0 else timedelta_sec(600)
-        self.exit_time = exittime
-        self.time_mtop = now()
+        self.dict_time = {
+            '휴무종료': exittime,
+            '거래대금순위기록': now(),
+            '거래대금순위저장': now()
+        }
 
         self.timer = QTimer()
         self.timer.setInterval(60000)
@@ -133,9 +137,8 @@ class Receiver:
                     self.UpdateJangolist(work)
                 continue
 
-            if self.operation == 1 and now() > self.exit_time:
+            if self.operation == 1 and now() > self.dict_time['휴무종료']:
                 break
-
             if self.operation == 3:
                 if int(strf_time('%H%M%S')) < 100000:
                     if not self.dict_bool['실시간조건검색시작']:
@@ -147,13 +150,12 @@ class Receiver:
                         self.StartJangjungStrategy()
             if self.operation == 8:
                 self.ALlRemoveRealreg()
-                self.SaveDatabase()
                 break
 
-            if now() > self.dict_time['거래대금순위']:
-                if len(self.df_mt):
+            if now() > self.dict_time['거래대금순위기록']:
+                if len(self.list_gsjm) > 0:
                     self.UpdateMoneyTop()
-                self.dict_time['거래대금순위'] = timedelta_sec(1)
+                self.dict_time['거래대금순위기록'] = timedelta_sec(1)
             if now() > self.dict_time['부가정보']:
                 self.UpdateInfo()
                 self.dict_time['부가정보'] = timedelta_sec(2)
@@ -212,12 +214,9 @@ class Receiver:
         self.dict_bool['실시간조건검색시작'] = True
         self.windowQ.put([2, '실시간 조건검색식 등록'])
         codes = self.SendCondition(sn_cond, self.dict_cond[0], 0, 1)
-        self.df_mt.at[self.str_tday + '090000'] = ';'.join(codes)
         if len(codes) > 0:
             for code in codes:
-                self.list_gsjm.append(code)
-                self.dict_gsjm[code] = '090000'
-                self.stgQ.put(['조건진입', code])
+                self.InsertGsjmlist(code)
         self.windowQ.put([1, '시스템 명령 실행 알림 - 실시간조건검색 등록 완료'])
 
     def ConditionSearchStop(self):
@@ -232,17 +231,11 @@ class Receiver:
         insert_list = set(list_top) - set(self.list_gsjm)
         if len(insert_list) > 0:
             for code in list(insert_list):
-                self.list_gsjm.append(code)
-                if code not in self.list_jang and code not in self.dict_gsjm.keys():
-                    self.stgQ.put(['조건진입', code])
-                    self.dict_gsjm[code] = '090000'
+                self.InsertGsjmlist(code)
         delete_list = set(self.list_gsjm) - set(list_top)
         if len(delete_list) > 0:
             for code in list(delete_list):
-                self.list_gsjm.remove(code)
-                if code not in self.list_jang and code in self.dict_gsjm.keys():
-                    self.stgQ.put(['조건이탈', code])
-                    del self.dict_gsjm[code]
+                self.DeleteGsjmlist(code)
         self.pre_top = list_top
         self.timer.start()
 
@@ -252,48 +245,55 @@ class Receiver:
         insert_list = set(list_top) - set(self.pre_top)
         if len(insert_list) > 0:
             for code in list(insert_list):
-                if code not in self.list_gsjm:
-                    self.list_gsjm.append(code)
-                if code not in self.list_jang and code not in self.dict_gsjm.keys():
-                    self.stgQ.put(['조건진입', code])
-                    self.dict_gsjm[code] = '090000'
+                self.InsertGsjmlist(code)
         delete_list = set(self.pre_top) - set(list_top)
         if len(delete_list) > 0:
             for code in list(delete_list):
-                if code in self.list_gsjm:
-                    self.list_gsjm.remove(code)
-                if code not in self.list_jang and code in self.dict_gsjm.keys():
-                    self.stgQ.put(['조건이탈', code])
-                    del self.dict_gsjm[code]
+                self.DeleteGsjmlist(code)
         self.pre_top = list_top
+
+    def InsertGsjmlist(self, code):
+        if code not in self.list_gsjm:
+            self.list_gsjm.append(code)
+        if code not in self.list_jang and code not in self.dict_gsjm.keys():
+            self.stgQ.put(['조건진입', code])
+            self.dict_gsjm[code] = '090000'
+
+    def DeleteGsjmlist(self, code):
+        if code in self.list_gsjm:
+            self.list_gsjm.remove(code)
+        if code not in self.list_jang and code in self.dict_gsjm.keys():
+            self.stgQ.put(['조건이탈', code])
+            del self.dict_gsjm[code]
 
     def ALlRemoveRealreg(self):
         self.dict_bool['실시간데이터수신중단'] = True
         self.windowQ.put([2, '실시간 데이터 수신 중단'])
         self.receivQ.put(['ALL', 'ALL'])
         self.windowQ.put([1, '시스템 명령 실행 알림 - 실시간 데이터 중단 완료'])
-
-    def SaveDatabase(self):
-        self.windowQ.put([2, '틱데이터 저장'])
-        self.queryQ.put([2, self.df_mt, 'moneytop', 'append'])
-        self.tick1Q.put('틱데이터저장')
-        self.tick2Q.put('틱데이터저장')
-        self.tick3Q.put('틱데이터저장')
-        self.tick4Q.put('틱데이터저장')
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 틱데이터를 저장합니다.'])
+        self.tick1Q.put('콜렉터종료')
+        self.tick2Q.put('콜렉터종료')
+        self.tick3Q.put('콜렉터종료')
+        self.tick4Q.put('콜렉터종료')
 
     def UpdateMoneyTop(self):
         timetype = '%Y%m%d%H%M%S'
         list_text = ';'.join(self.list_gsjm)
         curr_time = self.str_jcct
         curr_datetime = strp_time(timetype, curr_time)
-        last_datetime = strp_time(timetype, self.df_mt.index[-1])
-        gap_seconds = (curr_datetime - last_datetime).total_seconds()
-        while gap_seconds > 2:
-            gap_seconds -= 1
-            pre_time = strf_time(timetype, timedelta_sec(-gap_seconds, curr_datetime))
-            self.df_mt.at[pre_time] = list_text
+        if self.dt_mtct is not None:
+            gap_seconds = (curr_datetime - self.dt_mtct).total_seconds()
+            while gap_seconds > 2:
+                gap_seconds -= 1
+                pre_time = strf_time(timetype, timedelta_sec(-gap_seconds, curr_datetime))
+                self.df_mt.at[pre_time] = list_text
         self.df_mt.at[curr_time] = list_text
+        self.dt_mtct = curr_datetime
+
+        if now() > self.dict_time['거래대금순위저장']:
+            self.queryQ.put([2, self.df_mt, 'moneytop', 'append'])
+            self.df_mt = pd.DataFrame(columns=['거래대금순위'])
+            self.dict_time['거래대금순위저장'] = timedelta_sec(10)
 
     @thread_decorator
     def UpdateInfo(self):

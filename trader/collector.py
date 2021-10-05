@@ -10,7 +10,8 @@ from utility.static import now, strf_time, timedelta_sec, thread_decorator
 
 
 class Collector:
-    def __init__(self, windowQ, queryQ, tickQ):
+    def __init__(self, gubun, windowQ, queryQ, tickQ):
+        self.gubun = gubun
         self.windowQ = windowQ
         self.queryQ = queryQ
         self.tickQ = tickQ
@@ -36,15 +37,15 @@ class Collector:
                 self.UpdateTickData(tick[0], tick[1], tick[2], tick[3], tick[4], tick[5], tick[6], tick[7],
                                     tick[8], tick[9], tick[10], tick[11], tick[12], tick[13], tick[14],
                                     tick[15], tick[16], tick[17], tick[18], tick[19], tick[20], tick[21], tick[22])
-            elif tick == '틱데이터저장':
-                self.queryQ.put([2, self.dict_df])
+            elif tick == '콜렉터종료':
                 break
 
             if now() > self.dict_time['부가정보']:
                 self.UpdateInfo()
                 self.dict_time['부가정보'] = timedelta_sec(2)
 
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 콜렉터 종료'])
+        if self.gubun == 4:
+            self.windowQ.put([1, '시스템 명령 실행 알림 - 콜렉터 종료'])
 
     def UpdateTickData(self, code, c, o, h, low, per, dm, ch, vp, bids, asks, vitime, vid5,
                        s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr, d, receivetime):
@@ -78,8 +79,9 @@ class Collector:
                 s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr
 
         if now() > self.dict_time['기록시간']:
-            gap = (now() - receivetime).total_seconds()
-            self.windowQ.put([1, f'콜렉터 수신 기록 알림 - 수신시간과 기록시간의 차이는 [{gap}]초입니다.'])
+            if self.gubun == 4:
+                gap = (now() - receivetime).total_seconds()
+                self.windowQ.put([1, f'콜렉터 수신 기록 알림 - 수신시간과 기록시간의 차이는 [{gap}]초입니다.'])
             self.queryQ.put([2, self.dict_df])
             self.dict_df = {}
             self.dict_time['기록시간'] = timedelta_sec(60)
