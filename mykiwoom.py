@@ -80,45 +80,32 @@ class Window(QtWidgets.QMainWindow):
 
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key_Return, Qt.Key_Enter):
-            tableWidget = None
-            current = self.td_tableWidget.currentIndex()
-            row = current.row()
-            col = current.column()
-            if row != self.rowcol[0][0] or col != self.rowcol[0][1]:
-                tableWidget = self.td_tableWidget
+            item = None
+            row = self.td_tableWidget.currentIndex().row()
+            col = self.td_tableWidget.currentIndex().column()
+            if col <= 1 and (row != self.rowcol[0][0] or col != self.rowcol[0][1]):
+                item = self.td_tableWidget.item(row, 0)
                 self.rowcol[0] = [row, col]
-            current = self.jg_tableWidget.currentIndex()
-            row = current.row()
-            col = current.column()
-            if row != self.rowcol[1][0] or col != self.rowcol[1][1]:
-                tableWidget = self.jg_tableWidget
+            row = self.jg_tableWidget.currentIndex().row()
+            col = self.jg_tableWidget.currentIndex().column()
+            if col <= 1 and (row != self.rowcol[1][0] or col != self.rowcol[1][1]):
+                item = self.jg_tableWidget.item(row, 0)
                 self.rowcol[1] = [row, col]
-            current = self.cj_tableWidget.currentIndex()
-            row = current.row()
-            col = current.column()
-            if row != self.rowcol[2][0] or col != self.rowcol[2][1]:
-                tableWidget = self.cj_tableWidget
+            row = self.cj_tableWidget.currentIndex().row()
+            col = self.cj_tableWidget.currentIndex().column()
+            if col <= 1 and (row != self.rowcol[2][0] or col != self.rowcol[2][1]):
+                item = self.cj_tableWidget.item(row, 0)
                 self.rowcol[2] = [row, col]
-            current = self.gj_tableWidget.currentIndex()
-            row = current.row()
-            col = current.column()
-            if row != self.rowcol[3][0] or col != self.rowcol[3][1]:
-                tableWidget = self.gj_tableWidget
+            row = self.gj_tableWidget.currentIndex().row()
+            col = self.gj_tableWidget.currentIndex().column()
+            if col <= 1 and (row != self.rowcol[3][0] or col != self.rowcol[3][1]):
+                item = self.gj_tableWidget.item(row, 0)
                 self.rowcol[3] = [row, col]
-            current = self.dd_tableWidget.currentIndex()
-            row = current.row()
-            col = current.column()
-            if row != self.rowcol[4][0] or col != self.rowcol[4][1]:
-                tableWidget = self.dd_tableWidget
+            row = self.dd_tableWidget.currentIndex().row()
+            col = self.dd_tableWidget.currentIndex().column()
+            if col <= 1 and (row != self.rowcol[4][0] or col != self.rowcol[4][1]):
+                item = self.dd_tableWidget.item(row, 1)
                 self.rowcol[4] = [row, col]
-            if tableWidget is None:
-                return
-            if col > 1:
-                return
-            if tableWidget == self.dd_tableWidget:
-                item = tableWidget.item(row, 1)
-            else:
-                item = tableWidget.item(row, 0)
             if item is None:
                 return
             code = self.dict_code[item.text()]
@@ -252,11 +239,11 @@ class Window(QtWidgets.QMainWindow):
             label02text = f"Receiver Process - Memory {float_memory}MB | Threads {int_thread}EA | CPU {float_cpuper}%"
 
             float_memory = float2str3p2(
-                self.list_info[3][0] + self.list_info[4][0] + self.list_info[5][0] + self.list_info[6][0]
+                round(self.list_info[3][0] + self.list_info[4][0] + self.list_info[5][0] + self.list_info[6][0], 2)
             )
             int_thread = self.list_info[3][1] + self.list_info[4][1] + self.list_info[5][1] + self.list_info[6][1]
             float_cpuper = float2str2p2(
-                self.list_info[3][2] + self.list_info[4][2] + self.list_info[5][2] + self.list_info[6][2]
+                round(self.list_info[3][2] + self.list_info[4][2] + self.list_info[5][2] + self.list_info[6][2], 2)
             )
             label07text = f"Collector Process - Memory {float_memory}MB | Threads {int_thread}EA | CPU {float_cpuper}%"
 
@@ -266,18 +253,18 @@ class Window(QtWidgets.QMainWindow):
             label03text = f"Hoga Process - Memory {float_memory}MB | Threads {int_thread}EA | CPU {float_cpuper}%"
 
             float_memory = float2str3p2(
-                self.list_info[9][0] + self.list_info[10][0] + self.list_info[11][0] +
-                self.list_info[12][0] + self.list_info[13][0] + self.list_info[14][0] +
-                self.list_info[15][0] + self.list_info[16][0] + self.list_info[17][0]
+                round(self.list_info[9][0] + self.list_info[10][0] + self.list_info[11][0] +
+                      self.list_info[12][0] + self.list_info[13][0] + self.list_info[14][0] +
+                      self.list_info[15][0] + self.list_info[16][0] + self.list_info[17][0], 2)
             )
             int_thread = \
                 self.list_info[9][1] + self.list_info[10][1] + self.list_info[11][1] + \
                 self.list_info[12][1] + self.list_info[13][1] + self.list_info[14][1] + \
                 self.list_info[15][1] + self.list_info[16][1] + self.list_info[17][1]
             float_cpuper = float2str2p2(
-                self.list_info[9][2] + self.list_info[10][2] + self.list_info[11][2] +
-                self.list_info[12][2] + self.list_info[13][2] + self.list_info[14][2] +
-                self.list_info[15][2] + self.list_info[16][2] + self.list_info[17][2]
+                round(self.list_info[9][2] + self.list_info[10][2] + self.list_info[11][2] +
+                      self.list_info[12][2] + self.list_info[13][2] + self.list_info[14][2] +
+                      self.list_info[15][2] + self.list_info[16][2] + self.list_info[17][2], 2)
             )
             label08text = f"Chart Process - Memory {float_memory}MB | Threads {int_thread}EA | CPU {float_cpuper}%"
 
