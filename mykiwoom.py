@@ -81,35 +81,36 @@ class Window(QtWidgets.QMainWindow):
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key_Return, Qt.Key_Enter):
             item = None
+            col_number = 0
             row = self.td_tableWidget.currentIndex().row()
             col = self.td_tableWidget.currentIndex().column()
             if col <= 1 and (row != self.rowcol[0][0] or col != self.rowcol[0][1]):
-                item = self.td_tableWidget.item(row, 0)
+                item, col_number = self.td_tableWidget.item(row, 0), col
                 self.rowcol[0] = [row, col]
             row = self.jg_tableWidget.currentIndex().row()
             col = self.jg_tableWidget.currentIndex().column()
             if col <= 1 and (row != self.rowcol[1][0] or col != self.rowcol[1][1]):
-                item = self.jg_tableWidget.item(row, 0)
+                item, col_number = self.jg_tableWidget.item(row, 0), col
                 self.rowcol[1] = [row, col]
             row = self.cj_tableWidget.currentIndex().row()
             col = self.cj_tableWidget.currentIndex().column()
             if col <= 1 and (row != self.rowcol[2][0] or col != self.rowcol[2][1]):
-                item = self.cj_tableWidget.item(row, 0)
+                item, col_number = self.cj_tableWidget.item(row, 0), col
                 self.rowcol[2] = [row, col]
             row = self.gj_tableWidget.currentIndex().row()
             col = self.gj_tableWidget.currentIndex().column()
             if col <= 1 and (row != self.rowcol[3][0] or col != self.rowcol[3][1]):
-                item = self.gj_tableWidget.item(row, 0)
+                item, col_number = self.gj_tableWidget.item(row, 0), col
                 self.rowcol[3] = [row, col]
             row = self.dd_tableWidget.currentIndex().row()
             col = self.dd_tableWidget.currentIndex().column()
             if col <= 1 and (row != self.rowcol[4][0] or col != self.rowcol[4][1]):
-                item = self.dd_tableWidget.item(row, 1)
+                item, col_number = self.dd_tableWidget.item(row, 1), col
                 self.rowcol[4] = [row, col]
             if item is None:
                 return
             code = self.dict_code[item.text()]
-            self.PutTraderQ(code, col)
+            self.PutTraderQ(code, col_number)
 
     def ReturnPressed_1(self):
         codeorname = self.ct_lineEdit_01.text()
