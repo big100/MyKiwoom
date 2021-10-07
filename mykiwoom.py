@@ -1564,11 +1564,12 @@ if __name__ == '__main__':
     os.system(f'python {system_path}/login/versionupdater.py')
     os.system(f'python {system_path}/login/autologin2.py')
 
-    Process(target=Collector, args=(1,  windowQ, queryQ, tick1Q), daemon=True).start()
+    Process(target=Collector, args=(1, windowQ, queryQ, tick1Q), daemon=True).start()
     Process(target=Collector, args=(2, windowQ, queryQ, tick2Q), daemon=True).start()
     Process(target=Collector, args=(3, windowQ, queryQ, tick3Q), daemon=True).start()
     Process(target=Collector, args=(4, windowQ, queryQ, tick4Q), daemon=True).start()
-    Process(target=Receiver, args=(windowQ, receivQ, stgQ, queryQ, tick1Q, tick2Q, tick3Q, tick4Q), daemon=True).start()
+    Process(target=Receiver,
+            args=(windowQ, receivQ, traderQ, stgQ, queryQ, tick1Q, tick2Q, tick3Q, tick4Q), daemon=True).start()
     time.sleep(15)
 
     os.system(f'python {system_path}/login/autologin1.py')

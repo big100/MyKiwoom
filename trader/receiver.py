@@ -14,9 +14,10 @@ from utility.setting import *
 class Receiver:
     app = QtWidgets.QApplication(sys.argv)
 
-    def __init__(self, windowQ, receivQ, stgQ, queryQ, tick1Q, tick2Q, tick3Q, tick4Q):
+    def __init__(self, windowQ, receivQ, traderQ, stgQ, queryQ, tick1Q, tick2Q, tick3Q, tick4Q):
         self.windowQ = windowQ
         self.receivQ = receivQ
+        self.traderQ = traderQ
         self.stgQ = stgQ
         self.queryQ = queryQ
         self.tick1Q = tick1Q
@@ -414,7 +415,6 @@ class Receiver:
                         per = float(self.GetCommRealData(code, 12))
                         dm = int(self.GetCommRealData(code, 14))
                         ch = float(self.GetCommRealData(code, 228))
-                        vp = abs(float(self.GetCommRealData(code, 30)))
                         name = self.GetMasterCodeName(code)
                     except Exception as e:
                         self.windowQ.put([1, f'OnReceiveRealData 주식체결 {e}'])
@@ -507,9 +507,11 @@ class Receiver:
 
         if code in self.dict_gsjm.keys():
             injango = code in self.list_jang
-            vitimedown = now() < timedelta_sec(180, self.dict_vipr[code][1])
-            vid5priceup = c >= self.dict_vipr[code][2]
-            self.stgQ.put([code, name, c, o, h, low, per, ch, dm, t, injango, vitimedown, vid5priceup, receivetime])
+            data.append(name)
+            data.append(injango)
+            self.stgQ.put(data)
+            if injango:
+                self.traderQ.put([code, name, c, o, h, low])
 
         data[10] = strf_time('%Y%m%d%H%M%S', vitime)
         if code in self.list_code1:

@@ -50,12 +50,6 @@ class Collector:
     def UpdateTickData(self, code, c, o, h, low, per, dm, ch, bids, asks, vitime, vid5price,
                        tsjr, tbjr, s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr, t, receivetime):
         try:
-            hlm = int(round((h + low) / 2))
-            hlmp = round((c / hlm - 1) * 100, 2)
-        except ZeroDivisionError:
-            return
-
-        try:
             predm = self.dict_dm[code]
         except KeyError:
             predm = dm

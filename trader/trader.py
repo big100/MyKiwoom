@@ -45,6 +45,7 @@ class Trader:
         self.dict_hoga = {}     # key: 호가창번호, value: [종목코드, 갱신여부, 호가잔고(DataFrame)]
         self.dict_chat = {}     # key: UI번호, value: 종목코드
         self.dict_gsjm = {}     # key: 종목코드, value: 마지막체결시간
+        self.dict_buyt = {}     # key: 종목코드, value: 매수시간
         self.dict_df = {
             '실현손익': pd.DataFrame(columns=columns_tt),
             '거래목록': pd.DataFrame(columns=columns_td),
@@ -240,6 +241,8 @@ class Trader:
                     elif len(work) in [2, 4]:
                         self.UpdateRealreg(work)
                         continue
+                    elif len(work) == 6:
+                        self.UpdateJango(work[0], work[1], work[2], work[3], work[4], work[5])
                 elif type(work) == str:
                     self.RunWork(work)
 
@@ -839,8 +842,6 @@ class Trader:
                         self.InsertViPrice(code, o)
                     elif not self.dict_vipr[code][0] and now() > self.dict_vipr[code][1]:
                         self.UpdateViPrice(code, c)
-                    if code in self.dict_df['잔고목록'].index:
-                        self.UpdateJango(code, name, c, o, h, low, per, ch)
                 self.UpdateChartHoga(code, name, c, o, h, low, per, ch, v, t, prec)
         elif realtype == '주식호가잔량':
             if self.dict_bool['실시간데이터수신중단']:
@@ -992,16 +993,17 @@ class Trader:
             self.dict_vipr[code] = [True, now(), timedelta_sec(180), uvi, dvi, uvid5]
             self.traderQ.put([sn_vijc, code])
 
-    def UpdateJango(self, code, name, c, o, h, low, per, ch):
+    def UpdateJango(self, code, name, c, o, h, low):
         self.lock.acquire()
         prec = self.dict_df['잔고목록']['현재가'][code]
         if prec != c:
             bg = self.dict_df['잔고목록']['매입금액'][code]
-            jc = int(self.dict_df['잔고목록']['보유수량'][code])
-            pg, sg, sp = self.GetPgSgSp(bg, jc * c)
+            oc = int(self.dict_df['잔고목록']['보유수량'][code])
+            pg, sg, sp = self.GetPgSgSp(bg, oc * c)
             columns = ['현재가', '수익률', '평가손익', '평가금액', '시가', '고가', '저가']
             self.dict_df['잔고목록'].at[code, columns] = c, sp, sg, pg, o, h, low
-            self.stgQ.put([code, name, per, sp, jc, ch, c])
+            if code in self.dict_buyt.keys():
+                self.stgQ.put([code, name, sp, oc, c, self.dict_buyt[code]])
         self.lock.release()
 
     # noinspection PyMethodMayBeStatic
@@ -1109,18 +1111,25 @@ class Trader:
         self.lock.acquire()
         if ot == '체결' and omc == 0 and cp != 0:
             if og == '매수':
+                self.UpdateChegeoljango(code, name, og, oc, cp)
+                self.dict_buyt[code] = now()
+                self.list_buy.remove(code)
+                self.receivQ.put(f'잔고편입 {code}')
+                self.stgQ.put(['매수완료', code])
                 self.dict_intg['예수금'] -= oc * cp
                 self.dict_intg['추정예수금'] = self.dict_intg['예수금']
-                self.UpdateChegeoljango(code, name, og, oc, cp)
                 self.windowQ.put([1, f'매매 시스템 체결 알림 - {name} {oc}주 {og}'])
             elif og == '매도':
                 bp = self.dict_df['잔고목록']['매입가'][code]
                 bg = bp * oc
                 pg, sg, sp = self.GetPgSgSp(bg, oc * cp)
-                self.dict_intg['예수금'] += pg
-                self.dict_intg['추정예수금'] = self.dict_intg['예수금']
                 self.UpdateChegeoljango(code, name, og, oc, cp)
                 self.UpdateTradelist(name, oc, sp, sg, bg, pg, on)
+                self.list_sell.remove(code)
+                self.receivQ.put(f'잔고청산 {code}')
+                self.stgQ.put(['매도완료', code])
+                self.dict_intg['예수금'] += pg
+                self.dict_intg['추정예수금'] = self.dict_intg['예수금']
                 self.windowQ.put([1, f"매매 시스템 체결 알림 - {name} {oc}주 {og}, 수익률 {sp}% 수익금{format(sg, ',')}원"])
         self.UpdateChegeollist(name, og, oc, omc, op, cp, dt, on)
         self.lock.release()
@@ -1133,8 +1142,6 @@ class Trader:
                 pg, sg, sp = self.GetPgSgSp(bg, oc * cp)
                 prec = self.GetMasterLastPrice(code)
                 self.dict_df['잔고목록'].at[code] = name, cp, cp, sp, sg, bg, pg, 0, 0, 0, prec, oc
-                self.receivQ.put(f'잔고편입 {code}')
-                self.traderQ.put([sn_jscg, code, '10;12;14;30;228', 1])
             else:
                 jc = self.dict_df['잔고목록']['보유수량'][code]
                 bg = self.dict_df['잔고목록']['매입금액'][code]
@@ -1147,21 +1154,12 @@ class Trader:
             jc = self.dict_df['잔고목록']['보유수량'][code]
             if jc - oc == 0:
                 self.dict_df['잔고목록'].drop(index=code, inplace=True)
-                self.receivQ.put(f'잔고청산 {code}')
-                self.traderQ.put([sn_jscg, code])
             else:
                 bp = self.dict_df['잔고목록']['매입가'][code]
                 jc = jc - oc
                 bg = jc * bp
                 pg, sg, sp = self.GetPgSgSp(bg, jc * cp)
                 self.dict_df['잔고목록'].at[code, columns] = bp, cp, sp, sg, bg, pg, jc
-
-        if og == '매수':
-            self.stgQ.put(['매수완료', code])
-            self.list_buy.remove(code)
-        elif og == '매도':
-            self.stgQ.put(['매도완료', code])
-            self.list_sell.remove(code)
 
         columns = ['매입가', '현재가', '평가손익', '매입금액']
         self.dict_df['잔고목록'][columns] = self.dict_df['잔고목록'][columns].astype(int)

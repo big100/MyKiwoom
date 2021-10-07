@@ -46,8 +46,8 @@ class Strategy:
                                      data[9], data[10], data[11], data[12], data[13], data[14], data[15], data[16],
                                      data[17], data[18], data[19], data[20], data[21], data[22], data[23], data[24],
                                      data[25])
-                elif len(data) == 7:
-                    self.SellStrategy(data[0], data[1], data[2], data[3], data[4], data[5], data[6])
+                elif len(data) == 6:
+                    self.SellStrategy(data[0], data[1], data[2], data[3], data[4], data[5])
             elif data == '전략연산프로세스종료':
                 break
 
@@ -127,7 +127,7 @@ class Strategy:
             self.windowQ.put([1, f'전략스 연산 시간 알림 - 수신시간과 연산시간의 차이는 [{gap}]초입니다.'])
             self.dict_time['연산시간'] = timedelta_sec(60)
 
-    def SellStrategy(self, 종목코드, 종목명, 수익률, 체결강도, 보유수량, 현재가, 매수시간):
+    def SellStrategy(self, 종목코드, 종목명, 수익률, 보유수량, 현재가, 매수시간):
         if 종목코드 not in self.dict_gsjm.keys() or 종목코드 not in self.dict_hgjr.keys():
             return
         if 종목코드 in self.list_sell:
@@ -137,6 +137,7 @@ class Strategy:
             return
 
         매도 = False
+        체결강도 = self.dict_gsjm[종목명]['체결강도'][0]
         고저평균대비등락율 = self.dict_gsjm[종목코드]['고저평균대비등락율'][0]
         초당거래대금평균 = self.dict_gsjm[종목코드]['초당거래대금'][DICT_SET['평균시간1'] + 1]
         체결강도평균 = self.dict_gsjm[종목코드]['체결강도'][DICT_SET['평균시간1'] + 1]
