@@ -190,7 +190,7 @@ class Trader:
             self.windowQ.put([ui_num['거래목록'], self.dict_df['거래목록']])
         if len(self.dict_df['잔고목록']) > 0:
             for code in self.dict_df['잔고목록'].index:
-                self.traderQ.put([sn_jscg, code, '10;12;14;30;228', 1])
+                self.dict_buyt[code] = now()
                 self.receivQ.put(f'잔고편입 {code}')
 
         self.windowQ.put([1, '시스템 명령 실행 알림 - 데이터베이스 정보 불러오기 완료'])
