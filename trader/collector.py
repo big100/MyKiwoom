@@ -34,9 +34,9 @@ class Collector:
         while True:
             tick = self.tickQ.get()
             if type(tick) == list:
-                self.UpdateTickData(tick[0], tick[1], tick[2], tick[3], tick[4], tick[5], tick[6], tick[7],
-                                    tick[8], tick[9], tick[10], tick[11], tick[12], tick[13], tick[14],
-                                    tick[15], tick[16], tick[17], tick[18], tick[19], tick[20], tick[21], tick[22])
+                self.UpdateTickData(tick[0], tick[1], tick[2], tick[3], tick[4], tick[5], tick[6], tick[7], tick[8],
+                                    tick[9], tick[10], tick[11], tick[12], tick[13], tick[14], tick[15], tick[16],
+                                    tick[17], tick[18], tick[19], tick[20], tick[21], tick[22], tick[23])
             elif tick == '콜렉터종료':
                 break
 
@@ -47,8 +47,8 @@ class Collector:
         if self.gubun == 4:
             self.windowQ.put([1, '시스템 명령 실행 알림 - 콜렉터 종료'])
 
-    def UpdateTickData(self, code, c, o, h, low, per, dm, ch, vp, bids, asks, vitime, vid5,
-                       s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr, d, receivetime):
+    def UpdateTickData(self, code, c, o, h, low, per, dm, ch, bids, asks, vitime, vid5price,
+                       tsjr, tbjr, s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr, t, receivetime):
         try:
             hlm = int(round((h + low) / 2))
             hlmp = round((c / hlm - 1) * 100, 2)
@@ -62,21 +62,17 @@ class Collector:
 
         self.dict_dm[code] = dm
         sm = dm - predm
-        d = self.str_tday + d
+        dt = self.str_tday + t
 
+        data = [c, o, h, low, per, dm, sm, ch, bids, asks, vitime, vid5price,
+                tsjr, tbjr, s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr]
         if code not in self.dict_df.keys():
-            self.dict_df[code] = pd.DataFrame(
-                [[c, o, h, per, hlmp, sm, dm, ch, vp, bids, asks, vitime, vid5,
-                  s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr]],
-                columns=['현재가', '시가', '고가', '등락율', '고저평균대비등락율', '거래대금', '누적거래대금', '체결강도',
-                         '전일거래량대비', '매수수량', '매도수량', 'VI발동시간', '상승VID5가격',
-                         '매도호가2', '매도호가1', '매수호가1', '매수호가2',
-                         '매도잔량2', '매도잔량1', '매수잔량1', '매수잔량2'],
-                index=[d])
+            columns = ['현재가', '시가', '고가', '저가', '등락율', '당일거래대금', '초당거래대금', '체결강도',
+                       '초당매수수량', '초당매도수량', 'VI해제시간', 'VI아래5호가', '매도총잔량', '매수총잔량',
+                       '매도호가2', '매도호가1', '매수호가1', '매수호가2', '매도잔량2', '매도잔량1', '매수잔량1', '매수잔량2']
+            self.dict_df[code] = pd.DataFrame([data], columns=columns, index=[dt])
         else:
-            self.dict_df[code].at[d] = \
-                c, o, h, per, hlmp, sm, dm, ch, vp, bids, asks, vitime, vid5,\
-                s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr
+            self.dict_df[code].at[dt] = data
 
         if now() > self.dict_time['기록시간']:
             if self.gubun == 4:
@@ -85,9 +81,6 @@ class Collector:
             self.queryQ.put([2, self.dict_df])
             self.dict_df = {}
             self.dict_time['기록시간'] = timedelta_sec(60)
-
-    def SaveTickData(self, codes):
-        self.queryQ.put([2, self.dict_df])
 
     @thread_decorator
     def UpdateInfo(self):

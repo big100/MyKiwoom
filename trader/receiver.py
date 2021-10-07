@@ -122,6 +122,13 @@ class Receiver:
             cond_index, cond_name = condition.split('^')
             self.dict_cond[int(cond_index)] = cond_name
 
+        print(self.dict_cond)
+        print('위 조건검색의 번호와 이름은 두번째 계정의 조건검색식들입니다.')
+        print('조건검색식 번호를 확인하여 OperationRealreg 함수에 검색식번호를 감시검색식 번호로')
+        print('예: self.list_code = self.SendCondition(sn_oper, self.dict_cond[1], 1, 0) 여기서 1 숫자 두개만 수정')
+        print('ConditionSearchStart 함수에 검색식번호를 매매검색식 번호로 설정하십시오.')
+        print('예: codes = self.SendCondition(sn_cond, self.dict_cond[0], 0, 1) 여기서 0 숫자 두개만 수정')
+
     def EventLoop(self):
         self.OperationRealreg()
         self.ViRealreg()
@@ -412,9 +419,11 @@ class Receiver:
                     except Exception as e:
                         self.windowQ.put([1, f'OnReceiveRealData 주식체결 {e}'])
                     else:
-                        self.UpdateTickData(code, name, c, o, h, low, per, dm, ch, vp, bids, asks, t, now())
+                        self.UpdateTickData(code, name, c, o, h, low, per, dm, ch, bids, asks, t, now())
         elif realtype == '주식호가잔량':
             try:
+                tsjr = int(self.GetCommRealData(code, 121))
+                tbjr = int(self.GetCommRealData(code, 125))
                 s2hg = abs(int(self.GetCommRealData(code, 42)))
                 s1hg = abs(int(self.GetCommRealData(code, 41)))
                 b1hg = abs(int(self.GetCommRealData(code, 51)))
@@ -426,7 +435,7 @@ class Receiver:
             except Exception as e:
                 self.windowQ.put([1, f'OnReceiveRealData 주식호가잔량 {e}'])
             else:
-                self.dict_hoga[code] = [s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr]
+                self.dict_hoga[code] = [tsjr, tbjr, s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr]
 
     def InsertViPriceDown5(self, code, o):
         vid5 = self.GetVIPriceDown5(code, o)
@@ -470,7 +479,17 @@ class Receiver:
             vid5 = self.GetVIPriceDown5(code, key)
             self.dict_vipr[code] = [True, timedelta_sec(5), vid5]
 
-    def UpdateTickData(self, code, name, c, o, h, low, per, dm, ch, vp, bids, asks, t, receivetime):
+    def UpdateTickData(self, code, name, c, o, h, low, per, dm, ch, bids, asks, t, receivetime):
+        vitime = self.dict_vipr[code][1]
+        vid5price = self.dict_vipr[code][2]
+        try:
+            tsjr, tbjr, s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr = self.dict_hoga[code]
+        except KeyError:
+            tsjr, tbjr, s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+        data = [code, c, o, h, low, per, dm, ch, bids, asks, vitime, vid5price,
+                tsjr, tbjr, s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr, t, receivetime]
+
         dt = self.str_tday + t[:4]
         if code not in self.dict_cdjm.keys():
             columns = ['1분누적거래대금', '1분전당일거래대금']
@@ -492,14 +511,7 @@ class Receiver:
             vid5priceup = c >= self.dict_vipr[code][2]
             self.stgQ.put([code, name, c, o, h, low, per, ch, dm, t, injango, vitimedown, vid5priceup, receivetime])
 
-        vitime = strf_time('%Y%m%d%H%M%S', self.dict_vipr[code][1])
-        vid5 = self.dict_vipr[code][2]
-        try:
-            s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr = self.dict_hoga[code]
-        except KeyError:
-            s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr = 0, 0, 0, 0, 0, 0, 0, 0
-        data = [code, c, o, h, low, per, dm, ch, vp, bids, asks, vitime, vid5,
-                s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr, t, receivetime]
+        data[10] = strf_time('%Y%m%d%H%M%S', vitime)
         if code in self.list_code1:
             self.tick1Q.put(data)
         elif code in self.list_code2:
