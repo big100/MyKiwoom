@@ -92,35 +92,31 @@ class Strategy:
         초당거래대금 = 0 if 직전당일거래대금 == 0 else int(당일거래대금 - 직전당일거래대금)
 
         self.dict_gsjm[종목코드] = self.dict_gsjm[종목코드].shift(1)
-        if self.dict_gsjm[종목코드]['체결강도'][DICT_SET[f'평균시간1']] != 0.:
-            초당거래대금평균 = int(self.dict_gsjm[종목코드]['초당거래대금'][1:DICT_SET['평균시간1'] + 1].mean())
-            체결강도평균 = round(self.dict_gsjm[종목코드]['체결강도'][1:DICT_SET['평균시간1'] + 1].mean(), 2)
-            최고체결강도 = round(self.dict_gsjm[종목코드]['체결강도'][1:DICT_SET['평균시간1'] + 1].max(), 2)
-            self.dict_gsjm[종목코드].at[DICT_SET['평균시간1'] + 1] = \
-                0., 0., 초당거래대금평균, 0, 체결강도평균, 최고체결강도, 체결시간
         self.dict_gsjm[종목코드].at[0] = 등락율, 고저평균대비등락율, 초당거래대금, 당일거래대금, 초당거래대금, 0., 체결시간
         self.dict_hgjr[종목코드] = \
             [매도총잔량, 매수총잔량, 매도호가2, 매도호가1, 매수호가1, 매수호가2, 매도잔량2, 매도잔량1, 매수잔량1, 매수잔량2]
+        if self.dict_gsjm[종목코드]['체결강도'][DICT_SET[f'평균시간']] != 0.:
+            평균값인덱스 = DICT_SET['평균시간'] + 1
+            초당거래대금평균 = int(self.dict_gsjm[종목코드]['초당거래대금'][1:평균값인덱스].mean())
+            체결강도평균 = round(self.dict_gsjm[종목코드]['체결강도'][1:평균값인덱스].mean(), 2)
+            최고체결강도 = round(self.dict_gsjm[종목코드]['체결강도'][1:평균값인덱스].max(), 2)
+            self.dict_gsjm[종목코드].at[평균값인덱스] = \
+                0., 0., 초당거래대금평균, 0, 체결강도평균, 최고체결강도, 체결시간
 
-        if self.dict_gsjm[종목코드]['체결강도'][DICT_SET['평균시간1']] == 0:
-            return
-        if 잔고종목:
-            return
-        if 종목코드 in self.list_buy:
-            return
+            if 잔고종목:
+                return
+            if 종목코드 in self.list_buy:
+                return
 
-        매수 = True
-        초당거래대금평균 = self.dict_gsjm[종목코드]['초당거래대금'][DICT_SET['평균시간1'] + 1]
-        체결강도평균 = self.dict_gsjm[종목코드]['체결강도'][DICT_SET['평균시간1'] + 1]
-        최고체결강도 = self.dict_gsjm[종목코드]['체결강도'][DICT_SET['평균시간1'] + 1]
+            매수 = True
 
-        # 전략 비공개
+            # 전략 비공개
 
-        if 매수:
-            매수수량 = int(self.dict_intg['종목당투자금'] / 현재가,)
-            if 매수수량 > 0:
-                self.list_buy.append(종목코드)
-                self.traderQ.put(['매수', 종목코드, 종목명, 현재가, 매수수량])
+            if 매수:
+                매수수량 = int(self.dict_intg['종목당투자금'] / 현재가,)
+                if 매수수량 > 0:
+                    self.list_buy.append(종목코드)
+                    self.traderQ.put(['매수', 종목코드, 종목명, 현재가, 매수수량])
 
         if now() > self.dict_time['연산시간']:
             gap = (now() - 틱수신시간).total_seconds()
@@ -132,16 +128,17 @@ class Strategy:
             return
         if 종목코드 in self.list_sell:
             return
-        등락율 = self.dict_gsjm[종목코드]['등락율'][0]
-        if 등락율 == 0:
+        if self.dict_gsjm[종목코드]['체결강도'][DICT_SET[f'평균시간']] == 0.:
             return
 
         매도 = False
+        평균값인덱스 = DICT_SET['평균시간'] + 1
+        등락율 = self.dict_gsjm[종목코드]['등락율'][0]
         체결강도 = self.dict_gsjm[종목명]['체결강도'][0]
         고저평균대비등락율 = self.dict_gsjm[종목코드]['고저평균대비등락율'][0]
-        초당거래대금평균 = self.dict_gsjm[종목코드]['초당거래대금'][DICT_SET['평균시간1'] + 1]
-        체결강도평균 = self.dict_gsjm[종목코드]['체결강도'][DICT_SET['평균시간1'] + 1]
-        최고체결강도 = self.dict_gsjm[종목코드]['체결강도'][DICT_SET['평균시간1'] + 1]
+        초당거래대금평균 = self.dict_gsjm[종목코드]['초당거래대금'][평균값인덱스]
+        체결강도평균 = self.dict_gsjm[종목코드]['체결강도'][평균값인덱스]
+        최고체결강도 = self.dict_gsjm[종목코드]['체결강도'][평균값인덱스]
         매도총잔량, 매수총잔량, 매도호가2, 매도호가1, 매수호가1, 매수호가2, 매도잔량2, 매도잔량1, 매수잔량1, 매수잔량2 = \
             self.dict_hgjr[종목코드]
 
