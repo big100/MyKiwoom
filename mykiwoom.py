@@ -84,31 +84,31 @@ class Window(QtWidgets.QMainWindow):
             current = self.td_tableWidget.currentIndex()
             row = current.row()
             col = current.column()
-            if row != self.rowcol[0][0] or col != self.rowcol[0][0]:
+            if row != self.rowcol[0][0] or col != self.rowcol[0][1]:
                 tableWidget = self.td_tableWidget
                 self.rowcol[0] = [row, col]
             current = self.jg_tableWidget.currentIndex()
             row = current.row()
             col = current.column()
-            if row != self.rowcol[1][0] or col != self.rowcol[1][0]:
+            if row != self.rowcol[1][0] or col != self.rowcol[1][1]:
                 tableWidget = self.jg_tableWidget
                 self.rowcol[1] = [row, col]
             current = self.cj_tableWidget.currentIndex()
             row = current.row()
             col = current.column()
-            if row != self.rowcol[2][0] or col != self.rowcol[2][0]:
+            if row != self.rowcol[2][0] or col != self.rowcol[2][1]:
                 tableWidget = self.cj_tableWidget
                 self.rowcol[2] = [row, col]
             current = self.gj_tableWidget.currentIndex()
             row = current.row()
             col = current.column()
-            if row != self.rowcol[3][0] or col != self.rowcol[3][0]:
+            if row != self.rowcol[3][0] or col != self.rowcol[3][1]:
                 tableWidget = self.gj_tableWidget
                 self.rowcol[3] = [row, col]
             current = self.dd_tableWidget.currentIndex()
             row = current.row()
             col = current.column()
-            if row != self.rowcol[4][0] or col != self.rowcol[4][0]:
+            if row != self.rowcol[4][0] or col != self.rowcol[4][1]:
                 tableWidget = self.dd_tableWidget
                 self.rowcol[4] = [row, col]
             if tableWidget is None:
