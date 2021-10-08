@@ -1,10 +1,7 @@
 import os
 import sys
 import psutil
-import warnings
-import numpy as np
 import pandas as pd
-warnings.filterwarnings("ignore", category=np.VisibleDeprecationWarning)
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.static import now, strf_time, timedelta_sec, thread_decorator
 
@@ -22,6 +19,7 @@ class Collector:
         self.dict_dm = {}
         self.dict_time = {
             '기록시간': now(),
+            '저장시간': now(),
             '부가정보': now()
         }
         self.dict_intg = {
@@ -72,14 +70,15 @@ class Collector:
         else:
             self.dict_df[code].at[dt] = data
 
-        if now() > self.dict_time['기록시간']:
-            if self.gubun == 4:
-                gap = (now() - receivetime).total_seconds()
-                self.windowQ.put([1, f'콜렉터 수신 기록 알림 - 수신시간과 기록시간의 차이는 [{gap}]초입니다.'])
-            if DIVIDE_SAVE:
-                self.queryQ.put([2, self.dict_df])
-                self.dict_df = {}
-            self.dict_time['기록시간'] = timedelta_sec(10)
+        if self.gubun == 4 and now() > self.dict_time['기록시간']:
+            gap = (now() - receivetime).total_seconds()
+            self.windowQ.put([1, f'콜렉터 수신 기록 알림 - 수신시간과 기록시간의 차이는 [{gap}]초입니다.'])
+            self.dict_time['기록시간'] = timedelta_sec(60)
+
+        if DIVIDE_SAVE and now() > self.dict_time['저장시간']:
+            self.queryQ.put([2, self.dict_df])
+            self.dict_df = {}
+            self.dict_time['저장시간'] = timedelta_sec(10)
 
     def SaveTickData(self, codes):
         for code in list(self.dict_df.keys()):

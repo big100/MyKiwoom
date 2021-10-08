@@ -51,7 +51,7 @@ class Receiver:
         self.dict_tick = {}
         self.dict_hoga = {}
         self.dict_cond = {}
-        self.name_code = {}
+        self.dict_name = {}
 
         self.list_gsjm = []
         self.list_trcd = []
@@ -76,17 +76,16 @@ class Receiver:
         self.dt_mtct = None
 
         remaintime = (strp_time('%Y%m%d%H%M%S', self.str_tday + '090100') - now()).total_seconds()
-        exittime = timedelta_sec(remaintime) if remaintime > 0 else timedelta_sec(600)
         self.dict_time = {
-            '휴무종료': exittime,
-            '부가정보': now(),
+            '휴무종료': timedelta_sec(remaintime) if remaintime > 0 else timedelta_sec(600),
             '거래대금순위기록': now(),
-            '거래대금순위저장': now()
+            '거래대금순위저장': now(),
+            '부가정보': now()
         }
 
         self.timer = QTimer()
         self.timer.setInterval(60000)
-        self.timer.timeout.connect(self.ConditionInsertDelete)
+        self.timer.timeout.connect(self.ConditionSearch)
 
         self.ocx = QAxWidget('KHOPENAPI.KHOpenAPICtrl.1')
         self.ocx.OnEventConnect.connect(self.OnEventConnect)
@@ -113,13 +112,17 @@ class Receiver:
 
         self.list_kosd = self.GetCodeListByMarket('10')
         list_code = self.GetCodeListByMarket('0') + self.list_kosd
+        dict_code = {}
         df = pd.DataFrame(columns=['종목명'])
         for code in list_code:
             name = self.GetMasterCodeName(code)
             df.at[code] = name
-            self.name_code[name] = code
+            self.dict_name[name] = code
+            dict_code[name] = code
 
         self.queryQ.put([2, df, 'codename', 'replace'])
+        self.windowQ.put([3, dict_code])
+        self.windowQ.put([4, self.dict_name])
 
         data = self.ocx.dynamicCall('GetConditionNameList()')
         conditions = data.split(';')[:-1]
@@ -133,17 +136,18 @@ class Receiver:
         print('예: self.list_code = self.SendCondition(sn_oper, self.dict_cond[1], 1, 0) 여기서 1 숫자 두개만 수정')
         print('ConditionSearchStart 함수에 검색식번호를 매매검색식 번호로 설정하십시오.')
         print('예: codes = self.SendCondition(sn_cond, self.dict_cond[0], 0, 1) 여기서 0 숫자 두개만 수정')
+        self.windowQ.put([1, '시스템 명령 실행 알림 - OpenAPI 로그인 완료'])
 
     def EventLoop(self):
         self.OperationRealreg()
         self.ViRealreg()
         while True:
             if not self.receivQ.empty():
-                work = self.receivQ.get()
-                if type(work) == list:
-                    self.UpdateRealreg(work)
-                elif type(work) == str:
-                    self.UpdateJangolist(work)
+                data = self.receivQ.get()
+                if type(data) == list:
+                    self.UpdateRealreg(data)
+                elif type(data) == str:
+                    self.UpdateJangolist(data)
                 continue
 
             if self.operation == 1 and now() > self.dict_time['휴무종료']:
@@ -158,11 +162,13 @@ class Receiver:
                     if not self.dict_bool['장중단타전략시작']:
                         self.StartJangjungStrategy()
             if self.operation == 8:
-                self.ALlRemoveRealreg()
+                self.AllRemoveRealreg()
                 self.SaveTickData()
                 break
 
             if now() > self.dict_time['거래대금순위기록']:
+                if len(self.dict_vipr) > 0:
+                    self.traderQ.put(['VI정보', self.dict_vipr])
                 if len(self.list_gsjm) > 0:
                     self.UpdateMoneyTop()
                 self.dict_time['거래대금순위기록'] = timedelta_sec(1)
@@ -214,10 +220,12 @@ class Receiver:
         for i in range(0, len(self.list_code), 100):
             self.receivQ.put([sn_jchj + k, ';'.join(self.list_code[i:i + 100]), '10;12;14;30;228;41;61;71;81', 1])
             k += 1
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 장운영시간 등록 완료'])
 
     def ViRealreg(self):
         self.Block_Request('opt10054', 시장구분='000', 장전구분='1', 종목코드='', 발동구분='1', 제외종목='111111011',
                            거래량구분='0', 거래대금구분='0', 발동방향='0', output='발동종목', next=0)
+        self.windowQ.put([1, '시스템 명령 실행 알림 - VI발동해제 등록 완료'])
         self.windowQ.put([1, '시스템 명령 실행 알림 - 콜렉터 시작 완료'])
 
     def ConditionSearchStart(self):
@@ -249,7 +257,7 @@ class Receiver:
         self.pre_top = list_top
         self.timer.start()
 
-    def ConditionInsertDelete(self):
+    def ConditionSearch(self):
         self.df_mc.sort_values(by=['최근거래대금'], ascending=False, inplace=True)
         list_top = list(self.df_mc.index[:MONEYTOP_RANK])
         insert_list = set(list_top) - set(self.pre_top)
@@ -276,7 +284,7 @@ class Receiver:
             self.stgQ.put(['조건이탈', code])
             del self.dict_gsjm[code]
 
-    def ALlRemoveRealreg(self):
+    def AllRemoveRealreg(self):
         self.dict_bool['실시간데이터수신중단'] = True
         self.windowQ.put([2, '실시간 데이터 수신 중단'])
         self.receivQ.put(['ALL', 'ALL'])
@@ -289,7 +297,7 @@ class Receiver:
         con.close()
         codes = []
         for index in df.index:
-            code = self.name_code[df['종목명'][index]]
+            code = self.dict_name[df['종목명'][index]]
             if code not in codes:
                 codes.append(code)
         self.tick1Q.put(['콜렉터종료', codes])
@@ -348,21 +356,13 @@ class Receiver:
     def OnReceiveRealCondition(self, code, IorD, cname, cindex):
         if cname == '' and cindex == '':
             return
-        if int(strf_time('%H%M%S')) > 100000:
+        if int(strf_time('%H%M%S')) > MONEYTOP_CHANGE:
             return
 
         if IorD == 'I':
-            if code not in self.list_gsjm:
-                self.list_gsjm.append(code)
-            if code not in self.list_jang and code not in self.dict_gsjm.keys():
-                self.stgQ.put(['조건진입', code])
-                self.dict_gsjm[code] = '090000'
+            self.InsertGsjmlist(code)
         elif IorD == 'D':
-            if code in self.list_gsjm:
-                self.list_gsjm.remove(code)
-            if code not in self.list_jang and code in self.dict_gsjm.keys():
-                self.stgQ.put(['조건이탈', code])
-                del self.dict_gsjm[code]
+            self.DeleteGsjmlist(code)
 
     def OnReceiveRealData(self, code, realtype, realdata):
         if realdata == '':
@@ -378,8 +378,6 @@ class Receiver:
             else:
                 self.windowQ.put([1, f'장운영 시간 수신 알림 - {self.operation} {current[:2]}:{current[2:4]}:{current[4:]} '
                                      f'남은시간 {remain[:2]}:{remain[2:4]}:{remain[4:]}'])
-                if self.operation == 3:
-                    self.windowQ.put([2, '장운영상태'])
         elif realtype == 'VI발동/해제':
             try:
                 code = self.GetCommRealData(code, 9001).strip('A').strip('Q')
@@ -391,7 +389,7 @@ class Receiver:
                 if gubun == '1' and code in self.list_code and \
                         (code not in self.dict_vipr.keys() or
                          (self.dict_vipr[code][0] and now() > self.dict_vipr[code][1])):
-                    self.UpdateViPriceDown5(code, name)
+                    self.UpdateViPrice(code, name)
         elif realtype == '주식체결':
             try:
                 c = abs(int(self.GetCommRealData(code, 10)))
@@ -406,9 +404,9 @@ class Receiver:
                 if t != self.str_jcct[8:]:
                     self.str_jcct = self.str_tday + t
                 if code not in self.dict_vipr.keys():
-                    self.InsertViPriceDown5(code, o)
+                    self.InsertViPrice(code, o)
                 if code in self.dict_vipr.keys() and not self.dict_vipr[code][0] and now() > self.dict_vipr[code][1]:
-                    self.UpdateViPriceDown5(code, c)
+                    self.UpdateViPrice(code, c)
                 try:
                     pret = self.dict_tick[code][0]
                     bid_volumns = self.dict_tick[code][1]
@@ -453,16 +451,21 @@ class Receiver:
             else:
                 self.dict_hoga[code] = [tsjr, tbjr, s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr]
 
-    def InsertViPriceDown5(self, code, o):
-        vid5 = self.GetVIPriceDown5(code, o)
-        self.dict_vipr[code] = [True, timedelta_sec(-180), vid5]
+    def InsertViPrice(self, code, o):
+        uvi, dvi, vid5price = self.GetVIPrice(code, o)
+        self.dict_vipr[code] = [True, timedelta_sec(-180), uvi, dvi, vid5price]
 
-    def GetVIPriceDown5(self, code, std_price):
-        vi = std_price * 1.1
-        x = self.GetHogaunit(code, vi)
-        if vi % x != 0:
-            vi = vi + (x - vi % x)
-        return int(vi - x * 5)
+    def GetVIPrice(self, code, std_price):
+        uvi = std_price * 1.1
+        x = self.GetHogaunit(code, uvi)
+        if uvi % x != 0:
+            uvi = uvi + (x - uvi % x)
+        vid5price = uvi - x * 5
+        dvi = std_price * 0.9
+        x = self.GetHogaunit(code, dvi)
+        if dvi % x != 0:
+            dvi = dvi - dvi % x
+        return int(uvi), int(dvi), int(vid5price)
 
     def GetHogaunit(self, code, price):
         if price < 1000:
@@ -483,17 +486,16 @@ class Receiver:
             x = 1000
         return x
 
-    def UpdateViPriceDown5(self, code, key):
+    def UpdateViPrice(self, code, key):
         if type(key) == str:
-            if code in self.dict_vipr.keys():
-                self.dict_vipr[code][0] = False
-                self.dict_vipr[code][1] = timedelta_sec(5)
-            else:
-                self.dict_vipr[code] = [False, timedelta_sec(5), 0]
+            try:
+                self.dict_vipr[code][:2] = False, timedelta_sec(5)
+            except KeyError:
+                self.dict_vipr[code] = [False, timedelta_sec(5), 0, 0, 0]
             self.windowQ.put([1, f'변동성 완화 장치 발동 - [{code}] {key}'])
         elif type(key) == int:
-            vid5 = self.GetVIPriceDown5(code, key)
-            self.dict_vipr[code] = [True, timedelta_sec(5), vid5]
+            uvi, dvi, vid5price = self.GetVIPrice(code, key)
+            self.dict_vipr[code] = [True, timedelta_sec(5), uvi, dvi, vid5price]
 
     def UpdateTickData(self, code, name, c, o, h, low, per, dm, ch, bids, asks, t, receivetime):
         dt = self.str_tday + t[:4]
@@ -509,7 +511,7 @@ class Receiver:
                 self.dict_cdjm[code].drop(index=self.dict_cdjm[code].index[0], inplace=True)
 
         vitime = self.dict_vipr[code][1]
-        vid5price = self.dict_vipr[code][2]
+        vid5price = self.dict_vipr[code][4]
         try:
             tsjr, tbjr, s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr = self.dict_hoga[code]
         except KeyError:
@@ -562,8 +564,8 @@ class Receiver:
 
     def Block_Request(self, *args, **kwargs):
         trcode = args[0].lower()
-        liness = readEnc(trcode)
-        self.dict_item = parseDat(trcode, liness)
+        lines = readEnc(trcode)
+        self.dict_item = parseDat(trcode, lines)
         self.str_tname = kwargs['output']
         nnext = kwargs['next']
         for i in kwargs:
