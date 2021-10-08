@@ -10,6 +10,10 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.static import *
 from utility.setting import *
 
+MONEYTOP_CHANGE = 100000    # 최근거래대금순위로 변경할 시간
+MONEYTOP_MINUTE = 10        # 최근거래대금순위을 집계할 시간
+MONEYTOP_RANK = 10          # 최근거래대금순위중 관심종목으로 선정할 순위
+
 
 class Receiver:
     app = QtWidgets.QApplication(sys.argv)
@@ -145,16 +149,17 @@ class Receiver:
             if self.operation == 1 and now() > self.dict_time['휴무종료']:
                 break
             if self.operation == 3:
-                if int(strf_time('%H%M%S')) < 100000:
+                if int(strf_time('%H%M%S')) < MONEYTOP_CHANGE:
                     if not self.dict_bool['실시간조건검색시작']:
                         self.ConditionSearchStart()
-                if 100000 <= int(strf_time('%H%M%S')):
+                if MONEYTOP_CHANGE <= int(strf_time('%H%M%S')):
                     if self.dict_bool['실시간조건검색시작'] and not self.dict_bool['실시간조건검색중단']:
                         self.ConditionSearchStop()
                     if not self.dict_bool['장중단타전략시작']:
                         self.StartJangjungStrategy()
             if self.operation == 8:
                 self.ALlRemoveRealreg()
+                self.SaveTickData()
                 break
 
             if now() > self.dict_time['거래대금순위기록']:
@@ -232,7 +237,7 @@ class Receiver:
     def StartJangjungStrategy(self):
         self.dict_bool['장중단타전략시작'] = True
         self.df_mc.sort_values(by=['최근거래대금'], ascending=False, inplace=True)
-        list_top = list(self.df_mc.index[:30])
+        list_top = list(self.df_mc.index[:MONEYTOP_RANK])
         insert_list = set(list_top) - set(self.list_gsjm)
         if len(insert_list) > 0:
             for code in list(insert_list):
@@ -246,7 +251,7 @@ class Receiver:
 
     def ConditionInsertDelete(self):
         self.df_mc.sort_values(by=['최근거래대금'], ascending=False, inplace=True)
-        list_top = list(self.df_mc.index[:30])
+        list_top = list(self.df_mc.index[:MONEYTOP_RANK])
         insert_list = set(list_top) - set(self.pre_top)
         if len(insert_list) > 0:
             for code in list(insert_list):
@@ -276,10 +281,21 @@ class Receiver:
         self.windowQ.put([2, '실시간 데이터 수신 중단'])
         self.receivQ.put(['ALL', 'ALL'])
         self.windowQ.put([1, '시스템 명령 실행 알림 - 실시간 데이터 중단 완료'])
-        self.tick1Q.put('콜렉터종료')
-        self.tick2Q.put('콜렉터종료')
-        self.tick3Q.put('콜렉터종료')
-        self.tick4Q.put('콜렉터종료')
+
+    def SaveTickData(self):
+        self.windowQ.put([2, '틱데이터 저장'])
+        con = sqlite3.connect(db_stg)
+        df = pd.read_sql(f"SELECT * FROM tradelist WHERE 체결시간 LIKE '{self.str_tday}%'", con).set_index('index')
+        con.close()
+        codes = []
+        for index in df.index:
+            code = self.name_code[df['종목명'][index]]
+            if code not in codes:
+                codes.append(code)
+        self.tick1Q.put(['콜렉터종료', codes])
+        self.tick2Q.put(['콜렉터종료', codes])
+        self.tick3Q.put(['콜렉터종료', codes])
+        self.tick4Q.put(['콜렉터종료', codes])
 
     def UpdateMoneyTop(self):
         timetype = '%Y%m%d%H%M%S'
@@ -480,6 +496,18 @@ class Receiver:
             self.dict_vipr[code] = [True, timedelta_sec(5), vid5]
 
     def UpdateTickData(self, code, name, c, o, h, low, per, dm, ch, bids, asks, t, receivetime):
+        dt = self.str_tday + t[:4]
+        if code not in self.dict_cdjm.keys():
+            columns = ['1분누적거래대금', '1분전당일거래대금']
+            self.dict_cdjm[code] = pd.DataFrame([[0, dm]], columns=columns, index=[dt])
+        elif dt != self.dict_cdjm[code].index[-1]:
+            predm = self.dict_cdjm[code]['1분전당일거래대금'][-1]
+            self.dict_cdjm[code].at[dt] = dm - predm, dm
+            if len(self.dict_cdjm[code]) == MONEYTOP_MINUTE:
+                if per > 0:
+                    self.df_mc.at[code] = self.dict_cdjm[code]['1분누적거래대금'].sum()
+                self.dict_cdjm[code].drop(index=self.dict_cdjm[code].index[0], inplace=True)
+
         vitime = self.dict_vipr[code][1]
         vid5price = self.dict_vipr[code][2]
         try:
@@ -489,21 +517,6 @@ class Receiver:
 
         data = [code, c, o, h, low, per, dm, ch, bids, asks, vitime, vid5price,
                 tsjr, tbjr, s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr, t, receivetime]
-
-        dt = self.str_tday + t[:4]
-        if code not in self.dict_cdjm.keys():
-            columns = ['1분누적거래대금', '1분전당일거래대금']
-            self.dict_cdjm[code] = pd.DataFrame([[0, dm]], columns=columns, index=[dt])
-        elif dt == self.dict_cdjm[code].index[-1]:
-            predm = self.dict_cdjm[code]['1분전당일거래대금'][-1]
-            self.dict_cdjm[code].at[dt] = dm - predm, predm
-        else:
-            if len(self.dict_cdjm[code]) >= 15:
-                if per > 0:
-                    self.df_mc.at[code] = self.dict_cdjm[code]['1분누적거래대금'].sum()
-                self.dict_cdjm[code].drop(index=self.dict_cdjm[code].index[0], inplace=True)
-            predm = self.dict_cdjm[code]['1분전당일거래대금'][-1] + self.dict_cdjm[code]['1분누적거래대금'][-1]
-            self.dict_cdjm[code].at[dt] = dm - predm, predm
 
         if code in self.dict_gsjm.keys():
             injango = code in self.list_jang
