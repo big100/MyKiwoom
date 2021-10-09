@@ -113,10 +113,16 @@ class Strategy:
             # 전략 비공개
 
             if 매수:
-                매수수량 = int(self.dict_intg['종목당투자금'] / 현재가,)
+                매수수량 = int(self.dict_intg['종목당투자금'] / 현재가)
                 if 매수수량 > 0:
+                    if 매수수량 <= 매도잔량1:
+                        예상체결가 = 매도호가1
+                    else:
+                        매수수량1 = 매도잔량1
+                        남은매수수량 = 매수수량 - 매수수량1
+                        예상체결가 = round((매도호가1 * 매수수량1 + 매도호가2 * 남은매수수량) / 매수수량, 2)
                     self.list_buy.append(종목코드)
-                    self.traderQ.put(['매수', 종목코드, 종목명, 현재가, 매수수량])
+                    self.traderQ.put(['매수', 종목코드, 종목명, 예상체결가, 매수수량])
 
         if now() > self.dict_time['연산시간']:
             gap = (now() - 틱수신시간).total_seconds()
@@ -149,8 +155,14 @@ class Strategy:
         # 전략 비공개
 
         if 매도:
+            if 보유수량 <= 매수잔량1:
+                예상체결가 = 매수호가1
+            else:
+                보유수량1 = 매수잔량1
+                남은보유수량 = 보유수량 - 보유수량1
+                예상체결가 = round((매수호가1 * 보유수량1 + 매수호가2 * 남은보유수량) / 보유수량, 2)
             self.list_sell.append(종목코드)
-            self.traderQ.put(['매도', 종목코드, 종목명, 현재가, 보유수량])
+            self.traderQ.put(['매도', 종목코드, 종목명, 예상체결가, 보유수량])
 
     @thread_decorator
     def UpdateInfo(self):
