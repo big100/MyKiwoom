@@ -1,4 +1,5 @@
 import sqlite3
+from utility.static import now
 from utility.setting import db_stg, db_tick
 
 
@@ -35,11 +36,13 @@ class Query:
             elif query[0] == 2:
                 try:
                     if len(query) == 2:
+                        start = now()
                         for code in list(query[1].keys()):
                             query[1][code].to_sql(code, self.con2, if_exists='append', chunksize=1000)
                         k += 1
                         if k % 4 == 0:
-                            self.windowQ.put([1, '시스템 명령 실행 알림 - 틱데이터 저장 완료'])
+                            save_time = (now() - start).total_seconds()
+                            self.windowQ.put([1, f'시스템 명령 실행 알림 - 틱데이터 저장 쓰기소요시간은 [{save_time}]초입니다.'])
                     elif len(query) == 4:
                         query[1].to_sql(query[2], self.con2, if_exists=query[3], chunksize=1000)
                 except Exception as e:
