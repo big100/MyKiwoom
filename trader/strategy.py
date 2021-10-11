@@ -41,11 +41,12 @@ class Strategy:
             elif type(data) == list:
                 if len(data) == 2:
                     self.UpdateList(data[0], data[1])
-                elif len(data) == 26:
+                elif len(data) == 38:
                     self.BuyStrategy(data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7], data[8],
                                      data[9], data[10], data[11], data[12], data[13], data[14], data[15], data[16],
                                      data[17], data[18], data[19], data[20], data[21], data[22], data[23], data[24],
-                                     data[25])
+                                     data[25], data[26], data[27], data[28], data[29], data[30], data[31], data[32],
+                                     data[33], data[34], data[35], data[36], data[37])
                 elif len(data) == 6:
                     self.SellStrategy(data[0], data[1], data[2], data[3], data[4], data[5])
             elif data == '전략연산프로세스종료':
@@ -80,9 +81,11 @@ class Strategy:
             if code in self.list_sell:
                 self.list_sell.remove(code)
 
-    def BuyStrategy(self, 종목코드, 현재가, 시가, 고가, 저가, 등락율, 당일거래대금, 체결강도, 초당매수수량, 초당매도수량,
-                    VI해제시간, VI아래5호가, 매도총잔량, 매수총잔량, 매도호가2, 매도호가1, 매수호가1, 매수호가2,
-                    매도잔량2, 매도잔량1, 매수잔량1, 매수잔량2, 체결시간, 틱수신시간, 종목명, 잔고종목):
+    def BuyStrategy(self, 현재가, 시가, 고가, 저가, 등락율, 당일거래대금, 체결강도,
+                    초당매수수량, 초당매도수량, VI해제시간, VI아래5호가, 매도총잔량, 매수총잔량,
+                    매도호가5, 매도호가4, 매도호가3, 매도호가2, 매도호가1, 매수호가1, 매수호가2, 매수호가3, 매수호가4, 매수호가5,
+                    매도잔량5, 매도잔량4, 매도잔량3, 매도잔량2, 매도잔량1, 매수잔량1, 매수잔량2, 매수잔량3, 매수잔량4, 매수잔량5,
+                    종목코드, 체결시간, 틱수신시간, 종목명, 잔고종목):
         if 종목코드 not in self.dict_gsjm.keys():
             return
 
@@ -94,7 +97,9 @@ class Strategy:
         self.dict_gsjm[종목코드] = self.dict_gsjm[종목코드].shift(1)
         self.dict_gsjm[종목코드].at[0] = 등락율, 고저평균대비등락율, 초당거래대금, 당일거래대금, 체결강도, 0., 체결시간
         self.dict_hgjr[종목코드] = \
-            [매도총잔량, 매수총잔량, 매도호가2, 매도호가1, 매수호가1, 매수호가2, 매도잔량2, 매도잔량1, 매수잔량1, 매수잔량2]
+            [매도총잔량, 매수총잔량,
+             매도호가5, 매도호가4, 매도호가3, 매도호가2, 매도호가1, 매수호가1, 매수호가2, 매수호가3, 매수호가4, 매수호가5,
+             매도잔량5, 매도잔량4, 매도잔량3, 매도잔량2, 매도잔량1, 매수잔량1, 매수잔량2, 매수잔량3, 매수잔량4, 매수잔량5]
         if self.dict_gsjm[종목코드]['체결강도'][DICT_SET[f'평균시간']] != 0.:
             평균값인덱스 = DICT_SET['평균시간'] + 1
             초당거래대금평균 = int(self.dict_gsjm[종목코드]['초당거래대금'][1:평균값인덱스].mean())
@@ -145,7 +150,9 @@ class Strategy:
         초당거래대금평균 = self.dict_gsjm[종목코드]['초당거래대금'][평균값인덱스]
         체결강도평균 = self.dict_gsjm[종목코드]['체결강도'][평균값인덱스]
         최고체결강도 = self.dict_gsjm[종목코드]['체결강도'][평균값인덱스]
-        매도총잔량, 매수총잔량, 매도호가2, 매도호가1, 매수호가1, 매수호가2, 매도잔량2, 매도잔량1, 매수잔량1, 매수잔량2 = \
+        매도총잔량, 매수총잔량, \
+            매도호가5, 매도호가4, 매도호가3, 매도호가2, 매도호가1, 매수호가1, 매수호가2, 매수호가3, 매수호가4, 매수호가5, \
+            매도잔량5, 매도잔량4, 매도잔량3, 매도잔량2, 매도잔량1, 매수잔량1, 매수잔량2, 매수잔량3, 매수잔량4, 매수잔량5 = \
             self.dict_hgjr[종목코드]
 
         """ 매도 조건 예시 """

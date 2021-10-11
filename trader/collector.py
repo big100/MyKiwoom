@@ -32,14 +32,12 @@ class Collector:
 
     def Start(self):
         while True:
-            tick = self.tickQ.get()
-            if len(tick) != 2:
-                self.UpdateTickData(tick[0], tick[1], tick[2], tick[3], tick[4], tick[5], tick[6], tick[7], tick[8],
-                                    tick[9], tick[10], tick[11], tick[12], tick[13], tick[14], tick[15], tick[16],
-                                    tick[17], tick[18], tick[19], tick[20], tick[21], tick[22], tick[23])
-            elif tick[0] == '콜렉터종료':
+            data = self.tickQ.get()
+            if len(data) != 2:
+                self.UpdateTickData(data)
+            elif data[0] == '콜렉터종료':
                 if not DIVIDE_SAVE:
-                    self.SaveTickData(tick[1])
+                    self.SaveTickData(data[1])
                 break
 
             if now() > self.dict_time['부가정보']:
@@ -49,23 +47,24 @@ class Collector:
         if self.gubun == 4:
             self.windowQ.put([1, '시스템 명령 실행 알림 - 콜렉터 종료'])
 
-    def UpdateTickData(self, code, c, o, h, low, per, dm, ch, bids, asks, vitime, vid5price,
-                       tsjr, tbjr, s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr, t, receivetime):
-        try:
-            predm = self.dict_dm[code]
-        except KeyError:
-            predm = dm
+    def UpdateTickData(self, data):
+        code = data[-3]
+        dt = data[-2]
+        receivetime = data[-1]
 
-        self.dict_dm[code] = dm
-        sm = dm - predm
-        dt = self.str_tday + t
+        data.remove(code)
+        data.remove(dt)
+        data.remove(receivetime)
 
-        data = [c, o, h, low, per, dm, sm, ch, bids, asks, vitime, vid5price,
-                tsjr, tbjr, s2hg, s1hg, b1hg, b2hg, s2jr, s1jr, b1jr, b2jr]
         if code not in self.dict_df.keys():
-            columns = ['현재가', '시가', '고가', '저가', '등락율', '당일거래대금', '초당거래대금', '체결강도',
-                       '초당매수수량', '초당매도수량', 'VI해제시간', 'VI아래5호가', '매도총잔량', '매수총잔량',
-                       '매도호가2', '매도호가1', '매수호가1', '매수호가2', '매도잔량2', '매도잔량1', '매수잔량1', '매수잔량2']
+            columns = [
+                '현재가', '시가', '고가', '저가', '등락율', '당일거래대금', '체결강도',
+                '초당매수수량', '초당매도수량', 'VI해제시간', 'VI아래5호가', '매도총잔량', '매수총잔량',
+                '매도호가5', '매도호가4', '매도호가3', '매도호가2', '매도호가1',
+                '매수호가1', '매수호가2', '매수호가3', '매수호가4', '매수호가5',
+                '매도잔량5', '매도잔량4', '매도잔량3', '매도잔량2', '매도잔량1',
+                '매수잔량1', '매수잔량2', '매수잔량3', '매수잔량4', '매수잔량5'
+            ]
             self.dict_df[code] = pd.DataFrame([data], columns=columns, index=[dt])
         else:
             self.dict_df[code].at[dt] = data
