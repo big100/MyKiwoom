@@ -187,7 +187,7 @@ class Trader:
         self.windowQ.put([1, '시스템 명령 실행 알림 - 데이터베이스 정보 불러오기 완료'])
 
     def CommConnect(self):
-        self.windowQ.put([2, 'OPENAPI 로그인'])
+        self.windowQ.put([2, '트레이더 OPENAPI 로그인'])
         self.ocx.dynamicCall('CommConnect()')
         while not self.dict_bool['로그인']:
             pythoncom.PumpWaitingMessages()
@@ -432,9 +432,6 @@ class Trader:
         elif work == '업종지수 주식체결 등록':
             if not self.dict_bool['업종지수등록']:
                 self.UpjongjisuRealreg()
-        elif work == 'VI발동해제 등록':
-            if not self.dict_bool['VI발동해제등록']:
-                self.ViRealreg()
         elif work == '장운영상태':
             if self.dict_intg['장운영상태'] != 3:
                 self.windowQ.put([2, '장운영상태'])
@@ -654,12 +651,6 @@ class Trader:
         self.traderQ.put([sn_oper, '001', '10;15;20', 1])
         self.traderQ.put([sn_oper, '101', '10;15;20', 1])
         self.windowQ.put([1, '시스템 명령 실행 알림 - 업종지수 주식체결 등록 완료'])
-
-    def ViRealreg(self):
-        self.dict_bool['VI발동해제등록'] = True
-        self.windowQ.put([2, 'VI발동해제 등록'])
-        self.Block_Request('opt10054', 시장구분='000', 장전구분='1', 종목코드='', 발동구분='1', 제외종목='111111011',
-                           거래량구분='0', 거래대금구분='0', 발동방향='0', output='발동종목', next=0)
         if self.dict_bool['알림소리']:
             self.soundQ.put('자동매매 시스템을 시작하였습니다.')
         self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 시작 완료'])

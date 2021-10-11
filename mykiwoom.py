@@ -158,7 +158,7 @@ class Window(QtWidgets.QMainWindow):
             pushbutton = None
             if msg[1] == '데이터베이스 불러오기':
                 pushbutton = self.sj_pushButton_02
-            elif msg[1] == 'OPENAPI 로그인':
+            elif msg[1] == '트레이더 OPENAPI 로그인':
                 pushbutton = self.sj_pushButton_03
                 self.ButtonClicked_4(0)
             elif msg[1] == '계좌평가 및 잔고':

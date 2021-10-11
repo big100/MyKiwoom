@@ -223,6 +223,7 @@ class Receiver:
         self.windowQ.put([1, '시스템 명령 실행 알림 - 장운영시간 등록 완료'])
 
     def ViRealreg(self):
+        self.windowQ.put([2, 'VI발동해제 등록'])
         self.Block_Request('opt10054', 시장구분='000', 장전구분='1', 종목코드='', 발동구분='1', 제외종목='111111011',
                            거래량구분='0', 거래대금구분='0', 발동방향='0', output='발동종목', next=0)
         self.windowQ.put([1, '시스템 명령 실행 알림 - VI발동해제 등록 완료'])
