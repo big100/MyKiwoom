@@ -69,7 +69,6 @@ class Strategy:
             if code not in self.dict_gsjm.keys():
                 data = np.zeros((DICT_SET['평균시간'] + 2, len(columns_gj1))).tolist()
                 df = pd.DataFrame(data, columns=columns_gj1)
-                df['체결시간'] = '090000'
                 self.dict_gsjm[code] = df.copy()
         elif gubun == '조건이탈':
             if code in self.dict_gsjm.keys():
