@@ -910,7 +910,11 @@ class Trader:
                                 f"{self.dict_strg['당일날짜'][6:]}일 장이 종료되었습니다.")
 
     def UpdateJango(self, code, name, c, o, h, low):
-        prec = self.dict_df['잔고목록']['현재가'][code]
+        try:
+            prec = self.dict_df['잔고목록']['현재가'][code]
+        except KeyError:
+            return
+
         if prec != c:
             bg = self.dict_df['잔고목록']['매입금액'][code]
             oc = int(self.dict_df['잔고목록']['보유수량'][code])
