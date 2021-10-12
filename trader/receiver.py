@@ -45,7 +45,6 @@ class Receiver:
             '시피유': 0.,
             '메모리': 0.
         }
-        self.dict_gsjm = {}
         self.dict_cdjm = {}
         self.dict_vipr = {}
         self.dict_tick = {}
@@ -54,6 +53,7 @@ class Receiver:
         self.dict_name = {}
 
         self.list_gsjm = []
+        self.list_gsjm2 = []
         self.list_trcd = []
         self.list_jang = []
         self.pre_top = []
@@ -234,14 +234,14 @@ class Receiver:
         code = data.split(' ')[1]
         if '잔고편입' in data and code not in self.list_jang:
             self.list_jang.append(code)
-            if code not in self.dict_gsjm.keys():
-                self.dict_gsjm[code] = '000000'
+            if code not in self.list_gsjm2:
                 self.stgQ.put(['조건진입', code])
+                self.list_gsjm2.append(code)
         elif '잔고청산' in data and code in self.list_jang:
             self.list_jang.remove(code)
-            if code not in self.list_gsjm and code in self.dict_gsjm.keys():
+            if code not in self.list_gsjm and code in self.list_gsjm2:
                 self.stgQ.put(['조건이탈', code])
-                del self.dict_gsjm[code]
+                self.list_gsjm2.remove(code)
 
     def StartJangjungStrategy(self):
         self.dict_bool['장중단타전략시작'] = True
@@ -259,31 +259,32 @@ class Receiver:
         self.timer.start()
 
     def ConditionSearch(self):
-        self.df_mc.sort_values(by=['최근거래대금'], ascending=False, inplace=True)
-        list_top = list(self.df_mc.index[:MONEYTOP_RANK])
-        insert_list = set(list_top) - set(self.pre_top)
-        if len(insert_list) > 0:
-            for code in list(insert_list):
-                self.InsertGsjmlist(code)
-        delete_list = set(self.pre_top) - set(list_top)
-        if len(delete_list) > 0:
-            for code in list(delete_list):
-                self.DeleteGsjmlist(code)
-        self.pre_top = list_top
+        if len(self.df_mc) > 0:
+            self.df_mc.sort_values(by=['최근거래대금'], ascending=False, inplace=True)
+            list_top = list(self.df_mc.index[:MONEYTOP_RANK])
+            insert_list = set(list_top) - set(self.pre_top)
+            if len(insert_list) > 0:
+                for code in list(insert_list):
+                    self.InsertGsjmlist(code)
+            delete_list = set(self.pre_top) - set(list_top)
+            if len(delete_list) > 0:
+                for code in list(delete_list):
+                    self.DeleteGsjmlist(code)
+            self.pre_top = list_top
 
     def InsertGsjmlist(self, code):
         if code not in self.list_gsjm:
             self.list_gsjm.append(code)
-        if code not in self.list_jang and code not in self.dict_gsjm.keys():
+        if code not in self.list_jang and code not in self.list_gsjm2:
             self.stgQ.put(['조건진입', code])
-            self.dict_gsjm[code] = '090000'
+            self.list_gsjm2.append(code)
 
     def DeleteGsjmlist(self, code):
         if code in self.list_gsjm:
             self.list_gsjm.remove(code)
-        if code not in self.list_jang and code in self.dict_gsjm.keys():
+        if code not in self.list_jang and code in self.list_gsjm2:
             self.stgQ.put(['조건이탈', code])
-            del self.dict_gsjm[code]
+            self.list_gsjm2.remove(code)
 
     def AllRemoveRealreg(self):
         self.dict_bool['실시간데이터수신중단'] = True
@@ -533,7 +534,7 @@ class Receiver:
         data = [c, o, h, low, per, dm, ch, bids, asks, vitime, vid5price]
         data += self.dict_hoga[code] + [code, dt, receivetime]
 
-        if code in self.dict_gsjm.keys():
+        if code in self.list_gsjm2:
             injango = code in self.list_jang
             self.stgQ.put(data + [name, injango])
             if injango:
