@@ -78,6 +78,8 @@ class Window(QtWidgets.QMainWindow):
         self.writer.data3.connect(self.UpdateTablewidget)
         self.writer.start()
 
+        self.ButtonClicked_4(0)
+
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key_Return, Qt.Key_Enter):
             item = None
@@ -160,7 +162,7 @@ class Window(QtWidgets.QMainWindow):
                 pushbutton = self.sj_pushButton_02
             elif msg[1] == '트레이더 OPENAPI 로그인':
                 pushbutton = self.sj_pushButton_03
-                self.ButtonClicked_4(0)
+                self.ButtonClicked_4(2)
             elif msg[1] == '계좌평가 및 잔고':
                 pushbutton = self.sj_pushButton_04
             elif msg[1] == '코스피 코스닥 차트':
@@ -170,7 +172,6 @@ class Window(QtWidgets.QMainWindow):
             elif msg[1] == '업종지수 주식체결 등록':
                 pushbutton = self.sj_pushButton_07
             elif msg[1] == 'VI발동해제 등록':
-                self.ButtonClicked_4(2)
                 pushbutton = self.sj_pushButton_08
             elif msg[1] == '장운영상태':
                 pushbutton = self.sj_pushButton_09
