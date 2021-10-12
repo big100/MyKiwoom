@@ -230,12 +230,18 @@ class Receiver:
         self.ocx.dynamicCall("SendConditionStop(QString, QString, int)", sn_cond, self.dict_cond[0], 0)
         self.windowQ.put([1, '시스템 명령 실행 알림 - 실시간조건검색 중단 완료'])
 
-    def UpdateJangolist(self, work):
-        code = work.split(' ')[1]
-        if '잔고편입' in work:
-            self.InsertGsjmlist(code)
-        elif '잔고청산' in work:
-            self.DeleteGsjmlist(code)
+    def UpdateJangolist(self, data):
+        code = data.split(' ')[1]
+        if '잔고편입' in data and code not in self.list_jang:
+            self.list_jang.append(code)
+            if code not in self.dict_gsjm.keys():
+                self.dict_gsjm[code] = '000000'
+                self.stgQ.put(['조건진입', code])
+        elif '잔고청산' in data and code in self.list_jang:
+            self.list_jang.remove(code)
+            if code not in self.list_gsjm and code in self.dict_gsjm.keys():
+                self.stgQ.put(['조건이탈', code])
+                del self.dict_gsjm[code]
 
     def StartJangjungStrategy(self):
         self.dict_bool['장중단타전략시작'] = True
