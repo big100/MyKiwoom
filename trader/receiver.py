@@ -196,19 +196,6 @@ class Receiver:
             else:
                 self.windowQ.put([1, f"실시간 알림 등록 {result} - [{sn}] 종목갯수 {len(rreg[1].split(';'))}"])
 
-    def UpdateJangolist(self, work):
-        code = work.split(' ')[1]
-        if '잔고편입' in work and code not in self.list_jang:
-            self.list_jang.append(code)
-            if code not in self.dict_gsjm.keys():
-                self.dict_gsjm[code] = '090000'
-                self.stgQ.put(['조건진입', code])
-        elif '잔고청산' in work and code in self.list_jang:
-            self.list_jang.remove(code)
-            if code not in self.list_gsjm and code in self.dict_gsjm.keys():
-                self.stgQ.put(['조건이탈', code])
-                del self.dict_gsjm[code]
-
     def OperationRealreg(self):
         self.receivQ.put([sn_oper, ' ', '215;20;214', 0])
         self.list_code = self.SendCondition(sn_oper, self.dict_cond[1], 1, 0)
@@ -242,6 +229,13 @@ class Receiver:
         self.dict_bool['실시간조건검색중단'] = True
         self.ocx.dynamicCall("SendConditionStop(QString, QString, int)", sn_cond, self.dict_cond[0], 0)
         self.windowQ.put([1, '시스템 명령 실행 알림 - 실시간조건검색 중단 완료'])
+
+    def UpdateJangolist(self, work):
+        code = work.split(' ')[1]
+        if '잔고편입' in work:
+            self.InsertGsjmlist(code)
+        elif '잔고청산' in work:
+            self.DeleteGsjmlist(code)
 
     def StartJangjungStrategy(self):
         self.dict_bool['장중단타전략시작'] = True
@@ -516,14 +510,16 @@ class Receiver:
     def UpdateTickData(self, code, name, c, o, h, low, per, dm, ch, bids, asks, dt, receivetime):
         dt_ = dt[:13]
         if code not in self.dict_cdjm.keys():
-            columns = ['1분누적거래대금', '1분전당일거래대금']
+            columns = ['10초누적거래대금', '10초전당일거래대금']
             self.dict_cdjm[code] = pd.DataFrame([[0, dm]], columns=columns, index=[dt_])
         elif dt_ != self.dict_cdjm[code].index[-1]:
-            predm = self.dict_cdjm[code]['1분전당일거래대금'][-1]
+            predm = self.dict_cdjm[code]['10초전당일거래대금'][-1]
             self.dict_cdjm[code].at[dt_] = dm - predm, dm
-            if len(self.dict_cdjm[code]) == MONEYTOP_MINUTE:
+            if len(self.dict_cdjm[code]) == MONEYTOP_MINUTE * 6:
                 if per > 0:
-                    self.df_mc.at[code] = self.dict_cdjm[code]['1분누적거래대금'].sum()
+                    self.df_mc.at[code] = self.dict_cdjm[code]['10초누적거래대금'].sum()
+                else:
+                    self.df_mc.drop(index=code, inplace=True)
                 self.dict_cdjm[code].drop(index=self.dict_cdjm[code].index[0], inplace=True)
 
         vitime = self.dict_vipr[code][1]
