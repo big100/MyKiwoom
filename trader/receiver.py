@@ -434,7 +434,8 @@ class Receiver:
                     except Exception as e:
                         self.windowQ.put([1, f'OnReceiveRealData 주식체결 {e}'])
                     else:
-                        self.UpdateTickData(code, name, c, o, h, low, per, dm, ch, bids, asks, dt, now())
+                        if code in self.dict_hoga.keys():
+                            self.UpdateTickData(code, name, c, o, h, low, per, dm, ch, bids, asks, dt, now())
         elif realtype == '주식호가잔량':
             try:
                 tsjr = int(self.GetCommRealData(code, 121))
