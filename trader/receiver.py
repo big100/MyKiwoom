@@ -396,14 +396,14 @@ class Receiver:
                 c = abs(int(self.GetCommRealData(code, 10)))
                 o = abs(int(self.GetCommRealData(code, 16)))
                 v = int(self.GetCommRealData(code, 15))
-                t = self.GetCommRealData(code, 20)
+                dt = self.str_tday + self.GetCommRealData(code, 20)
             except Exception as e:
                 self.windowQ.put([1, f'OnReceiveRealData 주식체결 {e}'])
             else:
                 if self.operation == 1:
                     self.operation = 3
-                if t != self.str_jcct[8:]:
-                    self.str_jcct = self.str_tday + t
+                if dt != self.str_jcct:
+                    self.str_jcct = dt
                 if code not in self.dict_vipr.keys():
                     self.InsertViPrice(code, o)
                 if code in self.dict_vipr.keys() and not self.dict_vipr[code][0] and now() > self.dict_vipr[code][1]:
@@ -417,13 +417,13 @@ class Receiver:
                     bid_volumns = 0
                     ask_volumns = 0
                 if v > 0:
-                    self.dict_tick[code] = [t, bid_volumns + abs(v), ask_volumns]
+                    self.dict_tick[code] = [dt, bid_volumns + abs(v), ask_volumns]
                 else:
-                    self.dict_tick[code] = [t, bid_volumns, ask_volumns + abs(v)]
-                if t != pret:
+                    self.dict_tick[code] = [dt, bid_volumns, ask_volumns + abs(v)]
+                if dt != pret:
                     bids = self.dict_tick[code][1]
                     asks = self.dict_tick[code][2]
-                    self.dict_tick[code] = [t, 0, 0]
+                    self.dict_tick[code] = [dt, 0, 0]
                     try:
                         h = abs(int(self.GetCommRealData(code, 17)))
                         low = abs(int(self.GetCommRealData(code, 18)))
@@ -434,7 +434,7 @@ class Receiver:
                     except Exception as e:
                         self.windowQ.put([1, f'OnReceiveRealData 주식체결 {e}'])
                     else:
-                        self.UpdateTickData(code, name, c, o, h, low, per, dm, ch, bids, asks, t, now())
+                        self.UpdateTickData(code, name, c, o, h, low, per, dm, ch, bids, asks, dt, now())
         elif realtype == '주식호가잔량':
             try:
                 tsjr = int(self.GetCommRealData(code, 121))
@@ -512,14 +512,14 @@ class Receiver:
             uvi, dvi, vid5price = self.GetVIPrice(code, key)
             self.dict_vipr[code] = [True, timedelta_sec(5), uvi, dvi, vid5price]
 
-    def UpdateTickData(self, code, name, c, o, h, low, per, dm, ch, bids, asks, t, receivetime):
-        dt = self.str_tday + t[:4]
+    def UpdateTickData(self, code, name, c, o, h, low, per, dm, ch, bids, asks, dt, receivetime):
+        dt_ = dt[:13]
         if code not in self.dict_cdjm.keys():
             columns = ['1분누적거래대금', '1분전당일거래대금']
-            self.dict_cdjm[code] = pd.DataFrame([[0, dm]], columns=columns, index=[dt])
-        elif dt != self.dict_cdjm[code].index[-1]:
+            self.dict_cdjm[code] = pd.DataFrame([[0, dm]], columns=columns, index=[dt_])
+        elif dt_ != self.dict_cdjm[code].index[-1]:
             predm = self.dict_cdjm[code]['1분전당일거래대금'][-1]
-            self.dict_cdjm[code].at[dt] = dm - predm, dm
+            self.dict_cdjm[code].at[dt_] = dm - predm, dm
             if len(self.dict_cdjm[code]) == MONEYTOP_MINUTE:
                 if per > 0:
                     self.df_mc.at[code] = self.dict_cdjm[code]['1분누적거래대금'].sum()
