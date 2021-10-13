@@ -149,8 +149,8 @@ class Trader:
             df = pd.DataFrame([[0, 1, 1,
                                 10., 180, 200, 100, 2000, 0., 25., 3.]],
                               columns=['테스트', '모의투자', '알림소리',
-                                       '체결강도차이', '평균시간', '거래대금차이',
-                                       '체결강도하한', '누적거래대금하한', '등락율하한', '등락율상한', '청산수익률'],
+                                       '체결강도차이', '평균값계산틱수', '초당거래대금차이',
+                                       '체결강도하한', '당일거래대금하한', '등락율하한', '등락율상한', '청산수익률'],
                               index=[0])
             self.queryQ.put([1, df, 'setting', 'replace'])
             self.windowQ.put([1, '시스템 명령 실행 알림 - 데이터베이스 setting 테이블 생성 완료'])
@@ -437,7 +437,7 @@ class Trader:
                 self.windowQ.put([2, '장운영상태'])
                 self.dict_intg['장운영상태'] = 3
         elif work == '실시간 조건검색식 등록':
-            self.windowQ.put([1, '시스템 명령 오류 알림 - 해당 명령은 콜렉터에서 자동실행됩니다.'])
+            self.windowQ.put([1, '시스템 명령 오류 알림 - 해당 명령은 리시버에서 자동실행됩니다.'])
         elif work == '잔고청산':
             if not self.dict_bool['잔고청산']:
                 self.JangoChungsan()

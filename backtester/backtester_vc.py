@@ -275,8 +275,8 @@ class Total:
     def Start(self):
         columns1 = ['거래횟수', '평균보유기간', '익절', '손절', '승률', '수익률', '수익금']
         columns2 = ['필요자금', '종목출현빈도수', '거래횟수', '평균보유기간', '익절', '손절', '승률',
-                    '평균수익률', '수익률합계', '수익금합계', '체결강도차이', '평균시간', '거래대금차이',
-                    '체결강도하한', '누적거래대금하한', '등락율하한', '등락율상한', '청산수익률']
+                    '평균수익률', '수익률합계', '수익금합계', '체결강도차이', '평균값계산틱수', '초당거래대금차이',
+                    '체결강도하한', '당일거래대금하한', '등락율하한', '등락율상한', '청산수익률']
         df_back = pd.DataFrame(columns=columns1)
         df_tsg = pd.DataFrame(columns=['종목명', 'per', 'ttsg'])
         k = 0
@@ -339,8 +339,8 @@ class Total:
             plt.savefig(f"{graph_path}/vc_{strf_time('%Y%m%d')}.png")
             conn = sqlite3.connect(db_stg)
             cur = conn.cursor()
-            query = f"UPDATE setting SET 체결강도차이 = {self.gap_ch}, 평균시간 = {self.avg_time}, "\
-                    f"거래대금차이 = {self.gap_sm}, 체결강도하한 = {self.ch_low}, 누적거래대금하한 = {self.dm_low}, "\
+            query = f"UPDATE setting SET 체결강도차이 = {self.gap_ch}, 평균값계산틱수 = {self.avg_time}, "\
+                    f"초당거래대금차이 = {self.gap_sm}, 체결강도하한 = {self.ch_low}, 당일거래대금하한 = {self.dm_low}, "\
                     f"등락율하한 = {self.per_low}, 등락율상한 = {self.per_high}, 청산수익률 = {self.cs_per}"
             cur.execute(query)
             conn.commit()

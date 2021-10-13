@@ -525,7 +525,7 @@ class Receiver:
             if len(self.dict_cdjm[code]) == MONEYTOP_MINUTE * 6:
                 if per > 0:
                     self.df_mc.at[code] = self.dict_cdjm[code]['10초누적거래대금'].sum()
-                else:
+                elif code in self.df_mc.index:
                     self.df_mc.drop(index=code, inplace=True)
                 self.dict_cdjm[code].drop(index=self.dict_cdjm[code].index[0], inplace=True)
 

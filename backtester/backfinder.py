@@ -19,8 +19,8 @@ class BackFinder:
         conn = sqlite3.connect(db_tick)
         tcount = len(self.code_list)
         for k, code in enumerate(self.code_list):
-            columns = ['등락율', '시가대비등락율', '고저평균대비등락율', '거래대금', '누적거래대금', '전일거래량대비',
-                       '체결강도', '체결강도차이', '거래대금차이', '전일거래량대비차이']
+            columns = ['등락율', '시가대비등락율', '고저평균대비등락율', '초당거래대금', '당일거래대금', '전일거래량대비',
+                       '체결강도', '체결강도차이', '초당거래대금차이', '전일거래량대비차이']
             df_bf = pd.DataFrame(columns=columns)
             avgtime = 300
             count_cond = 0
