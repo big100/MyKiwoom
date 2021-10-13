@@ -90,7 +90,7 @@ class Strategy:
 
         고저평균 = round((고가 + 저가) / 2)
         고저평균대비등락율 = round((현재가 / 고저평균 - 1) * 100, 2)
-        직전당일거래대금 = self.dict_gsjm[종목코드]['당일거래대금'][1]
+        직전당일거래대금 = self.dict_gsjm[종목코드]['당일거래대금'][0]
         초당거래대금 = 0 if 직전당일거래대금 == 0 else int(당일거래대금 - 직전당일거래대금)
 
         self.dict_gsjm[종목코드] = self.dict_gsjm[종목코드].shift(1)
