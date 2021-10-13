@@ -532,8 +532,7 @@ class Window(QtWidgets.QMainWindow):
             return
 
         if len(dict_df) == 0:
-            if self.gj_tableWidget.item(1, 0) is not None:
-                self.gj_tableWidget.clearContents()
+            self.gj_tableWidget.clearContents()
             return
 
         def changeFormat(text):
@@ -677,8 +676,7 @@ class Window(QtWidgets.QMainWindow):
             return
 
         if len(df) == 0:
-            if tableWidget.item(1, 0) is not None:
-                tableWidget.clearContents()
+            tableWidget.clearContents()
             return
 
         def changeFormat(text):
