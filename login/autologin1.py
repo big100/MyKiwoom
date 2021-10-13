@@ -1,4 +1,3 @@
-import time
 import pythoncom
 from manuallogin import *
 from PyQt5 import QtWidgets

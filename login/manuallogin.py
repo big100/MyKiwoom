@@ -4,7 +4,6 @@ import time
 import win32api
 import win32con
 import win32gui
-import platform
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.setting import system_path
 
@@ -85,20 +84,28 @@ def manual_login(gubun):
         enter_keys(win32gui.GetDlgItem(hwnd, 0x3E9), USER_PW1)
         if gubun == 2:
             enter_keys(win32gui.GetDlgItem(hwnd, 0x3EA), USER_CR1)
-            # AMD 자동로그인 설정 로그인창 닫힘 인식 실패 문제 회피 - 데빌퀸트
-            if 'AMD' in platform.processor():
-                doubleClick(15, 15, win32gui.GetDlgItem(hwnd, 0x3E9))
-                time.sleep(1)
-                doubleClick(15, 15, win32gui.GetDlgItem(hwnd, 0x3EA))
-                time.sleep(0.3)
-                enter_keys(win32gui.GetDlgItem(hwnd, 0x3EA), USER_CR1)
-                time.sleep(0.3)
+            # 자동로그인 설정 로그인창 닫힘 인식 실패 문제 회피 - 데빌퀸트
+            doubleClick(15, 15, win32gui.GetDlgItem(hwnd, 0x3E9))
+            time.sleep(1)
+            doubleClick(15, 15, win32gui.GetDlgItem(hwnd, 0x3EA))
+            time.sleep(0.3)
+            enter_keys(win32gui.GetDlgItem(hwnd, 0x3EA), USER_CR1)
+            time.sleep(0.3)
+            #########################################################
             click_button(win32gui.GetDlgItem(hwnd, 0x1))
     elif gubun in [3, 4]:
         enter_keys(win32gui.GetDlgItem(hwnd, 0x3E8), USER_ID2)
         enter_keys(win32gui.GetDlgItem(hwnd, 0x3E9), USER_PW2)
         if gubun == 4:
             enter_keys(win32gui.GetDlgItem(hwnd, 0x3EA), USER_CR2)
+            # 자동로그인 설정 로그인창 닫힘 인식 실패 문제 회피 - 데빌퀸트
+            doubleClick(15, 15, win32gui.GetDlgItem(hwnd, 0x3E9))
+            time.sleep(1)
+            doubleClick(15, 15, win32gui.GetDlgItem(hwnd, 0x3EA))
+            time.sleep(0.3)
+            enter_keys(win32gui.GetDlgItem(hwnd, 0x3EA), USER_CR2)
+            time.sleep(0.3)
+            #########################################################
             click_button(win32gui.GetDlgItem(hwnd, 0x1))
     click_button(win32gui.GetDlgItem(hwnd, 0x1))
 

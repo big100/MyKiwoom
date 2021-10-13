@@ -54,7 +54,6 @@ if __name__ == '__main__':
     manual_login(4)
     print(' 아이디 및 패스워드 입력 완료\n')
 
-    amd_cpu = True if 'AMD' in platform.processor() else False
     endtime = timedelta_sec(60) if autofile else timedelta_sec(120)
     update = False
     while find_window('Open API login') != 0:
@@ -73,7 +72,7 @@ if __name__ == '__main__':
                 pass
         print(' 버전처리 및 로그인창 닫힘 대기 중 ...\n')
         time.sleep(1)
-        if amd_cpu and now() > endtime:
+        if now() > endtime:
             break
     if update:
         time.sleep(5)
