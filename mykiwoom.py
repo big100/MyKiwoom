@@ -461,22 +461,22 @@ class Window(QtWidgets.QMainWindow):
                         for price in df['매수체결가'][index2].split(';'):
                             arrow = pg.ArrowItem(angle=-180, tipAngle=30, baseAngle=20, headLen=20, tailLen=10,
                                                  tailWidth=2, pen=None, brush='r')
-                            arrow.setPos(i, int(price))
+                            arrow.setPos(i, float(price))
                             self.dict_ctpg[gubun][0].addItem(arrow)
                             text = pg.TextItem(anchor=(1, 0.5), color=color_fg_bt, border=color_bg_bt, fill=color_bg_ld)
                             text.setFont(qfont12)
-                            text.setPos(i - 1, int(price))
+                            text.setPos(i - 1, float(price))
                             text.setText(price)
                             self.dict_ctpg[gubun][0].addItem(text)
                     if df['매도체결가'][index2] != '':
                         for price in df['매도체결가'][index2].split(';'):
                             arrow = pg.ArrowItem(angle=-180, tipAngle=30, baseAngle=20, headLen=20, tailLen=10,
                                                  tailWidth=2, pen=None, brush='b')
-                            arrow.setPos(i, int(price))
+                            arrow.setPos(i, float(price))
                             self.dict_ctpg[gubun][0].addItem(arrow)
                             text = pg.TextItem(anchor=(1, 0.5), color=color_fg_bt, border=color_bg_bt, fill=color_bg_ld)
                             text.setFont(qfont12)
-                            text.setPos(i - 1, int(price))
+                            text.setPos(i - 1, float(price))
                             text.setText(price)
                             self.dict_ctpg[gubun][0].addItem(text)
             self.dict_mcpg_infiniteline[gubun] = pg.InfiniteLine(angle=0)
