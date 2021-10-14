@@ -51,6 +51,7 @@ class Receiver:
         self.dict_hoga = {}
         self.dict_cond = {}
         self.dict_name = {}
+        self.dict_code = {}
 
         self.list_gsjm = []
         self.list_gsjm2 = []
@@ -112,16 +113,15 @@ class Receiver:
 
         self.list_kosd = self.GetCodeListByMarket('10')
         list_code = self.GetCodeListByMarket('0') + self.list_kosd
-        dict_code = {}
         df = pd.DataFrame(columns=['종목명'])
         for code in list_code:
             name = self.GetMasterCodeName(code)
             df.at[code] = name
             self.dict_name[code] = name
-            dict_code[name] = code
+            self.dict_code[name] = code
 
         self.queryQ.put([2, df, 'codename', 'replace'])
-        self.windowQ.put([3, dict_code])
+        self.windowQ.put([3, self.dict_code])
         self.windowQ.put([4, self.dict_name])
 
         data = self.ocx.dynamicCall('GetConditionNameList()')
@@ -299,7 +299,7 @@ class Receiver:
         con.close()
         codes = []
         for index in df.index:
-            code = self.dict_name[df['종목명'][index]]
+            code = self.dict_code[df['종목명'][index]]
             if code not in codes:
                 codes.append(code)
         self.tick1Q.put(['콜렉터종료', codes])
