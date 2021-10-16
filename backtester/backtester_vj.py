@@ -46,10 +46,8 @@ class BackTesterVj:
         self.sellprice = 0
         self.index = 0
         self.indexb = 0
-
         self.indexn = 0
         self.ccond = 0
-        self.csell = 0
 
         self.Start()
 
@@ -67,13 +65,23 @@ class BackTesterVj:
             self.df['체결강도평균'] = self.df['직전체결강도'].rolling(window=self.avg_time).mean()
             self.df['최고체결강도'] = self.df['직전체결강도'].rolling(window=self.avg_time).max()
             self.df = self.df.fillna(0)
+
             self.totalcount = 0
             self.totalcount_p = 0
             self.totalcount_m = 0
             self.totalholdday = 0
             self.totaleyun = 0
             self.totalper = 0.
+
+            self.hold = False
+            self.buycount = 0
+            self.buyprice = 0
+            self.sellprice = 0
+            self.index = 0
+            self.indexb = 0
+            self.indexn = 0
             self.ccond = 0
+
             lasth = len(self.df) - 1
             for h, index in enumerate(self.df.index):
                 if h != 0 and index[:8] != self.df.index[h - 1][:8]:
