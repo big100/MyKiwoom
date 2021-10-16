@@ -403,7 +403,7 @@ class Receiver:
             else:
                 if self.operation == 1:
                     self.operation = 3
-                if dt != self.str_jcct:
+                if dt != self.str_jcct and int(dt) > int(self.str_jcct):
                     self.str_jcct = dt
                 if code not in self.dict_vipr.keys():
                     self.InsertViPrice(code, o)
