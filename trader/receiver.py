@@ -314,7 +314,7 @@ class Receiver:
         curr_datetime = strp_time(timetype, curr_time)
         if self.dt_mtct is not None:
             gap_seconds = (curr_datetime - self.dt_mtct).total_seconds()
-            while gap_seconds > 2:
+            while gap_seconds > 1:
                 gap_seconds -= 1
                 pre_time = strf_time(timetype, timedelta_sec(-gap_seconds, curr_datetime))
                 self.df_mt.at[pre_time] = list_text
