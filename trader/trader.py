@@ -210,7 +210,10 @@ class Trader:
                 cond = (self.dict_df['체결목록']['주문구분'] == '매수') & \
                        (self.dict_df['체결목록']['종목명'] == self.dict_name[code])
                 df = self.dict_df['체결목록'][cond]
-                self.dict_buyt[code] = df['체결시간'].iloc[0]
+                if len(df) > 0:
+                    self.dict_buyt[code] = strp_time('%Y%m%d%H%M%S%f', df['체결시간'].iloc[0])
+                else:
+                    self.dict_buyt[code] = now()
                 self.receivQ.put(f'잔고편입 {code}')
 
         if int(strf_time('%H%M%S')) > 90000:
