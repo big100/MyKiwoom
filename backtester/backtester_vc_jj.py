@@ -351,9 +351,9 @@ class Total:
             plt.savefig(f"{GRAPH_PATH}/vc_{strf_time('%Y%m%d')}.png")
             conn = sqlite3.connect(DB_STG)
             cur = conn.cursor()
-            query = f"UPDATE setting SET 장초체결강도차이 = {self.gap_ch}, 장초평균값계산틱수 = {self.avg_time}, "\
-                    f"장초초당거래대금차이 = {self.gap_sm}, 장초체결강도하한 = {self.ch_low}, 장초당일거래대금하한 = {self.dm_low}, "\
-                    f"장초등락율하한 = {self.per_low}, 장초등락율상한 = {self.per_high}"
+            query = f"UPDATE setting SET 장중체결강도차이 = {self.gap_ch}, 장중평균값계산틱수 = {self.avg_time}, "\
+                    f"장중초당거래대금차이 = {self.gap_sm}, 장중체결강도하한 = {self.ch_low}, 장중당일거래대금하한 = {self.dm_low}, "\
+                    f"장중등락율하한 = {self.per_low}, 장중등락율상한 = {self.per_high}"
             cur.execute(query)
             conn.commit()
             conn.close()
