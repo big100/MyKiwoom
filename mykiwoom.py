@@ -1605,8 +1605,8 @@ if __name__ == '__main__':
         os.system('shutdown /s /t 60')
         sys.exit()
 
-    os.system(f'python {system_path}/backtester/backtester_vc_jc.py')
-    os.system(f'python {system_path}/backtester/backtester_vc_jj.py')
+    os.system(f'python {SYSTEM_PATH}/backtester/backtester_vc_jc.py')
+    os.system(f'python {SYSTEM_PATH}/backtester/backtester_vc_jj.py')
     os.system('shutdown /s /t 60')
     sys.exit()
     """
