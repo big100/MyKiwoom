@@ -5,7 +5,7 @@ from PyQt5.QtCore import QTimer
 from multiprocessing import Process
 from PyQt5.QAxContainer import QAxWidget
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-from utility.setting import openapi_path
+from utility.setting import OPENAPI_PATH
 
 
 class Window(QtWidgets.QMainWindow):
@@ -30,16 +30,15 @@ class Window(QtWidgets.QMainWindow):
 
     def AutoLoginOn(self):
         print('\n 자동 로그인 설정 대기 중 ...\n')
-        QTimer.singleShot(5000, lambda: auto_on(2))
+        QTimer.singleShot(3000, lambda: auto_on(2))
         self.ocx.dynamicCall('KOA_Functions(QString, QString)', 'ShowAccountWindow', '')
         print(' 자동 로그인 설정 완료\n')
-        print(' 자동 로그인 설정용 프로세스 종료 중 ...')
 
 
 if __name__ == '__main__':
-    login_info = f'{openapi_path}/system/Autologin.dat'
+    login_info = f'{OPENAPI_PATH}/system/Autologin.dat'
     if os.path.isfile(login_info):
-        os.remove(f'{openapi_path}/system/Autologin.dat')
+        os.remove(f'{OPENAPI_PATH}/system/Autologin.dat')
     print('\n 자동 로그인 설정 파일 삭제 완료\n')
 
     Process(target=Window).start()
@@ -54,3 +53,11 @@ if __name__ == '__main__':
 
     manual_login(4)
     print(' 아이디 및 패스워드 입력 완료\n')
+
+    time.sleep(15)
+    print(' 잔류 프로세스 확인 중 ...\n')
+    os.system('taskkill /f /im nkstarter.exe')
+    print('\n')
+    os.system('taskkill /f /im opstarter.exe')
+    print('\n')
+    print(' 프로세스 종료 완료\n')

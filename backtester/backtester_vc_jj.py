@@ -5,30 +5,41 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from multiprocessing import Process, Queue
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-from utility.setting import db_tick, db_backtest
-from utility.static import now, strf_time, strp_time, timedelta_sec, timedelta_day
+from utility.setting import DB_STG, DB_TICK, DB_BACKTEST, GRAPH_PATH
+from utility.static import now, strf_time, strp_time, timedelta_sec, timedelta_day, telegram_msg
 
-BATTING = 20000000     # 종목당 배팅금액
+BATTING = 10000000     # 종목당 배팅금액
 TESTPERIOD = 14        # 백테스팅 기간(14일 경우 과거 2주간의 데이터를 백테스팅한다)
-TOTALTIME = 36000      # 백테스팅 기간 동안 9시부터 10시까지의 시간 총합, 단위 초
-START_TIME = 90000
-END_TIME = 100000
+TOTALTIME = 198000     # 백테스팅 기간 동안 10시부터 15시30분까지의 시간 총합, 단위 초
+START_TIME = 100000
+END_TIME = 153000
 
 
-class BackTesterVj:
-    def __init__(self, q_, code_list_, num_, df_mt_):
+class BackTesterVc:
+    def __init__(self, q_, code_list_, num_, df_mt_, high):
         self.q = q_
         self.code_list = code_list_
         self.df_mt = df_mt_
+        self.high = high
 
-        self.gap_ch = num_[0]
-        self.avg_time = num_[1]
-        self.gap_sm = num_[2]
-        self.ch_low = num_[3]
-        self.dm_low = num_[4]
-        self.per_low = num_[5]
-        self.per_high = num_[6]
-        self.cs_per = num_[7]
+        if type(num_[0]) == list:
+            self.gap_ch = num_[0][0]
+            self.avg_time = num_[1][0]
+            self.gap_sm = num_[2][0]
+            self.ch_low = num_[3][0]
+            self.dm_low = num_[4][0]
+            self.per_low = num_[5][0]
+            self.per_high = num_[6][0]
+            self.cs_per = num_[7][0]
+        else:
+            self.gap_ch = num_[0]
+            self.avg_time = num_[1]
+            self.gap_sm = num_[2]
+            self.ch_low = num_[3]
+            self.dm_low = num_[4]
+            self.per_low = num_[5]
+            self.per_high = num_[6]
+            self.cs_per = num_[7]
 
         self.code = None
         self.df = None
@@ -52,15 +63,20 @@ class BackTesterVj:
         self.Start()
 
     def Start(self):
-        conn = sqlite3.connect(db_tick)
+        conn = sqlite3.connect(DB_TICK)
         tcount = len(self.code_list)
         int_daylimit = int(strf_time('%Y%m%d', timedelta_day(-TESTPERIOD)))
         for k, code in enumerate(self.code_list):
             self.code = code
-            self.df = pd.read_sql(f"SELECT * FROM '{code}'", conn)
-            self.df = self.df.set_index('index')
-            self.df['직전초당거래대금'] = self.df['초당거래대금'].shift(1)
+            self.df = pd.read_sql(f"SELECT * FROM '{code}'", conn).set_index('index')
+            self.df['고저평균대비등락율'] = (self.df['현재가'] / ((self.df['고가'] + self.df['저가']) / 2) - 1) * 100
+            self.df['고저평균대비등락율'] = self.df['고저평균대비등락율'].round(2)
             self.df['직전체결강도'] = self.df['체결강도'].shift(1)
+            self.df['직전당일거래대금'] = self.df['당일거래대금'].shift(1)
+            self.df = self.df.fillna(0)
+            self.df['초당거래대금'] = self.df['당일거래대금'] - self.df['직전당일거래대금']
+            self.df['직전초당거래대금'] = self.df['초당거래대금'].shift(1)
+            self.df = self.df.fillna(0)
             self.df['초당거래대금평균'] = self.df['직전초당거래대금'].rolling(window=self.avg_time).mean()
             self.df['체결강도평균'] = self.df['직전체결강도'].rolling(window=self.avg_time).mean()
             self.df['최고체결강도'] = self.df['직전체결강도'].rolling(window=self.avg_time).max()
@@ -132,7 +148,6 @@ class BackTesterVj:
             return
         self.hold = True
         self.indexb = self.indexn
-        self.csell = 0
 
     def SellTerm(self):
         if self.df['등락율'][self.index] > 29:
@@ -171,7 +186,8 @@ class BackTesterVj:
             self.totalcount_p += 1
         else:
             self.totalcount_m += 1
-        self.q.put([self.index, self.code, per, eyun])
+        if self.high:
+            self.q.put([self.index, self.code, per, eyun])
 
     # noinspection PyMethodMayBeStatic
     def GetEyunPer(self, bg, cg):
@@ -247,20 +263,33 @@ class Total:
         self.last = last_
         self.name = df1_
 
-        self.gap_ch = num_[0]
-        self.avg_time = num_[1]
-        self.gap_sm = num_[2]
-        self.ch_low = num_[3]
-        self.dm_low = num_[4]
-        self.per_low = num_[5]
-        self.per_high = num_[6]
-        self.cs_per = num_[7]
+        if type(num_[0]) == list:
+            self.gap_ch = num_[0][0]
+            self.avg_time = num_[1][0]
+            self.gap_sm = num_[2][0]
+            self.ch_low = num_[3][0]
+            self.dm_low = num_[4][0]
+            self.per_low = num_[5][0]
+            self.per_high = num_[6][0]
+            self.cs_per = num_[7][0]
+        else:
+            self.gap_ch = num_[0]
+            self.avg_time = num_[1]
+            self.gap_sm = num_[2]
+            self.ch_low = num_[3]
+            self.dm_low = num_[4]
+            self.per_low = num_[5]
+            self.per_high = num_[6]
+            self.cs_per = num_[7]
 
         self.Start()
 
     def Start(self):
-        columns = ['거래횟수', '평균보유기간', '익절', '손절', '승률', '수익률', '수익금']
-        df_back = pd.DataFrame(columns=columns)
+        columns1 = ['거래횟수', '평균보유기간', '익절', '손절', '승률', '수익률', '수익금']
+        columns2 = ['필요자금', '종목출현빈도수', '거래횟수', '평균보유기간', '익절', '손절', '승률',
+                    '평균수익률', '수익률합계', '수익금합계', '체결강도차이', '평균값계산틱수', '초당거래대금차이',
+                    '체결강도하한', '당일거래대금하한', '등락율하한', '등락율상한', '청산수익률']
+        df_back = pd.DataFrame(columns=columns1)
         df_tsg = pd.DataFrame(columns=['종목명', 'per', 'ttsg'])
         k = 0
         while True:
@@ -279,11 +308,12 @@ class Total:
             if k == self.last:
                 break
 
+        tsp = 0
         if len(df_back) > 0:
+            tc = df_back['거래횟수'].sum()
             text = [self.gap_ch, self.avg_time, self.gap_sm, self.ch_low, self.dm_low,
                     self.per_low, self.per_high, self.cs_per]
             print(f' {text}')
-            tc = df_back['거래횟수'].sum()
             if tc != 0:
                 pc = df_back['익절'].sum()
                 mc = df_back['손절'].sum()
@@ -301,8 +331,12 @@ class Total:
                        f" 종목출현빈도수 {onedaycount}개/초, 거래횟수 {tc}회, 평균보유기간 {avghold}초,\n 익절 {pc}회, "\
                        f" 손절 {mc}회, 승률 {pper}%, 평균수익률 {avgsp}%, 수익률합계 {tsp}%, 수익금합계 {format(tsg, ',')}원"
                 print(text)
-                conn = sqlite3.connect(db_backtest)
-                df_back.to_sql(f"vj_{strf_time('%Y%m%d')}_1", conn, if_exists='append', chunksize=1000)
+                df_back = pd.DataFrame(
+                    [[onegm, onedaycount, tc, avghold, pc, mc, pper, avgsp, tsp, tsg, self.gap_ch, self.avg_time,
+                      self.gap_sm, self.ch_low, self.dm_low, self.per_low, self.per_high, self.cs_per]],
+                    columns=columns2, index=[strf_time('%Y%m%d%H%M%S')])
+                conn = sqlite3.connect(DB_BACKTEST)
+                df_back.to_sql(f"vc_{strf_time('%Y%m%d')}_1", conn, if_exists='append', chunksize=1000)
                 conn.close()
 
         if len(df_tsg) > 0:
@@ -310,17 +344,27 @@ class Total:
             df_tsg.sort_values(by=['체결시간'], inplace=True)
             df_tsg['ttsg_cumsum'] = df_tsg['ttsg'].cumsum()
             df_tsg[['ttsg', 'ttsg_cumsum']] = df_tsg[['ttsg', 'ttsg_cumsum']].astype(int)
-            conn = sqlite3.connect(db_backtest)
-            df_tsg.to_sql(f"vj_{strf_time('%Y%m%d')}_2", conn, if_exists='append', chunksize=1000)
+            conn = sqlite3.connect(DB_BACKTEST)
+            df_tsg.to_sql(f"vc_{strf_time('%Y%m%d')}_2", conn, if_exists='append', chunksize=1000)
             conn.close()
             df_tsg.plot(figsize=(12, 9), rot=45)
-            plt.show()
+            plt.savefig(f"{GRAPH_PATH}/vc_{strf_time('%Y%m%d')}.png")
+            conn = sqlite3.connect(DB_STG)
+            cur = conn.cursor()
+            query = f"UPDATE setting SET 장초체결강도차이 = {self.gap_ch}, 장초평균값계산틱수 = {self.avg_time}, "\
+                    f"장초초당거래대금차이 = {self.gap_sm}, 장초체결강도하한 = {self.ch_low}, 장초당일거래대금하한 = {self.dm_low}, "\
+                    f"장초등락율하한 = {self.per_low}, 장초등락율상한 = {self.per_high}"
+            cur.execute(query)
+            conn.commit()
+            conn.close()
+        else:
+            self.q.put(tsp)
 
 
 if __name__ == "__main__":
     start = now()
 
-    con = sqlite3.connect(db_tick)
+    con = sqlite3.connect(DB_TICK)
     df1 = pd.read_sql('SELECT * FROM codename', con)
     df1 = df1.set_index('index')
     df2 = pd.read_sql("SELECT name FROM sqlite_master WHERE TYPE = 'table'", con)
@@ -332,24 +376,93 @@ if __name__ == "__main__":
     table_list.remove('codename')
     last = len(table_list)
 
-    gap_ch = 3.3
-    avg_time = 183
-    gap_sm = 120
-    ch_low = 90
-    dm_low = 10000
-    per_low = 1.8
-    per_high = 23
-    cs_per = 9.2
+    q = Queue()
+    gap_chs = [3, 4, 5, 6, 7, 8, 9]
+    avg_times = [60, 120, 180, 240, 300]
+    htsp = -100
+    high_var = []
+
+    for gap_ch in gap_chs:
+        for avg_time in avg_times:
+            num = [gap_ch, avg_time, 50, 50, 0, 0, 25, 3]
+            w = Process(target=Total, args=(q, last, num, df1))
+            w.start()
+            procs = []
+            workcount = int(last / 6) + 1
+            for j in range(0, last, workcount):
+                code_list = table_list[j:j + workcount]
+                p = Process(target=BackTesterVc, args=(q, code_list, num, df3, False))
+                procs.append(p)
+                p.start()
+            for p in procs:
+                p.join()
+            w.join()
+            sp = q.get()
+            if sp >= htsp:
+                htsp = sp
+                high_var = num
+                print(f' 최고수익률 갱신 {htsp}%')
+
+    gap_ch = [high_var[0] - 0.9, high_var[0] + 0.9, 0.1, 0.1]
+    avg_time = [high_var[1], high_var[1], 30, 3]
+    gap_sm = [0, 500, 50, 10]
+    ch_low = [50, 100, 10, 10]
+    dm_low = [0, 100000, 10000, 1000]
+    per_low = [0, 10, 1, 0.1]
+    per_high = [25, 15, -1, -1]
+    cs_per = [3, 10, 1, 0.2]
     num = [gap_ch, avg_time, gap_sm, ch_low, dm_low, per_low, per_high, cs_per]
 
-    q = Queue()
+    ogin_var = high_var[0]
+    high_var = high_var[0]
+
+    i = 0
+    while True:
+        w = Process(target=Total, args=(q, last, num, df1))
+        w.start()
+        procs = []
+        workcount = int(last / 6) + 1
+        for j in range(0, last, workcount):
+            code_list = table_list[j:j + workcount]
+            p = Process(target=BackTesterVc, args=(q, code_list, num, df3, False))
+            procs.append(p)
+            p.start()
+        for p in procs:
+            p.join()
+        w.join()
+        sp = q.get()
+        if sp >= htsp:
+            htsp = sp
+            high_var = num[i][0]
+            print(f' 최고수익률 갱신 {htsp}%')
+        if num[i][0] == num[i][1]:
+            num[i][0] = high_var
+            if num[i][2] != num[i][3]:
+                if num[i][0] != ogin_var:
+                    num[i][0] -= num[i][2]
+                    num[i][1] = round(num[i][0] + num[i][2] * 2 - num[i][3], 1)
+                else:
+                    num[i][1] = round(num[i][0] + num[i][2] - num[i][3], 1)
+                num[i][2] = num[i][3]
+            elif i < len(num) - 1:
+                i += 1
+                if i == 1:
+                    num[i][0] -= num[i][2]
+                    num[i][1] = round(num[i][0] + num[i][2] * 2 - num[i][3], 1)
+                    num[i][2] = num[i][3]
+                ogin_var = num[i][0]
+                high_var = num[i][0]
+            else:
+                break
+        num[i][0] = round(num[i][0] + num[i][2], 1)
+
     w = Process(target=Total, args=(q, last, num, df1))
     w.start()
     procs = []
     workcount = int(last / 6) + 1
     for j in range(0, last, workcount):
-        code_list = table_list[j:j + workcount]
-        p = Process(target=BackTesterVj, args=(q, code_list, num, df3))
+        db_list = table_list[j:j + workcount]
+        p = Process(target=BackTesterVc, args=(q, db_list, num, df3, True))
         procs.append(p)
         p.start()
     for p in procs:
@@ -358,3 +471,4 @@ if __name__ == "__main__":
 
     end = now()
     print(f" 백테스팅 소요시간 {end - start}")
+    telegram_msg('백테스트을 완료하였습니다.')

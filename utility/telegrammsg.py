@@ -1,8 +1,7 @@
-import time
 import sqlite3
 import telegram
 import pandas as pd
-from utility.setting import db_stg
+from utility.setting import DB_STG
 from telegram.ext import Updater, MessageHandler, Filters
 
 
@@ -14,16 +13,12 @@ class TelegramMsg:
         self.teleQ = teleQ
         self.updater = None
 
-        con = sqlite3.connect(db_stg)
-        df = pd.read_sql("SELECT name FROM sqlite_master WHERE TYPE = 'table'", con)
-        if 'telegram' not in df['name'].values:
-            df2 = pd.DataFrame({'str_bot': [''], 'int_id': [0]}, index=[0])
-            self.queryQ.put([1, df2, 'telegram', 'replace'])
-        time.sleep(2)
+        con = sqlite3.connect(DB_STG)
         df = pd.read_sql('SELECT * FROM telegram', con)
-        self.str_botn = df['str_bot'][0]
-        self.int_usid = int(df['int_id'][0])
-        if self.str_botn != '':
+        con.close()
+        if len(df) > 0:
+            self.str_botn = df['str_bot'][0]
+            self.int_usid = int(df['int_id'][0])
             self.bot = telegram.Bot(self.str_botn)
             self.windowQ.put([2, f'텔레그램봇넘버 {self.str_botn}'])
             self.windowQ.put([2, f'사용자아이디 {self.int_usid}'])
@@ -32,7 +27,6 @@ class TelegramMsg:
             self.str_botn = None
             self.int_usid = None
             self.bot = None
-        con.close()
         self.Start()
 
     def Start(self):

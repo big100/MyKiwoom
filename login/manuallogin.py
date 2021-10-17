@@ -5,9 +5,9 @@ import win32api
 import win32con
 import win32gui
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-from utility.setting import system_path
+from utility.setting import SYSTEM_PATH
 
-f = open(f'{system_path}/login/user.txt')
+f = open(f'{SYSTEM_PATH}/login/user.txt')
 lines = f.readlines()
 USER_ID1 = lines[0].strip()
 USER_PW1 = lines[1].strip()
@@ -42,14 +42,14 @@ def enum_windows():
 
 
 def find_window(caption):
-    hwndd = win32gui.FindWindow(None, caption)
-    if hwndd == 0:
+    hwnd = win32gui.FindWindow(None, caption)
+    if hwnd == 0:
         windows = enum_windows()
         for handle, title in windows:
             if caption in title:
-                hwndd = handle
+                hwnd = handle
                 break
-    return hwndd
+    return hwnd
 
 
 def enter_keys(hwndd, data):
@@ -82,31 +82,31 @@ def manual_login(gubun):
     if gubun in [1, 2]:
         enter_keys(win32gui.GetDlgItem(hwnd, 0x3E8), USER_ID1)
         enter_keys(win32gui.GetDlgItem(hwnd, 0x3E9), USER_PW1)
-        if gubun == 2:
-            enter_keys(win32gui.GetDlgItem(hwnd, 0x3EA), USER_CR1)
-            # 자동로그인 설정 로그인창 닫힘 인식 실패 문제 회피 - 데빌퀸트
-            doubleClick(15, 15, win32gui.GetDlgItem(hwnd, 0x3E9))
-            time.sleep(1)
-            doubleClick(15, 15, win32gui.GetDlgItem(hwnd, 0x3EA))
-            time.sleep(0.3)
-            enter_keys(win32gui.GetDlgItem(hwnd, 0x3EA), USER_CR1)
-            time.sleep(0.3)
-            #########################################################
-            click_button(win32gui.GetDlgItem(hwnd, 0x1))
+        enter_keys(win32gui.GetDlgItem(hwnd, 0x3EA), USER_CR1)
+        time.sleep(2)
+        doubleClick(15, 15, win32gui.GetDlgItem(hwnd, 0x3E8))
+        time.sleep(0.5)
+        enter_keys(win32gui.GetDlgItem(hwnd, 0x3E8), USER_ID1)
+        time.sleep(0.5)
+        doubleClick(15, 15, win32gui.GetDlgItem(hwnd, 0x3EA))
+        time.sleep(0.5)
+        enter_keys(win32gui.GetDlgItem(hwnd, 0x3EA), USER_CR1)
+        time.sleep(0.5)
+        click_button(win32gui.GetDlgItem(hwnd, 0x1))
     elif gubun in [3, 4]:
         enter_keys(win32gui.GetDlgItem(hwnd, 0x3E8), USER_ID2)
         enter_keys(win32gui.GetDlgItem(hwnd, 0x3E9), USER_PW2)
-        if gubun == 4:
-            enter_keys(win32gui.GetDlgItem(hwnd, 0x3EA), USER_CR2)
-            # 자동로그인 설정 로그인창 닫힘 인식 실패 문제 회피 - 데빌퀸트
-            doubleClick(15, 15, win32gui.GetDlgItem(hwnd, 0x3E9))
-            time.sleep(1)
-            doubleClick(15, 15, win32gui.GetDlgItem(hwnd, 0x3EA))
-            time.sleep(0.3)
-            enter_keys(win32gui.GetDlgItem(hwnd, 0x3EA), USER_CR2)
-            time.sleep(0.3)
-            #########################################################
-            click_button(win32gui.GetDlgItem(hwnd, 0x1))
+        enter_keys(win32gui.GetDlgItem(hwnd, 0x3EA), USER_CR2)
+        time.sleep(2)
+        doubleClick(15, 15, win32gui.GetDlgItem(hwnd, 0x3E8))
+        time.sleep(0.5)
+        enter_keys(win32gui.GetDlgItem(hwnd, 0x3E8), USER_ID2)
+        time.sleep(0.5)
+        doubleClick(15, 15, win32gui.GetDlgItem(hwnd, 0x3EA))
+        time.sleep(0.5)
+        enter_keys(win32gui.GetDlgItem(hwnd, 0x3EA), USER_CR2)
+        time.sleep(0.5)
+        click_button(win32gui.GetDlgItem(hwnd, 0x1))
     click_button(win32gui.GetDlgItem(hwnd, 0x1))
 
 

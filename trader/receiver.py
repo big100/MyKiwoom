@@ -10,9 +10,8 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.static import *
 from utility.setting import *
 
-MONEYTOP_CHANGE = 100000    # 최근거래대금순위로 변경할 시간
 MONEYTOP_MINUTE = 10        # 최근거래대금순위을 집계할 시간
-MONEYTOP_RANK = 10          # 최근거래대금순위중 관심종목으로 선정할 순위
+MONEYTOP_RANK = 20          # 최근거래대금순위중 관심종목으로 선정할 순위
 
 
 class Receiver:
@@ -130,13 +129,8 @@ class Receiver:
             cond_index, cond_name = condition.split('^')
             self.dict_cond[int(cond_index)] = cond_name
 
-        print(self.dict_cond)
-        print('위 조건검색의 번호와 이름은 두번째 계정의 조건검색식들입니다.')
-        print('조건검색식 번호를 확인하여 OperationRealreg 함수에 검색식번호를 감시검색식 번호로')
-        print('예: self.list_code = self.SendCondition(sn_oper, self.dict_cond[1], 1, 0) 여기서 1 숫자 두개만 수정')
-        print('ConditionSearchStart 함수에 검색식번호를 매매검색식 번호로 설정하십시오.')
-        print('예: codes = self.SendCondition(sn_cond, self.dict_cond[0], 0, 1) 여기서 0 숫자 두개만 수정')
-        self.windowQ.put([1, '시스템 명령 실행 알림 - OpenAPI 로그인 완료'])
+        self.windowQ.put([1, self.dict_cond])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 OpenAPI 로그인 완료'])
 
     def EventLoop(self):
         self.OperationRealreg()
@@ -153,10 +147,10 @@ class Receiver:
             if self.operation == 1 and now() > self.dict_time['휴무종료']:
                 break
             if self.operation == 3:
-                if int(strf_time('%H%M%S')) < MONEYTOP_CHANGE:
+                if int(strf_time('%H%M%S')) < 100000:
                     if not self.dict_bool['실시간조건검색시작']:
                         self.ConditionSearchStart()
-                if MONEYTOP_CHANGE <= int(strf_time('%H%M%S')):
+                if 100000 <= int(strf_time('%H%M%S')):
                     if self.dict_bool['실시간조건검색시작'] and not self.dict_bool['실시간조건검색중단']:
                         self.ConditionSearchStop()
                     if not self.dict_bool['장중단타전략시작']:
@@ -192,9 +186,9 @@ class Receiver:
             ret = self.ocx.dynamicCall('SetRealReg(QString, QString, QString, QString)', rreg)
             result = '완료' if ret == 0 else '실패'
             if sn == sn_oper:
-                self.windowQ.put([1, f'실시간 알림 등록 {result} - 장운영시간 [{sn}]'])
+                self.windowQ.put([1, f'실시간 알림 등록 {result} - 리시버 장운영시간 [{sn}]'])
             else:
-                self.windowQ.put([1, f"실시간 알림 등록 {result} - [{sn}] 종목갯수 {len(rreg[1].split(';'))}"])
+                self.windowQ.put([1, f"실시간 알림 등록 {result} - 리시버 [{sn}] 종목갯수 {len(rreg[1].split(';'))}"])
 
     def OperationRealreg(self):
         self.receivQ.put([sn_oper, ' ', '215;20;214', 0])
@@ -207,14 +201,14 @@ class Receiver:
         for i in range(0, len(self.list_code), 100):
             self.receivQ.put([sn_jchj + k, ';'.join(self.list_code[i:i + 100]), '10;12;14;30;228;41;61;71;81', 1])
             k += 1
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 장운영시간 등록 완료'])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 장운영시간 등록 완료'])
 
     def ViRealreg(self):
         self.windowQ.put([2, 'VI발동해제 등록'])
         self.Block_Request('opt10054', 시장구분='000', 장전구분='1', 종목코드='', 발동구분='1', 제외종목='111111011',
                            거래량구분='0', 거래대금구분='0', 발동방향='0', output='발동종목', next=0)
-        self.windowQ.put([1, '시스템 명령 실행 알림 - VI발동해제 등록 완료'])
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 콜렉터 시작 완료'])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 VI발동해제 등록 완료'])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 시작 완료'])
 
     def ConditionSearchStart(self):
         self.dict_bool['실시간조건검색시작'] = True
@@ -223,12 +217,12 @@ class Receiver:
         if len(codes) > 0:
             for code in codes:
                 self.InsertGsjmlist(code)
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 실시간조건검색 등록 완료'])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 실시간조건검색 등록 완료'])
 
     def ConditionSearchStop(self):
         self.dict_bool['실시간조건검색중단'] = True
         self.ocx.dynamicCall("SendConditionStop(QString, QString, int)", sn_cond, self.dict_cond[0], 0)
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 실시간조건검색 중단 완료'])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 실시간조건검색 중단 완료'])
 
     def UpdateJangolist(self, data):
         code = data.split(' ')[1]
@@ -290,11 +284,11 @@ class Receiver:
         self.dict_bool['실시간데이터수신중단'] = True
         self.windowQ.put([2, '실시간 데이터 수신 중단'])
         self.receivQ.put(['ALL', 'ALL'])
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 실시간 데이터 중단 완료'])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 실시간 데이터 중단 완료'])
 
     def SaveTickData(self):
         self.windowQ.put([2, '틱데이터 저장'])
-        con = sqlite3.connect(db_stg)
+        con = sqlite3.connect(DB_STG)
         df = pd.read_sql(f"SELECT * FROM tradelist WHERE 체결시간 LIKE '{self.str_tday}%'", con).set_index('index')
         con.close()
         codes = []
@@ -358,7 +352,7 @@ class Receiver:
     def OnReceiveRealCondition(self, code, IorD, cname, cindex):
         if cname == '' and cindex == '':
             return
-        if int(strf_time('%H%M%S')) > MONEYTOP_CHANGE:
+        if int(strf_time('%H%M%S')) > 100000:
             return
 
         if IorD == 'I':

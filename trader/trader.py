@@ -37,6 +37,13 @@ class Trader:
         self.chart8Q = chart8Q
         self.chart9Q = chart9Q
 
+        self.df_cj = pd.DataFrame(columns=columns_cj)   # 체결목록
+        self.df_jg = pd.DataFrame(columns=columns_jg)   # 잔고목록
+        self.df_tj = pd.DataFrame(columns=columns_tj)   # 잔고평가
+        self.df_td = pd.DataFrame(columns=columns_td)   # 거래목록
+        self.df_tt = pd.DataFrame(columns=columns_tt)   # 실현손익
+        self.df_tr = None
+
         self.dict_sghg = {}     # key: 종목코드, value: [상한가, 하한가]
         self.dict_hoga = {}     # key: 호가창번호, value: [종목코드, 갱신여부, 호가잔고(DataFrame)]
         self.dict_chat = {}     # key: UI번호, value: 종목코드
@@ -44,14 +51,6 @@ class Trader:
         self.dict_name = {}     # key: 종목코드, value: 종목명
         self.dict_vipr = {}     # key: 종목코드, value: [갱신여부, 발동시간+5초, UVI, DVI, UVID5]
         self.dict_buyt = {}     # key: 종목코드, value: 매수시간
-        self.dict_df = {
-            '실현손익': pd.DataFrame(columns=columns_tt),
-            '거래목록': pd.DataFrame(columns=columns_td),
-            '잔고평가': pd.DataFrame(columns=columns_tj),
-            '잔고목록': pd.DataFrame(columns=columns_jg),
-            '체결목록': pd.DataFrame(columns=columns_cj),
-            'TRDF': pd.DataFrame(columns=[])
-        }
         self.dict_intg = {
             '장운영상태': 1,
             '예수금': 0,
@@ -73,8 +72,8 @@ class Trader:
             '계좌잔고조회': False,
             '업종차트조회': False,
             '업종지수등록': False,
-            'VI발동해제등록': False,
-            '잔고청산': False,
+            '장초전략잔고청산': False,
+            '장중전략잔고청산': False,
             '실시간데이터수신중단': False,
             '일별거래목록저장': False,
 
@@ -108,59 +107,14 @@ class Trader:
         self.Start()
 
     def Start(self):
-        self.CreateDatabase()
         self.LoadDatabase()
         self.CommConnect()
         self.EventLoop()
 
-    def CreateDatabase(self):
-        con = sqlite3.connect(db_stg)
-        df = pd.read_sql("SELECT name FROM sqlite_master WHERE TYPE = 'table'", con)
-        table_list = list(df['name'].values)
-        con.close()
-
-        if 'chegeollist' not in table_list:
-            self.queryQ.put([1, "CREATE TABLE chegeollist ('index' TEXT, '종목명' TEXT, '주문구분' TEXT,"
-                                "'주문수량' INTEGER, '미체결수량' INTEGER, '주문가격' INTEGER, '체결가' INTEGER,"
-                                "'체결시간' TEXT)"])
-            self.queryQ.put([1, "CREATE INDEX 'ix_chegeollist_index' ON 'chegeollist' ('index')"])
-            self.windowQ.put([1, '시스템 명령 실행 알림 - 데이터베이스 chegeollist 테이블 생성 완료'])
-
-        if 'jangolist' not in table_list:
-            self.queryQ.put([1, "CREATE TABLE 'jangolist' ('index' TEXT, '종목명' TEXT, '매입가' INTEGER,"
-                                "'현재가' INTEGER, '수익률' REAL, '평가손익' INTEGER, '매입금액' INTEGER, '평가금액' INTEGER,"
-                                "'시가' INTEGER, '고가' INTEGER, '저가' INTEGER, '전일종가' INTEGER, '보유수량' INTEGER)"])
-            self.queryQ.put([1, "CREATE INDEX 'ix_jangolist_index' ON 'jangolist' ('index')"])
-            self.windowQ.put([1, '시스템 명령 실행 알림 - 데이터베이스 jangolist 테이블 생성 완료'])
-
-        if 'tradelist' not in table_list:
-            self.queryQ.put([1, "CREATE TABLE tradelist ('index' TEXT, '종목명' TEXT, '매수금액' INTEGER,"
-                                "'매도금액' INTEGER, '주문수량' INTEGER, '수익률' REAL, '수익금' INTEGER, '체결시간' TEXT)"])
-            self.queryQ.put([1, "CREATE INDEX 'ix_tradelist_index' ON 'tradelist' ('index')"])
-            self.windowQ.put([1, '시스템 명령 실행 알림 - 데이터베이스 tradelist 테이블 생성 완료'])
-
-        if 'totaltradelist' not in table_list:
-            self.queryQ.put([1, "CREATE TABLE 'totaltradelist' ('index' TEXT, '총매수금액' INTEGER, '총매도금액' INTEGER,"
-                                "'총수익금액' INTEGER, '총손실금액' INTEGER, '수익률' REAL, '수익금합계' INTEGER)"])
-            self.queryQ.put([1, "CREATE INDEX 'ix_totaltradelist_index' ON 'totaltradelist' ('index')"])
-            self.windowQ.put([1, '시스템 명령 실행 알림 - 데이터베이스 totaltradelist 테이블 생성 완료'])
-
-        if 'setting' not in table_list:
-            df = pd.DataFrame([[0, 1, 1,
-                                10., 180, 200, 100, 2000, 0., 25., 3.]],
-                              columns=['테스트', '모의투자', '알림소리',
-                                       '체결강도차이', '평균값계산틱수', '초당거래대금차이',
-                                       '체결강도하한', '당일거래대금하한', '등락율하한', '등락율상한', '청산수익률'],
-                              index=[0])
-            self.queryQ.put([1, df, 'setting', 'replace'])
-            self.windowQ.put([1, '시스템 명령 실행 알림 - 데이터베이스 setting 테이블 생성 완료'])
-
-        time.sleep(2)
-
     def LoadDatabase(self):
         self.dict_bool['데이터베이스로딩'] = True
         self.windowQ.put([2, '데이터베이스 불러오기'])
-        con = sqlite3.connect(db_stg)
+        con = sqlite3.connect(DB_STG)
         df = pd.read_sql('SELECT * FROM setting', con)
         df = df.set_index('index')
         self.dict_bool['테스트'] = df['테스트'][0]
@@ -171,20 +125,20 @@ class Trader:
         self.windowQ.put([2, f"알림소리 {self.dict_bool['알림소리']}"])
 
         df = pd.read_sql(f"SELECT * FROM chegeollist WHERE 체결시간 LIKE '{self.dict_strg['당일날짜']}%'", con)
-        self.dict_df['체결목록'] = df.set_index('index').sort_values(by=['체결시간'], ascending=False)
+        self.df_cj = df.set_index('index').sort_values(by=['체결시간'], ascending=False)
 
         df = pd.read_sql(f"SELECT * FROM tradelist WHERE 체결시간 LIKE '{self.dict_strg['당일날짜']}%'", con)
-        self.dict_df['거래목록'] = df.set_index('index').sort_values(by=['체결시간'], ascending=False)
+        self.df_td = df.set_index('index').sort_values(by=['체결시간'], ascending=False)
 
         df = pd.read_sql(f'SELECT * FROM jangolist', con)
-        self.dict_df['잔고목록'] = df.set_index('index').sort_values(by=['매입금액'], ascending=False)
+        self.df_jg = df.set_index('index').sort_values(by=['매입금액'], ascending=False)
 
-        if len(self.dict_df['체결목록']) > 0:
-            self.windowQ.put([ui_num['체결목록'], self.dict_df['체결목록']])
-        if len(self.dict_df['거래목록']) > 0:
-            self.windowQ.put([ui_num['거래목록'], self.dict_df['거래목록']])
+        if len(self.df_cj) > 0:
+            self.windowQ.put([ui_num['체결목록'], self.df_cj])
+        if len(self.df_td) > 0:
+            self.windowQ.put([ui_num['거래목록'], self.df_td])
 
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 데이터베이스 정보 불러오기 완료'])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 DB 정보 불러오기 완료'])
 
     def CommConnect(self):
         self.windowQ.put([2, '트레이더 OPENAPI 로그인'])
@@ -201,15 +155,14 @@ class Trader:
             self.dict_name[code] = name
 
         self.chart9Q.put(self.dict_name)
-        self.windowQ.put([1, '시스템 명령 실행 알림 - OpenAPI 로그인 완료'])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 OpenAPI 로그인 완료'])
         if self.dict_bool['알림소리']:
             self.soundQ.put('키움증권 오픈에이피아이에 로그인하였습니다.')
 
-        if len(self.dict_df['잔고목록']) > 0:
-            for code in self.dict_df['잔고목록'].index:
-                cond = (self.dict_df['체결목록']['주문구분'] == '매수') & \
-                       (self.dict_df['체결목록']['종목명'] == self.dict_name[code])
-                df = self.dict_df['체결목록'][cond]
+        if len(self.df_jg) > 0:
+            for code in self.df_jg.index:
+                cond = (self.df_cj['주문구분'] == '매수') & (self.df_cj['종목명'] == self.dict_name[code])
+                df = self.df_cj[cond]
                 if len(df) > 0:
                     self.dict_buyt[code] = strp_time('%Y%m%d%H%M%S%f', df['체결시간'].iloc[0])
                 else:
@@ -247,9 +200,10 @@ class Trader:
 
             if self.dict_intg['장운영상태'] == 1 and now() > self.dict_time['휴무종료']:
                 break
-            if self.dict_intg['장운영상태'] == 2:
-                if int(strf_time('%H%M%S')) > 152900 and not self.dict_bool['잔고청산']:
-                    self.JangoChungsan()
+            if int(strf_time('%H%M%S')) >= 100000 and not self.dict_bool['장초전략잔고청산']:
+                self.JangoChungsan1()
+            if int(strf_time('%H%M%S')) >= 152900 and not self.dict_bool['장중전략잔고청산']:
+                self.JangoChungsan2()
             if self.dict_intg['장운영상태'] == 8:
                 self.AllRemoveRealreg()
                 self.SaveDayData()
@@ -270,7 +224,7 @@ class Trader:
                 pythoncom.PumpWaitingMessages()
                 time.sleep(0.0001)
 
-        self.stgQ.put('전략연산프로세스종료')
+        self.stgQ.put('전략프로세스종료')
         self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 종료'])
         self.SysExit()
 
@@ -280,11 +234,11 @@ class Trader:
         ret = self.ocx.dynamicCall(
             'SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)', order)
         if ret != 0:
-            self.windowQ.put([1, f'시스템 명령 오류 알림 - {name} {order[5]}주 {order[0]} 주문 실패'])
+            self.windowQ.put([1, f'매매 시스템 오류 알림 - {name} {order[5]}주 {order[0]} 주문 실패'])
 
     def BuySell(self, gubun, code, name, c, oc):
         if gubun == '매수':
-            if code in self.dict_df['잔고목록'].index:
+            if code in self.df_jg.index:
                 self.stgQ.put(['매수취소', code])
                 return
             if code in self.list_buy:
@@ -292,15 +246,15 @@ class Trader:
                 self.windowQ.put([1, '매매 시스템 오류 알림 - 현재 매도 주문중인 종목입니다.'])
                 return
             if self.dict_intg['추정예수금'] < oc * c:
-                cond = (self.dict_df['체결목록']['주문구분'] == '시드부족') & (self.dict_df['체결목록']['종목명'] == name)
-                df = self.dict_df['체결목록'][cond]
+                cond = (self.df_cj['주문구분'] == '시드부족') & (self.df_cj['종목명'] == name)
+                df = self.df_cj[cond]
                 if len(df) == 0 or \
                         (len(df) > 0 and now() > timedelta_sec(180, strp_time('%Y%m%d%H%M%S%f', df['체결시간'][0]))):
                     self.Order('시드부족', code, name, c, oc)
                 self.stgQ.put(['매수취소', code])
                 return
         elif gubun == '매도':
-            if code not in self.dict_df['잔고목록'].index:
+            if code not in self.df_jg.index:
                 self.stgQ.put(['매도취소', code])
                 return
             if code in self.list_sell:
@@ -341,7 +295,7 @@ class Trader:
                 if ui_num['차트P1'] in self.dict_chat.keys() and code == self.dict_chat[ui_num['차트P1']]:
                     return
                 if not self.TrtimeCondition:
-                    self.windowQ.put([1, f'시스템 명령 오류 알림 - 해당 명령은 {self.RemainedTrtime}초 후에 실행됩니다.'])
+                    self.windowQ.put([1, f'시스템 명령 오류 알림 - 트레이더 해당 명령은 {self.RemainedTrtime}초 후에 실행됩니다.'])
                     Timer(self.RemainedTrtime, self.traderQ.put, args=[work]).start()
                     return
                 self.chart6Q.put('기업개요 ' + code)
@@ -360,7 +314,7 @@ class Trader:
                         (ui_num['차트P3'] in self.dict_chat.keys() and code == self.dict_chat[ui_num['차트P3']]):
                     return
                 if not self.TrtimeCondition:
-                    self.windowQ.put([1, f'시스템 명령 오류 알림 - 해당 명령은 {self.RemainedTrtime}초 후에 실행됩니다.'])
+                    self.windowQ.put([1, f'시스템 명령 오류 알림 - 트레이더 해당 명령은 {self.RemainedTrtime}초 후에 실행됩니다.'])
                     Timer(self.RemainedTrtime, self.traderQ.put, args=[work]).start()
                     return
                 self.hoga1Q.put('초기화')
@@ -374,7 +328,7 @@ class Trader:
                         (ui_num['차트P3'] in self.dict_chat.keys() and code == self.dict_chat[ui_num['차트P3']]):
                     return
                 if not self.TrtimeCondition:
-                    self.windowQ.put([1, f'시스템 명령 오류 알림 - 해당 명령은 {self.RemainedTrtime}초 후에 실행됩니다.'])
+                    self.windowQ.put([1, f'시스템 명령 오류 알림 - 트레이더 해당 명령은 {self.RemainedTrtime}초 후에 실행됩니다.'])
                     Timer(self.RemainedTrtime, self.traderQ.put, args=[work]).start()
                     return
                 self.hoga2Q.put('초기화')
@@ -388,19 +342,18 @@ class Trader:
                 if ui_num['차트P5'] in self.dict_chat.keys() and code == self.dict_chat[ui_num['차트P5']]:
                     return
                 if int(tradeday) < int(strf_time('%Y%m%d', timedelta_day(-5))):
-                    self.windowQ.put([1, f'시스템 명령 오류 알림 - 5일 이전의 체결정보는 조회할 수 없습니다.'])
+                    self.windowQ.put([1, f'시스템 명령 오류 알림 - 트레이더 5일 이전의 체결정보는 조회할 수 없습니다.'])
                     return
                 if not self.TrtimeCondition:
-                    self.windowQ.put([1, f'시스템 명령 오류 알림 - 해당 명령은 {self.RemainedTrtime}초 후에 실행됩니다.'])
+                    self.windowQ.put([1, f'시스템 명령 오류 알림 - 트레이더 해당 명령은 {self.RemainedTrtime}초 후에 실행됩니다.'])
                     Timer(self.RemainedTrtime, self.traderQ.put, args=[work]).start()
                     return
                 self.GetChart(gubun, code, name, tradeday)
         elif '매수취소' in work:
             code = work.split(' ')[1]
             name = self.dict_name[code]
-            term = (self.dict_df['체결목록']['종목명'] == name) & (self.dict_df['체결목록']['미체결수량'] > 0) & \
-                   (self.dict_df['체결목록']['주문구분'] == '매수')
-            df = self.dict_df['체결목록'][term]
+            term = (self.df_cj['종목명'] == name) & (self.df_cj['미체결수량'] > 0) & (self.df_cj['주문구분'] == '매수')
+            df = self.df_cj[term]
             if len(df) == 1:
                 on = df.index[0]
                 omc = df['미체결수량'][on]
@@ -409,9 +362,8 @@ class Trader:
         elif '매도취소' in work:
             code = work.split(' ')[1]
             name = self.dict_name[code]
-            term = (self.dict_df['체결목록']['종목명'] == name) & (self.dict_df['체결목록']['미체결수량'] > 0) & \
-                   (self.dict_df['체결목록']['주문구분'] == '매도')
-            df = self.dict_df['체결목록'][term]
+            term = (self.df_cj['종목명'] == name) & (self.df_cj['미체결수량'] > 0) & (self.df_cj['주문구분'] == '매도')
+            df = self.df_cj[term]
             if len(df) == 1:
                 on = df.index[0]
                 omc = df['미체결수량'][on]
@@ -440,39 +392,42 @@ class Trader:
                 self.windowQ.put([2, '장운영상태'])
                 self.dict_intg['장운영상태'] = 3
         elif work == '실시간 조건검색식 등록':
-            self.windowQ.put([1, '시스템 명령 오류 알림 - 해당 명령은 리시버에서 자동실행됩니다.'])
-        elif work == '잔고청산':
-            if not self.dict_bool['잔고청산']:
-                self.JangoChungsan()
+            self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 리시버에서 자동실행됩니다.'])
+        elif work == '장초전략잔고청산':
+            if not self.dict_bool['장초전략잔고청산']:
+                self.JangoChungsan1()
+        elif work == '장중전략잔고청산':
+            if not self.dict_bool['장중전략잔고청산']:
+                self.JangoChungsan2()
         elif work == '실시간 데이터 수신 중단':
             if not self.dict_bool['실시간데이터수신중단']:
                 self.AllRemoveRealreg()
         elif work == '틱데이터 저장':
-            self.windowQ.put([1, '시스템 명령 오류 알림 - 해당 명령은 콜렉터에서 자동실행됩니다.'])
+            self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 콜렉터에서 자동실행됩니다.'])
         elif work == '시스템 종료':
             if not self.dict_bool['일별거래목록저장']:
                 self.SaveDayData()
             self.SysExit()
         elif work == '/당일체결목록':
-            if len(self.dict_df['체결목록']) > 0:
-                self.teleQ.put(self.dict_df['체결목록'])
+            if len(self.df_cj) > 0:
+                self.teleQ.put(self.df_cj)
             else:
                 self.teleQ.put('현재는 거래목록이 없습니다.')
         elif work == '/당일거래목록':
-            if len(self.dict_df['거래목록']) > 0:
-                self.teleQ.put(self.dict_df['거래목록'])
+            if len(self.df_td) > 0:
+                self.teleQ.put(self.df_td)
             else:
                 self.teleQ.put('현재는 거래목록이 없습니다.')
         elif work == '/계좌잔고평가':
-            if len(self.dict_df['잔고목록']) > 0:
-                self.teleQ.put(self.dict_df['잔고목록'])
+            if len(self.df_jg) > 0:
+                self.teleQ.put(self.df_jg)
             else:
                 self.teleQ.put('현재는 잔고목록이 없습니다.')
         elif work == '/잔고청산주문':
-            if not self.dict_bool['실시간데이터수신중단']:
-                self.AllRemoveRealreg()
-            if not self.dict_bool['잔고청산']:
-                self.JangoChungsan()
+            if not self.dict_bool['장초전략잔고청산']:
+                self.JangoChungsan1()
+            elif not self.dict_bool['장중전략잔고청산']:
+                self.JangoChungsan2()
         elif '설정' in work:
             bot_number = work.split(' ')[1]
             chat_id = int(work.split(' ')[2])
@@ -480,7 +435,7 @@ class Trader:
             if self.dict_bool['알림소리']:
                 self.soundQ.put('텔레그램 봇넘버 및 아이디가 변경되었습니다.')
             else:
-                self.windowQ.put([1, '시스템 명령 실행 알림 - 텔레그램 봇넘버 및 아이디 설정 완료'])
+                self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 텔레그램 봇넘버 및 아이디 설정 완료'])
         elif work == '테스트모드 ON/OFF':
             if self.dict_bool['테스트']:
                 self.dict_bool['테스트'] = False
@@ -553,17 +508,17 @@ class Trader:
                                     비밀번호입력매체구분='00', output='계좌평가현황', next=0)
             if df['D+2추정예수금'][0] != '':
                 if self.dict_bool['모의투자']:
-                    con = sqlite3.connect(db_stg)
+                    con = sqlite3.connect(DB_STG)
                     df = pd.read_sql('SELECT * FROM tradelist', con)
                     con.close()
                     self.dict_intg['예수금'] = \
-                        100000000 - self.dict_df['잔고목록']['매입금액'].sum() + df['수익금'].sum()
+                        100000000 - self.df_jg['매입금액'].sum() + df['수익금'].sum()
                 else:
                     self.dict_intg['예수금'] = int(df['D+2추정예수금'][0])
                 self.dict_intg['추정예수금'] = self.dict_intg['예수금']
                 break
             else:
-                self.windowQ.put([1, '시스템 명령 오류 알림 - 오류가 발생하여 계좌평가현황을 재조회합니다.'])
+                self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 오류가 발생하여 계좌평가현황을 재조회합니다.'])
                 time.sleep(3.35)
 
         while True:
@@ -571,7 +526,7 @@ class Trader:
                                     조회구분=2, output='계좌평가결과', next=0)
             if df['추정예탁자산'][0] != '':
                 if self.dict_bool['모의투자']:
-                    self.dict_intg['추정예탁자산'] = self.dict_intg['예수금'] + self.dict_df['잔고목록']['평가금액'].sum()
+                    self.dict_intg['추정예탁자산'] = self.dict_intg['예수금'] + self.df_jg['평가금액'].sum()
                 else:
                     self.dict_intg['추정예탁자산'] = int(df['추정예탁자산'][0])
 
@@ -579,22 +534,22 @@ class Trader:
                 self.stgQ.put(self.dict_intg['종목당투자금'])
 
                 if self.dict_bool['모의투자']:
-                    self.dict_df['잔고평가'].at[self.dict_strg['당일날짜']] = \
+                    self.df_tj.at[self.dict_strg['당일날짜']] = \
                         self.dict_intg['추정예탁자산'], self.dict_intg['예수금'], 0, 0, 0, 0, 0
                 else:
                     tsp = float(int(df['총수익률(%)'][0]) / 100)
                     tsg = int(df['총평가손익금액'][0])
                     tbg = int(df['총매입금액'][0])
                     tpg = int(df['총평가금액'][0])
-                    self.dict_df['잔고평가'].at[self.dict_strg['당일날짜']] = \
+                    self.df_tj.at[self.dict_strg['당일날짜']] = \
                         self.dict_intg['추정예탁자산'], self.dict_intg['예수금'], 0, tsp, tsg, tbg, tpg
-                self.windowQ.put([ui_num['잔고평가'], self.dict_df['잔고평가']])
+                self.windowQ.put([ui_num['잔고평가'], self.df_tj])
                 break
             else:
-                self.windowQ.put([1, '시스템 명령 오류 알림 - 오류가 발생하여 계좌평가결과를 재조회합니다.'])
+                self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 오류가 발생하여 계좌평가결과를 재조회합니다.'])
                 time.sleep(3.35)
 
-        if len(self.dict_df['거래목록']) > 0:
+        if len(self.df_td) > 0:
             self.UpdateTotaltradelist(first=True)
 
     def GetKospiKosdaqChart(self):
@@ -606,7 +561,7 @@ class Trader:
             if df['현재가'][0] != '':
                 break
             else:
-                self.windowQ.put([1, '시스템 명령 오류 알림 - 오류가 발생하여 코스피 일봉차트를 재조회합니다.'])
+                self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 오류가 발생하여 코스피 일봉차트를 재조회합니다.'])
                 time.sleep(3.35)
 
         while True:
@@ -614,7 +569,7 @@ class Trader:
             if df2['현재가'][0] != '':
                 break
             else:
-                self.windowQ.put([1, '시스템 명령 오류 알림 - 오류가 발생하여 코스피 분봉차트를 재조회합니다.'])
+                self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 오류가 발생하여 코스피 분봉차트를 재조회합니다.'])
                 time.sleep(3.35)
 
         prec = abs(round(float(df['현재가'][1]) / 100, 2))
@@ -627,7 +582,7 @@ class Trader:
             if df['현재가'][0] != '':
                 break
             else:
-                self.windowQ.put([1, '시스템 명령 오류 알림 - 오류가 발생하여 코스닥 일봉차트를 재조회합니다.'])
+                self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 오류가 발생하여 코스닥 일봉차트를 재조회합니다.'])
                 time.sleep(3.35)
 
         while True:
@@ -635,7 +590,7 @@ class Trader:
             if df2['현재가'][0] != '':
                 break
             else:
-                self.windowQ.put([1, '시스템 명령 오류 알림 - 오류가 발생하여 코스닥 분봉차트를 재조회합니다.'])
+                self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 오류가 발생하여 코스닥 분봉차트를 재조회합니다.'])
                 time.sleep(3.35)
 
         prec = abs(round(float(df['현재가'][1]) / 100, 2))
@@ -653,21 +608,21 @@ class Trader:
         self.windowQ.put([2, '업종지수 주식체결 등록'])
         self.traderQ.put([sn_oper, '001', '10;15;20', 1])
         self.traderQ.put([sn_oper, '101', '10;15;20', 1])
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 업종지수 주식체결 등록 완료'])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 업종지수 주식체결 등록 완료'])
         if self.dict_bool['알림소리']:
             self.soundQ.put('자동매매 시스템을 시작하였습니다.')
         self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 시작 완료'])
         self.teleQ.put('시스템을 시작하였습니다.')
 
-    def JangoChungsan(self):
-        self.dict_bool['잔고청산'] = True
-        self.windowQ.put([2, '잔고청산'])
-        if len(self.dict_df['잔고목록']) > 0:
-            for code in self.dict_df['잔고목록'].index:
+    def JangoChungsan1(self):
+        self.dict_bool['장초전략잔고청산'] = True
+        self.windowQ.put([2, '장초전략잔고청산'])
+        if len(self.df_jg) > 0:
+            for code in self.df_jg.index:
                 if code in self.list_sell:
                     continue
-                c = self.dict_df['잔고목록']['현재가'][code]
-                oc = self.dict_df['잔고목록']['보유수량'][code]
+                c = self.df_jg['현재가'][code]
+                oc = self.df_jg['보유수량'][code]
                 name = self.dict_name[code]
                 if self.dict_bool['모의투자']:
                     self.list_sell.append(code)
@@ -675,8 +630,27 @@ class Trader:
                 else:
                     self.Order('매도', code, name, c, oc)
         if self.dict_bool['알림소리']:
-            self.soundQ.put('잔고청산 주문을 전송하였습니다.')
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 잔고청산 주문 완료'])
+            self.soundQ.put('장초전략 잔고청산 주문을 전송하였습니다.')
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 장초전략 잔고청산 주문 완료'])
+
+    def JangoChungsan2(self):
+        self.dict_bool['장중전략잔고청산'] = True
+        self.windowQ.put([2, '장중전략잔고청산'])
+        if len(self.df_jg) > 0:
+            for code in self.df_jg.index:
+                if code in self.list_sell:
+                    continue
+                c = self.df_jg['현재가'][code]
+                oc = self.df_jg['보유수량'][code]
+                name = self.dict_name[code]
+                if self.dict_bool['모의투자']:
+                    self.list_sell.append(code)
+                    self.UpdateChejanData(code, name, '체결', '매도', c, c, oc, 0, strf_time('%Y%m%d%H%M%S%f'))
+                else:
+                    self.Order('매도', code, name, c, oc)
+        if self.dict_bool['알림소리']:
+            self.soundQ.put('장중전략 잔고청산 주문을 전송하였습니다.')
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 장중전략 잔고청산 주문 완료'])
 
     def AllRemoveRealreg(self):
         self.windowQ.put([2, '실시간 데이터 수신 중단'])
@@ -685,12 +659,12 @@ class Trader:
             self.soundQ.put('실시간 데이터의 수신을 중단하였습니다.')
 
     def SaveDayData(self):
-        if len(self.dict_df['거래목록']) > 0:
-            df = self.dict_df['실현손익'][['총매수금액', '총매도금액', '총수익금액', '총손실금액', '수익률', '수익금합계']].copy()
+        if len(self.df_td) > 0:
+            df = self.df_tt[['총매수금액', '총매도금액', '총수익금액', '총손실금액', '수익률', '수익금합계']].copy()
             self.queryQ.put([1, df, 'totaltradelist', 'append'])
         if self.dict_bool['알림소리']:
             self.soundQ.put('일별실현손익를 저장하였습니다.')
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 일별실현손익 저장 완료'])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 일별실현손익 저장 완료'])
 
     @thread_decorator
     def PutHogaJanngo(self):
@@ -703,20 +677,20 @@ class Trader:
 
     @thread_decorator
     def UpdateTotaljango(self):
-        if len(self.dict_df['잔고목록']) > 0:
-            tsg = self.dict_df['잔고목록']['평가손익'].sum()
-            tbg = self.dict_df['잔고목록']['매입금액'].sum()
-            tpg = self.dict_df['잔고목록']['평가금액'].sum()
-            bct = len(self.dict_df['잔고목록'])
+        if len(self.df_jg) > 0:
+            tsg = self.df_jg['평가손익'].sum()
+            tbg = self.df_jg['매입금액'].sum()
+            tpg = self.df_jg['평가금액'].sum()
+            bct = len(self.df_jg)
             tsp = round(tsg / tbg * 100, 2)
             ttg = self.dict_intg['예수금'] + tpg
-            self.dict_df['잔고평가'].at[self.dict_strg['당일날짜']] = \
+            self.df_tj.at[self.dict_strg['당일날짜']] = \
                 ttg, self.dict_intg['예수금'], bct, tsp, tsg, tbg, tpg
         else:
-            self.dict_df['잔고평가'].at[self.dict_strg['당일날짜']] = \
+            self.df_tj.at[self.dict_strg['당일날짜']] = \
                 self.dict_intg['예수금'], self.dict_intg['예수금'], 0, 0.0, 0, 0, 0
-        self.windowQ.put([ui_num['잔고목록'], self.dict_df['잔고목록']])
-        self.windowQ.put([ui_num['잔고평가'], self.dict_df['잔고평가']])
+        self.windowQ.put([ui_num['잔고목록'], self.df_jg])
+        self.windowQ.put([ui_num['잔고평가'], self.df_tj])
 
     @thread_decorator
     def UpdateInfo(self):
@@ -758,7 +732,7 @@ class Trader:
                 row_data.append(data.strip())
             df2.append(row_data)
         df = pd.DataFrame(data=df2, columns=items)
-        self.dict_df['TRDF'] = df
+        self.df_tr = df
         self.dict_bool['TR수신'] = True
 
     def OnReceiveRealData(self, code, realtype, realdata):
@@ -914,16 +888,16 @@ class Trader:
 
     def UpdateJango(self, code, name, c, o, h, low):
         try:
-            prec = self.dict_df['잔고목록']['현재가'][code]
+            prec = self.df_jg['현재가'][code]
         except KeyError:
             return
 
         if prec != c:
-            bg = self.dict_df['잔고목록']['매입금액'][code]
-            oc = int(self.dict_df['잔고목록']['보유수량'][code])
+            bg = self.df_jg['매입금액'][code]
+            oc = int(self.df_jg['보유수량'][code])
             pg, sg, sp = self.GetPgSgSp(bg, oc * c)
             columns = ['현재가', '수익률', '평가손익', '평가금액', '시가', '고가', '저가']
-            self.dict_df['잔고목록'].at[code, columns] = c, sp, sg, pg, o, h, low
+            self.df_jg.at[code, columns] = c, sp, sg, pg, o, h, low
             if code in self.dict_buyt.keys():
                 self.stgQ.put([code, name, sp, oc, c, self.dict_buyt[code]])
 
@@ -961,8 +935,8 @@ class Trader:
             uvi, dvi = self.dict_vipr[code][2:4]
         except KeyError:
             uvi, dvi = 0, 0
-        if code in self.dict_df['잔고목록'].index:
-            df = self.dict_df['잔고목록'][self.dict_df['잔고목록'].index == code].copy()
+        if code in self.df_jg.index:
+            df = self.df_jg[self.df_jg.index == code].copy()
             df['UVI'] = uvi
             df['DVI'] = dvi
             self.dict_hoga[gubun] = [code, True, df.rename(columns={'종목명': '호가종목명'})]
@@ -1007,8 +981,8 @@ class Trader:
         per = [0 if p == -100 else p for p in per]
         og, op, omc = '', '', ''
         name = self.dict_name[code]
-        cond = (self.dict_df['체결목록']['종목명'] == name) & (self.dict_df['체결목록']['미체결수량'] > 0)
-        df = self.dict_df['체결목록'][cond]
+        cond = (self.df_cj['종목명'] == name) & (self.df_cj['미체결수량'] > 0)
+        df = self.df_cj[cond]
         if len(df) > 0:
             og = df['주문구분'][0]
             op = df['주문가격'][0]
@@ -1056,13 +1030,16 @@ class Trader:
                 self.dict_intg['추정예수금'] = self.dict_intg['예수금']
                 self.windowQ.put([1, f'매매 시스템 체결 알림 - {name} {oc}주 {og}'])
             elif og == '매도':
-                bp = self.dict_df['잔고목록']['매입가'][code]
+                bp = self.df_jg['매입가'][code]
                 bg = bp * oc
                 pg, sg, sp = self.GetPgSgSp(bg, oc * cp)
                 self.UpdateChegeoljango(code, name, og, oc, cp)
                 self.UpdateTradelist(name, oc, sp, sg, bg, pg, on)
                 self.list_sell.remove(code)
                 self.receivQ.put(f'잔고청산 {code}')
+                self.dict_intg['종목당투자금'] = \
+                    int(self.df_tj['추정예탁자산'][self.dict_strg['당일날짜']] * 0.99 / TUJAGMDIVIDE)
+                self.stgQ.put(self.dict_intg['종목당투자금'])
                 self.stgQ.put(['매도완료', code])
                 self.dict_intg['예수금'] += pg
                 self.dict_intg['추정예수금'] = self.dict_intg['예수금']
@@ -1072,85 +1049,86 @@ class Trader:
     def UpdateChegeoljango(self, code, name, og, oc, cp):
         columns = ['매입가', '현재가', '수익률', '평가손익', '매입금액', '평가금액', '보유수량']
         if og == '매수':
-            if code not in self.dict_df['잔고목록'].index:
+            if code not in self.df_jg.index:
                 bg = oc * cp
                 pg, sg, sp = self.GetPgSgSp(bg, oc * cp)
                 prec = self.GetMasterLastPrice(code)
-                self.dict_df['잔고목록'].at[code] = name, cp, cp, sp, sg, bg, pg, 0, 0, 0, prec, oc
+                self.df_jg.at[code] = name, cp, cp, sp, sg, bg, pg, 0, 0, 0, prec, oc
             else:
-                jc = self.dict_df['잔고목록']['보유수량'][code]
-                bg = self.dict_df['잔고목록']['매입금액'][code]
+                jc = self.df_jg['보유수량'][code]
+                bg = self.df_jg['매입금액'][code]
                 jc = jc + oc
                 bg = bg + oc * cp
                 bp = int(bg / jc)
                 pg, sg, sp = self.GetPgSgSp(bg, jc * cp)
-                self.dict_df['잔고목록'].at[code, columns] = bp, cp, sp, sg, bg, pg, jc
+                self.df_jg.at[code, columns] = bp, cp, sp, sg, bg, pg, jc
         elif og == '매도':
-            jc = self.dict_df['잔고목록']['보유수량'][code]
+            jc = self.df_jg['보유수량'][code]
             if jc - oc == 0:
-                self.dict_df['잔고목록'].drop(index=code, inplace=True)
+                self.df_jg.drop(index=code, inplace=True)
             else:
-                bp = self.dict_df['잔고목록']['매입가'][code]
+                bp = self.df_jg['매입가'][code]
                 jc = jc - oc
                 bg = jc * bp
                 pg, sg, sp = self.GetPgSgSp(bg, jc * cp)
-                self.dict_df['잔고목록'].at[code, columns] = bp, cp, sp, sg, bg, pg, jc
+                self.df_jg.at[code, columns] = bp, cp, sp, sg, bg, pg, jc
 
         columns = ['매입가', '현재가', '평가손익', '매입금액']
-        self.dict_df['잔고목록'][columns] = self.dict_df['잔고목록'][columns].astype(int)
-        self.dict_df['잔고목록'].sort_values(by=['매입금액'], inplace=True)
-        self.queryQ.put([1, self.dict_df['잔고목록'], 'jangolist', 'replace'])
+        self.df_jg[columns] = self.df_jg[columns].astype(int)
+        self.df_jg.sort_values(by=['매입금액'], inplace=True)
+        self.queryQ.put([1, self.df_jg, 'jangolist', 'replace'])
         if self.dict_bool['알림소리']:
             self.soundQ.put(f'{name} {oc}주를 {og}하였습니다')
 
     def UpdateTradelist(self, name, oc, sp, sg, bg, pg, on):
         dt = strf_time('%Y%m%d%H%M%S%f')
-        if self.dict_bool['모의투자'] and len(self.dict_df['거래목록']) > 0:
-            if dt in self.dict_df['거래목록']['체결시간'].values:
-                while dt in self.dict_df['거래목록']['체결시간'].values:
+        if self.dict_bool['모의투자'] and len(self.df_td) > 0:
+            if dt in self.df_td['체결시간'].values:
+                while dt in self.df_td['체결시간'].values:
                     dt = str(int(dt) + 1)
                 on = dt
 
-        self.dict_df['거래목록'].at[on] = name, bg, pg, oc, sp, sg, dt
-        self.dict_df['거래목록'].sort_values(by=['체결시간'], ascending=False, inplace=True)
-        self.windowQ.put([ui_num['거래목록'], self.dict_df['거래목록']])
+        self.df_td.at[on] = name, bg, pg, oc, sp, sg, dt
+        self.df_td.sort_values(by=['체결시간'], ascending=False, inplace=True)
+        self.windowQ.put([ui_num['거래목록'], self.df_td])
 
         df = pd.DataFrame([[name, bg, pg, oc, sp, sg, dt]], columns=columns_td, index=[on])
         self.queryQ.put([1, df, 'tradelist', 'append'])
         self.UpdateTotaltradelist()
 
     def UpdateTotaltradelist(self, first=False):
-        tsg = self.dict_df['거래목록']['매도금액'].sum()
-        tbg = self.dict_df['거래목록']['매수금액'].sum()
-        tsig = self.dict_df['거래목록'][self.dict_df['거래목록']['수익금'] > 0]['수익금'].sum()
-        tssg = self.dict_df['거래목록'][self.dict_df['거래목록']['수익금'] < 0]['수익금'].sum()
-        sg = self.dict_df['거래목록']['수익금'].sum()
+        tsg = self.df_td['매도금액'].sum()
+        tbg = self.df_td['매수금액'].sum()
+        tsig = self.df_td[self.df_td['수익금'] > 0]['수익금'].sum()
+        tssg = self.df_td[self.df_td['수익금'] < 0]['수익금'].sum()
+        sg = self.df_td['수익금'].sum()
         sp = round(sg / self.dict_intg['추정예탁자산'] * 100, 2)
-        tdct = len(self.dict_df['거래목록'])
-        self.dict_df['실현손익'] = pd.DataFrame([[tdct, tbg, tsg, tsig, tssg, sp, sg]],
-                                            columns=columns_tt, index=[self.dict_strg['당일날짜']])
-        self.windowQ.put([ui_num['거래합계'], self.dict_df['실현손익']])
+        tdct = len(self.df_td)
+        self.df_tt = pd.DataFrame(
+            [[tdct, tbg, tsg, tsig, tssg, sp, sg]], columns=columns_tt, index=[self.dict_strg['당일날짜']]
+        )
+        self.windowQ.put([ui_num['거래합계'], self.df_tt])
 
         if not first:
             self.teleQ.put(
-                f"거래횟수 {len(self.dict_df['거래목록'])}회 / 총매수금액 {format(int(tbg), ',')}원 / "
+                f"거래횟수 {len(self.df_td)}회 / 총매수금액 {format(int(tbg), ',')}원 / "
                 f"총매도금액 {format(int(tsg), ',')}원 / 총수익금액 {format(int(tsig), ',')}원 / "
                 f"총손실금액 {format(int(tssg), ',')}원 / 수익률 {sp}% / 수익금합계 {format(int(sg), ',')}원")
 
     def UpdateChegeollist(self, name, og, oc, omc, op, cp, on):
         dt = strf_time('%Y%m%d%H%M%S%f')
-        if self.dict_bool['모의투자'] and len(self.dict_df['거래목록']) > 0:
-            if dt in self.dict_df['거래목록']['체결시간'].values:
-                while dt in self.dict_df['거래목록']['체결시간'].values:
+        if self.dict_bool['모의투자'] and len(self.df_td) > 0:
+            if dt in self.df_td['체결시간'].values:
+                while dt in self.df_td['체결시간'].values:
                     dt = str(int(dt) + 1)
                 on = dt
 
-        if on in self.dict_df['체결목록'].index:
-            self.dict_df['체결목록'].at[on, ['미체결수량', '체결가', '체결시간']] = omc, cp, dt
+        if on in self.df_cj.index:
+            self.df_cj.at[on, ['미체결수량', '체결가', '체결시간']] = omc, cp, dt
         else:
-            self.dict_df['체결목록'].at[on] = name, og, oc, omc, op, cp, dt
-        self.dict_df['체결목록'].sort_values(by=['체결시간'], ascending=False, inplace=True)
-        self.windowQ.put([ui_num['체결목록'], self.dict_df['체결목록']])
+            self.df_cj.at[on] = name, og, oc, omc, op, cp, dt
+        self.df_cj.sort_values(by=['체결시간'], ascending=False, inplace=True)
+        self.windowQ.put([ui_num['체결목록'], self.df_cj])
 
         if omc == 0:
             df = pd.DataFrame([[name, og, oc, omc, op, cp, dt]], columns=columns_cj, index=[on])
@@ -1186,7 +1164,7 @@ class Trader:
         if trcode != 'opt10054':
             self.DisconnectRealData(sn_brrq)
         self.UpdateTrtime()
-        return self.dict_df['TRDF']
+        return self.df_tr
 
     def UpdateTrtime(self):
         if self.dict_intg['TR제한수신횟수'] > 95:

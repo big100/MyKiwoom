@@ -5,10 +5,10 @@ import pandas as pd
 from matplotlib import pyplot as plt
 from multiprocessing import Process, Queue
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-from utility.setting import db_stg, db_tick, db_backtest, graph_path
+from utility.setting import DB_STG, DB_TICK, DB_BACKTEST, GRAPH_PATH
 from utility.static import now, strf_time, strp_time, timedelta_sec, timedelta_day, telegram_msg
 
-BATTING = 20000000     # 종목당 배팅금액
+BATTING = 10000000     # 종목당 배팅금액
 TESTPERIOD = 14        # 백테스팅 기간(14일 경우 과거 2주간의 데이터를 백테스팅한다)
 TOTALTIME = 36000      # 백테스팅 기간 동안 9시부터 10시까지의 시간 총합, 단위 초
 START_TIME = 90000
@@ -63,15 +63,20 @@ class BackTesterVc:
         self.Start()
 
     def Start(self):
-        conn = sqlite3.connect(db_tick)
+        conn = sqlite3.connect(DB_TICK)
         tcount = len(self.code_list)
         int_daylimit = int(strf_time('%Y%m%d', timedelta_day(-TESTPERIOD)))
         for k, code in enumerate(self.code_list):
             self.code = code
-            self.df = pd.read_sql(f"SELECT * FROM '{code}'", conn)
-            self.df = self.df.set_index('index')
-            self.df['직전초당거래대금'] = self.df['초당거래대금'].shift(1)
+            self.df = pd.read_sql(f"SELECT * FROM '{code}'", conn).set_index('index')
+            self.df['고저평균대비등락율'] = (self.df['현재가'] / ((self.df['고가'] + self.df['저가']) / 2) - 1) * 100
+            self.df['고저평균대비등락율'] = self.df['고저평균대비등락율'].round(2)
             self.df['직전체결강도'] = self.df['체결강도'].shift(1)
+            self.df['직전당일거래대금'] = self.df['당일거래대금'].shift(1)
+            self.df = self.df.fillna(0)
+            self.df['초당거래대금'] = self.df['당일거래대금'] - self.df['직전당일거래대금']
+            self.df['직전초당거래대금'] = self.df['초당거래대금'].shift(1)
+            self.df = self.df.fillna(0)
             self.df['초당거래대금평균'] = self.df['직전초당거래대금'].rolling(window=self.avg_time).mean()
             self.df['체결강도평균'] = self.df['직전체결강도'].rolling(window=self.avg_time).mean()
             self.df['최고체결강도'] = self.df['직전체결강도'].rolling(window=self.avg_time).max()
@@ -143,7 +148,6 @@ class BackTesterVc:
             return
         self.hold = True
         self.indexb = self.indexn
-        self.csell = 0
 
     def SellTerm(self):
         if self.df['등락율'][self.index] > 29:
@@ -331,7 +335,7 @@ class Total:
                     [[onegm, onedaycount, tc, avghold, pc, mc, pper, avgsp, tsp, tsg, self.gap_ch, self.avg_time,
                       self.gap_sm, self.ch_low, self.dm_low, self.per_low, self.per_high, self.cs_per]],
                     columns=columns2, index=[strf_time('%Y%m%d%H%M%S')])
-                conn = sqlite3.connect(db_backtest)
+                conn = sqlite3.connect(DB_BACKTEST)
                 df_back.to_sql(f"vc_{strf_time('%Y%m%d')}_1", conn, if_exists='append', chunksize=1000)
                 conn.close()
 
@@ -340,16 +344,16 @@ class Total:
             df_tsg.sort_values(by=['체결시간'], inplace=True)
             df_tsg['ttsg_cumsum'] = df_tsg['ttsg'].cumsum()
             df_tsg[['ttsg', 'ttsg_cumsum']] = df_tsg[['ttsg', 'ttsg_cumsum']].astype(int)
-            conn = sqlite3.connect(db_backtest)
+            conn = sqlite3.connect(DB_BACKTEST)
             df_tsg.to_sql(f"vc_{strf_time('%Y%m%d')}_2", conn, if_exists='append', chunksize=1000)
             conn.close()
             df_tsg.plot(figsize=(12, 9), rot=45)
-            plt.savefig(f"{graph_path}/vc_{strf_time('%Y%m%d')}.png")
-            conn = sqlite3.connect(db_stg)
+            plt.savefig(f"{GRAPH_PATH}/vc_{strf_time('%Y%m%d')}.png")
+            conn = sqlite3.connect(DB_STG)
             cur = conn.cursor()
-            query = f"UPDATE setting SET 체결강도차이 = {self.gap_ch}, 평균값계산틱수 = {self.avg_time}, "\
-                    f"초당거래대금차이 = {self.gap_sm}, 체결강도하한 = {self.ch_low}, 당일거래대금하한 = {self.dm_low}, "\
-                    f"등락율하한 = {self.per_low}, 등락율상한 = {self.per_high}, 청산수익률 = {self.cs_per}"
+            query = f"UPDATE setting SET 장초체결강도차이 = {self.gap_ch}, 장초평균값계산틱수 = {self.avg_time}, "\
+                    f"장초초당거래대금차이 = {self.gap_sm}, 장초체결강도하한 = {self.ch_low}, 장초당일거래대금하한 = {self.dm_low}, "\
+                    f"장초등락율하한 = {self.per_low}, 장초등락율상한 = {self.per_high}"
             cur.execute(query)
             conn.commit()
             conn.close()
@@ -360,7 +364,7 @@ class Total:
 if __name__ == "__main__":
     start = now()
 
-    con = sqlite3.connect(db_tick)
+    con = sqlite3.connect(DB_TICK)
     df1 = pd.read_sql('SELECT * FROM codename', con)
     df1 = df1.set_index('index')
     df2 = pd.read_sql("SELECT name FROM sqlite_master WHERE TYPE = 'table'", con)
@@ -374,7 +378,7 @@ if __name__ == "__main__":
 
     q = Queue()
     gap_chs = [3, 4, 5, 6, 7, 8, 9]
-    avg_times = [30, 60, 90, 120, 150, 180]
+    avg_times = [60, 120, 180, 240, 300]
     htsp = -100
     high_var = []
 

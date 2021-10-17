@@ -21,7 +21,7 @@ class Window(QtWidgets.QMainWindow):
         super().__init__()
         self.log = logging.getLogger('Window')
         self.log.setLevel(logging.INFO)
-        filehandler = logging.FileHandler(filename=f"{system_path}/Log/S{strf_time('%Y%m%d')}.txt", encoding='utf-8')
+        filehandler = logging.FileHandler(filename=f"{SYSTEM_PATH}/Log/S{strf_time('%Y%m%d')}.txt", encoding='utf-8')
         self.log.addHandler(filehandler)
 
         SetUI(self)
@@ -154,6 +154,8 @@ class Window(QtWidgets.QMainWindow):
                 self.lg_textEdit.setTextColor(color_fg_dk)
             self.lg_textEdit.append(f'[{now()}] {msg[1]}')
             self.log.info(f'[{now()}] {msg[1]}')
+            if msg[1] == '시스템 명령 실행 알림 - 트레이더 시작 완료':
+                self.ButtonClicked_4(2)
             if msg[1] == '시스템 명령 실행 알림 - 시스템 종료':
                 app.quit()
         elif msg[0] == 2:
@@ -162,7 +164,6 @@ class Window(QtWidgets.QMainWindow):
                 pushbutton = self.sj_pushButton_02
             elif msg[1] == '트레이더 OPENAPI 로그인':
                 pushbutton = self.sj_pushButton_03
-                self.ButtonClicked_4(2)
             elif msg[1] == '계좌평가 및 잔고':
                 pushbutton = self.sj_pushButton_04
             elif msg[1] == '코스피 코스닥 차트':
@@ -545,35 +546,36 @@ class Window(QtWidgets.QMainWindow):
                     format_data += '0'
             return format_data
 
+        구분 = '장초' if int(strf_time('%H%M%S')) < 100000 else '장중'
         self.gj_tableWidget.setRowCount(len(dict_df))
         for j, code in enumerate(list(dict_df.keys())):
             item = QtWidgets.QTableWidgetItem(self.dict_name[code])
             item.setTextAlignment(Qt.AlignVCenter | Qt.AlignLeft)
             self.gj_tableWidget.setItem(j, 0, item)
 
-            smavg = dict_df[code]['초당거래대금'][DICT_SET['평균값계산틱수'] + 1]
+            smavg = dict_df[code]['초당거래대금'][DICT_SET[f'{구분}평균값계산틱수'] + 1]
             item = QtWidgets.QTableWidgetItem(changeFormat(smavg).split('.')[0])
             item.setTextAlignment(Qt.AlignVCenter | Qt.AlignRight)
-            self.gj_tableWidget.setItem(j, columns_gj3.index('smavg'), item)
+            self.gj_tableWidget.setItem(j, columns_gj.index('smavg'), item)
 
-            chavg = dict_df[code]['체결강도'][DICT_SET['평균값계산틱수'] + 1]
+            chavg = dict_df[code]['체결강도'][DICT_SET[f'{구분}평균값계산틱수'] + 1]
             item = QtWidgets.QTableWidgetItem(changeFormat(chavg))
             item.setTextAlignment(Qt.AlignVCenter | Qt.AlignRight)
-            self.gj_tableWidget.setItem(j, columns_gj3.index('chavg'), item)
+            self.gj_tableWidget.setItem(j, columns_gj_.index('chavg'), item)
 
-            chhigh = dict_df[code]['최고체결강도'][DICT_SET['평균값계산틱수'] + 1]
+            chhigh = dict_df[code]['최고체결강도'][DICT_SET[f'{구분}평균값계산틱수'] + 1]
             item = QtWidgets.QTableWidgetItem(changeFormat(chhigh))
             item.setTextAlignment(Qt.AlignVCenter | Qt.AlignRight)
-            self.gj_tableWidget.setItem(j, columns_gj3.index('chhigh'), item)
+            self.gj_tableWidget.setItem(j, columns_gj_.index('chhigh'), item)
 
-            for i, column in enumerate(columns_gj2):
+            for i, column in enumerate(columns_gj[:-1]):
                 if column in ['초당거래대금', '당일거래대금']:
                     item = QtWidgets.QTableWidgetItem(changeFormat(dict_df[code][column][0]).split('.')[0])
                 else:
                     item = QtWidgets.QTableWidgetItem(changeFormat(dict_df[code][column][0]))
                 item.setTextAlignment(Qt.AlignVCenter | Qt.AlignRight)
                 if column == '등락율':
-                    if DICT_SET['등락율하한'] <= dict_df[code][column][0] <= DICT_SET['등락율상한']:
+                    if DICT_SET[f'{구분}등락율하한'] <= dict_df[code][column][0] <= DICT_SET[f'{구분}등락율상한']:
                         item.setForeground(color_fg_bt)
                     else:
                         item.setForeground(color_fg_dk)
@@ -583,18 +585,18 @@ class Window(QtWidgets.QMainWindow):
                     else:
                         item.setForeground(color_fg_dk)
                 elif column == '초당거래대금':
-                    if dict_df[code][column][0] >= smavg + DICT_SET['초당거래대금차이']:
+                    if dict_df[code][column][0] >= smavg + DICT_SET[f'{구분}초당거래대금차이']:
                         item.setForeground(color_fg_bt)
                     else:
                         item.setForeground(color_fg_dk)
                 elif column == '당일거래대금':
-                    if dict_df[code][column][0] >= DICT_SET['당일거래대금하한']:
+                    if dict_df[code][column][0] >= DICT_SET[f'{구분}당일거래대금하한']:
                         item.setForeground(color_fg_bt)
                     else:
                         item.setForeground(color_fg_dk)
                 elif column == '체결강도':
-                    if dict_df[code][column][0] >= DICT_SET['체결강도하한'] and \
-                            dict_df[code][column][0] >= chavg + DICT_SET['체결강도차이']:
+                    if dict_df[code][column][0] >= DICT_SET[f'{구분}체결강도하한'] and \
+                            dict_df[code][column][0] >= chavg + DICT_SET[f'{구분}체결강도차이']:
                         item.setForeground(color_fg_bt)
                     else:
                         item.setForeground(color_fg_dk)
@@ -1151,7 +1153,7 @@ class Window(QtWidgets.QMainWindow):
     def CalendarClicked(self):
         date = self.calendarWidget.selectedDate()
         searchday = date.toString('yyyyMMdd')
-        con = sqlite3.connect(db_stg)
+        con = sqlite3.connect(DB_STG)
         df = pd.read_sql(f"SELECT * FROM tradelist WHERE 체결시간 LIKE '{searchday}%'", con)
         con.close()
         if len(df) > 0:
@@ -1283,7 +1285,7 @@ class Window(QtWidgets.QMainWindow):
                 return
             traderQ.put(f'{cmd} {text1} {text2}')
         elif '집계' in cmd:
-            con = sqlite3.connect(db_stg)
+            con = sqlite3.connect(DB_STG)
             df = pd.read_sql('SELECT * FROM totaltradelist', con)
             con.close()
             df = df[::-1]
@@ -1550,8 +1552,8 @@ if __name__ == '__main__':
     Process(target=Query, args=(windowQ, queryQ), daemon=True).start()
     Process(target=TelegramMsg, args=(windowQ, traderQ, queryQ, teleQ), daemon=True).start()
 
-    os.system(f'python {system_path}/login/versionupdater.py')
-    os.system(f'python {system_path}/login/autologin2.py')
+    os.system(f'python {SYSTEM_PATH}/login/versionupdater.py')
+    os.system(f'python {SYSTEM_PATH}/login/autologin2.py')
 
     Process(target=Collector, args=(1, windowQ, queryQ, tick1Q), daemon=True).start()
     Process(target=Collector, args=(2, windowQ, queryQ, tick2Q), daemon=True).start()
@@ -1561,7 +1563,7 @@ if __name__ == '__main__':
             args=(windowQ, receivQ, traderQ, stgQ, queryQ, tick1Q, tick2Q, tick3Q, tick4Q), daemon=True).start()
     time.sleep(15)
 
-    os.system(f'python {system_path}/login/autologin1.py')
+    os.system(f'python {SYSTEM_PATH}/login/autologin1.py')
 
     Process(target=UpdaterHoga, args=(windowQ, hoga1Q, ui_num['호가P0']), daemon=True).start()
     Process(target=UpdaterHoga, args=(windowQ, hoga2Q, ui_num['호가P1']), daemon=True).start()
@@ -1598,10 +1600,13 @@ if __name__ == '__main__':
     window.show()
     app.exec_()
 
+    """
     if int(strf_time('%H%M%S')) < 100000:
         os.system('shutdown /s /t 60')
         sys.exit()
 
-    os.system(f'python {system_path}/backtester/backtester_vc.py')
+    os.system(f'python {system_path}/backtester/backtester_vc_jc.py')
+    os.system(f'python {system_path}/backtester/backtester_vc_jj.py')
     os.system('shutdown /s /t 60')
     sys.exit()
+    """

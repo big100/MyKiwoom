@@ -2,27 +2,34 @@ import sqlite3
 import pandas as pd
 from PyQt5.QtGui import QFont, QColor
 
-openapi_path = 'D:/OpenAPI'
-system_path = 'D:/PythonProjects/MyKiwoom'
-graph_path = f'{system_path}/backtester/graph'
-db_stg = f'{system_path}/database/stg.db'
-db_tick = f'{system_path}/database/tick.db'
-db_backtest = f'{system_path}/database/backtest.db'
-db_backfind = f'{system_path}/database/backfind.db'
+OPENAPI_PATH = 'D:/OpenAPI'
+SYSTEM_PATH = 'D:/PythonProjects/MyKiwoom'
+GRAPH_PATH = f'{SYSTEM_PATH}/backtester/graph'
+DB_STG = f'{SYSTEM_PATH}/database/stg.db'
+DB_TICK = f'{SYSTEM_PATH}/database/tick.db'
+DB_BACKTEST = f'{SYSTEM_PATH}/database/backtest.db'
+DB_BACKFIND = f'{SYSTEM_PATH}/database/backfind.db'
 
-conn = sqlite3.connect(db_stg)
+conn = sqlite3.connect(DB_STG)
 df_s = pd.read_sql('SELECT * FROM setting', conn).set_index('index')
 conn.close()
 
 DICT_SET = {
-    '체결강도차이': df_s['체결강도차이'][0],
-    '평균값계산틱수': df_s['평균값계산틱수'][0],
-    '초당거래대금차이': df_s['초당거래대금차이'][0],
-    '체결강도하한': df_s['체결강도하한'][0],
-    '당일거래대금하한': df_s['당일거래대금하한'][0],
-    '등락율하한': df_s['등락율하한'][0],
-    '등락율상한': df_s['등락율상한'][0],
-    '청산수익률': df_s['청산수익률'][0]
+    '장초체결강도차이': df_s['장초체결강도차이'][0],
+    '장초평균값계산틱수': df_s['장초평균값계산틱수'][0],
+    '장초초당거래대금차이': df_s['장초초당거래대금차이'][0],
+    '장초체결강도하한': df_s['장초체결강도하한'][0],
+    '장초당일거래대금하한': df_s['장초당일거래대금하한'][0],
+    '장초등락율하한': df_s['장초등락율하한'][0],
+    '장초등락율상한': df_s['장초등락율상한'][0],
+
+    '장중체결강도차이': df_s['장중체결강도차이'][0],
+    '장중평균값계산틱수': df_s['장중평균값계산틱수'][0],
+    '장중초당거래대금차이': df_s['장중초당거래대금차이'][0],
+    '장중체결강도하한': df_s['장중체결강도하한'][0],
+    '장중당일거래대금하한': df_s['장중당일거래대금하한'][0],
+    '장중등락율하한': df_s['장중등락율하한'][0],
+    '장중등락율상한': df_s['장중등락율상한'][0],
 }
 
 qfont12 = QFont()
@@ -92,9 +99,8 @@ columns_tj = ['추정예탁자산', '추정예수금', '보유종목수', '수�
 columns_jg = ['종목명', '매입가', '현재가', '수익률', '평가손익', '매입금액', '평가금액',
               '시가', '고가', '저가', '전일종가', '보유수량']
 columns_cj = ['종목명', '주문구분', '주문수량', '미체결수량', '주문가격', '체결가', '체결시간']
-columns_gj1 = ['등락율', '고저평균대비등락율', '초당거래대금', '당일거래대금', '체결강도', '최고체결강도']
-columns_gj2 = ['등락율', '고저평균대비등락율', '초당거래대금', '당일거래대금', '체결강도']
-columns_gj3 = ['종목명', 'per', 'hmlper', 'smoney', 'dmoney', 'ch', 'smavg', 'chavg', 'chhigh']
+columns_gj = ['등락율', '고저평균대비등락율', '초당거래대금', '당일거래대금', '체결강도', '최고체결강도']
+columns_gj_ = ['종목명', 'per', 'hmlper', 'smoney', 'dmoney', 'ch', 'smavg', 'chavg', 'chhigh']
 
 columns_dt = ['거래일자', '누적매수금액', '누적매도금액', '누적수익금액', '누적손실금액', '수익률', '누적수익금']
 columns_dd = ['체결시간', '종목명', '매수금액', '매도금액', '주문수량', '수익률', '수익금']

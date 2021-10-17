@@ -31,6 +31,7 @@ class Collector:
         self.Start()
 
     def Start(self):
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 콜렉터 시작 완료'])
         while True:
             data = self.tickQ.get()
             if len(data) != 2:

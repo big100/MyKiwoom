@@ -4,18 +4,17 @@ import datetime
 import telegram
 import pandas as pd
 from threading import Thread
-from utility.setting import db_stg, openapi_path
+from utility.setting import DB_STG, OPENAPI_PATH
 
-try:
-    connn = sqlite3.connect(db_stg)
-    df_tg = pd.read_sql('SELECT * FROM telegram', connn)
-    connn.close()
-except pd.io.sql.DatabaseError:
-    bot = ''
-    user_id = 0
-else:
+connn = sqlite3.connect(DB_STG)
+df_tg = pd.read_sql('SELECT * FROM telegram', connn)
+connn.close()
+if len(df_tg) > 0:
     bot = df_tg['str_bot'][0]
     user_id = int(df_tg['int_id'][0])
+else:
+    bot = ''
+    user_id = 0
 
 
 def telegram_msg(text):
@@ -95,7 +94,7 @@ def float2str2p2(t):
 
 
 def readEnc(trcode):
-    enc = zipfile.ZipFile(f'{openapi_path}/data/{trcode}.enc')
+    enc = zipfile.ZipFile(f'{OPENAPI_PATH}/data/{trcode}.enc')
     lines = enc.read(trcode.upper() + '.dat').decode('cp949')
     return lines
 

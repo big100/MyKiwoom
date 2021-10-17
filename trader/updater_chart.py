@@ -261,7 +261,7 @@ class UpdaterChart:
             df['매수체결가'] = ''
             df['매도체결가'] = ''
             name = df['종목명'][0]
-            con = sqlite3.connect(db_stg)
+            con = sqlite3.connect(DB_STG)
             df2 = pd.read_sql(f"SELECT * FROM chegeollist WHERE 종목명 = '{name}' and 체결시간 LIKE '{tradeday}%'", con)
             con.close()
             df2 = df2.set_index('index')

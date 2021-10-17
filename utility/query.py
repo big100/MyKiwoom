@@ -1,15 +1,15 @@
 import sqlite3
 from utility.static import now
-from utility.setting import db_stg, db_tick
+from utility.setting import DB_STG, DB_TICK
 
 
 class Query:
     def __init__(self, windowQ, queryQ):
         self.windowQ = windowQ
         self.queryQ = queryQ
-        self.con1 = sqlite3.connect(db_stg)
+        self.con1 = sqlite3.connect(DB_STG)
         self.cur1 = self.con1.cursor()
-        self.con2 = sqlite3.connect(db_tick)
+        self.con2 = sqlite3.connect(DB_TICK)
         self.Start()
 
     def __del__(self):

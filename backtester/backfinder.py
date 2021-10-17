@@ -4,7 +4,7 @@ import sqlite3
 import pandas as pd
 from multiprocessing import Process, Queue
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
-from utility.setting import db_tick, db_backfind
+from utility.setting import DB_TICK, DB_BACKFIND
 from utility.static import now, strf_time, timedelta_sec, strp_time
 
 
@@ -16,7 +16,7 @@ class BackFinder:
         self.Start()
 
     def Start(self):
-        conn = sqlite3.connect(db_tick)
+        conn = sqlite3.connect(DB_TICK)
         tcount = len(self.code_list)
         for k, code in enumerate(self.code_list):
             columns = ['등락율', '시가대비등락율', '고저평균대비등락율', '초당거래대금', '당일거래대금', '전일거래량대비',
@@ -80,7 +80,7 @@ class Total:
                 break
         if len(df) > 0:
             df = pd.concat(df)
-            conn = sqlite3.connect(db_backfind)
+            conn = sqlite3.connect(DB_BACKFIND)
             df.to_sql(f"{strf_time('%Y%m%d')}_tick", conn, if_exists='replace', chunksize=1000)
             conn.close()
 
@@ -89,7 +89,7 @@ if __name__ == "__main__":
     start = now()
     q = Queue()
 
-    con = sqlite3.connect(db_tick)
+    con = sqlite3.connect(DB_TICK)
     df_name = pd.read_sql("SELECT name FROM sqlite_master WHERE TYPE = 'table'", con)
     df_mt = pd.read_sql('SELECT * FROM moneytop', con)
     df_mt = df_mt.set_index('index')
