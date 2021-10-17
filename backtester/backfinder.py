@@ -7,6 +7,10 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.setting import DB_TICK, DB_BACKFIND
 from utility.static import now, strf_time, timedelta_sec, strp_time
 
+AVG_TICK_COUNT = 60     # 평균값계산틱수
+PER_CALC_COUNT = 300    # 현재시점 이후 수익률 계산용 틱수
+CALC_AFTER_PER = 1.05   # 현재시점 이후 PER_CALC_COUNT 틱수내 수익률
+
 
 class BackFinder:
     def __init__(self, q_, code_list_, df_mt_):
@@ -19,10 +23,9 @@ class BackFinder:
         conn = sqlite3.connect(DB_TICK)
         tcount = len(self.code_list)
         for k, code in enumerate(self.code_list):
-            columns = ['등락율', '시가대비등락율', '고저평균대비등락율', '초당거래대금', '당일거래대금', '전일거래량대비',
-                       '체결강도', '체결강도차이', '초당거래대금차이', '전일거래량대비차이']
+            columns = ['등락율', '시가대비등락율', '고저평균대비등락율', '초당거래대금', '당일거래대금',
+                       '체결강도', '체결강도차이', '초당거래대금차이']
             df_bf = pd.DataFrame(columns=columns)
-            avgtime = 300
             count_cond = 0
             df = pd.read_sql(f"SELECT * FROM '{code}'", conn)
             df = df.set_index('index')
@@ -30,33 +33,31 @@ class BackFinder:
 
             for h, index in enumerate(df.index):
                 try:
-                    if code not in self.df_mt['거래대금상위100'][index]:
+                    if code not in self.df_mt['거래대금순위'][index]:
                         count_cond = 0
                     else:
                         count_cond += 1
                 except KeyError:
                     continue
-                if count_cond < avgtime:
+                if count_cond < AVG_TICK_COUNT + 1:
                     continue
                 if strp_time('%Y%m%d%H%M%S', index) < \
                         timedelta_sec(180, strp_time('%Y%m%d%H%M%S', df['VI발동시간'][index])):
                     continue
-                if df['현재가'][index] >= df['상승VID5가격'][index]:
+                if df['현재가'][index] >= df['VI아래5호가'][index]:
                     continue
-                if h >= lasth - avgtime:
+                if h >= lasth - PER_CALC_COUNT:
                     break
-                if df['현재가'][h:h + avgtime].max() > df['현재가'][index] * 1.05:
+                if df['현재가'][h:h + PER_CALC_COUNT].max() > df['현재가'][index] * CALC_AFTER_PER:
                     per = df['등락율'][index]
                     oper = round((df['현재가'][index] / df['시가'][index] - 1) * 100, 2)
-                    hper = df['고저평균대비등락율'][index]
-                    sm = int(df['거래대금'][index])
-                    dm = int(df['누적거래대금'][index])
-                    vp = df['전일거래량대비'][index]
+                    hper = round((df['현재가'][index] / ((df['고가'][index] + df['저가'][index]) / 2) - 1) * 100, 2)
+                    sm = int(df['초당거래대금'][index])
+                    dm = int(df['당일거래대금'][index])
                     ch = df['체결강도'][index]
-                    gap_ch = round(df['체결강도'][index] - df['체결강도'][h - avgtime:h].mean(), 2)
-                    gap_sm = round(df['거래대금'][index] - df['거래대금'][h - avgtime:h].mean(), 2)
-                    gap_vp = round(df['전일거래량대비'][index] - df['전일거래량대비'][h - avgtime:h].mean(), 2)
-                    df_bf.at[code + index] = per, oper, hper, sm, dm, vp, ch, gap_ch, gap_sm, gap_vp
+                    gap_ch = round(df['체결강도'][index] - df['체결강도'][h - AVG_TICK_COUNT:h].mean(), 2)
+                    gap_sm = round(df['초당거래대금'][index] - df['초당거래대금'][h - AVG_TICK_COUNT:h].mean(), 2)
+                    df_bf.at[code + index] = per, oper, hper, sm, dm, ch, gap_ch, gap_sm
             print(f' 백파인더 검색 중 ... [{k + 1}/{tcount}]')
             self.q.put(df_bf)
         conn.close()
