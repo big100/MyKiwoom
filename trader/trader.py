@@ -1117,9 +1117,9 @@ class Trader:
 
     def UpdateChegeollist(self, name, og, oc, omc, op, cp, on):
         dt = strf_time('%Y%m%d%H%M%S%f')
-        if self.dict_bool['모의투자'] and len(self.df_td) > 0:
-            if dt in self.df_td['체결시간'].values:
-                while dt in self.df_td['체결시간'].values:
+        if self.dict_bool['모의투자'] and len(self.df_cj) > 0:
+            if dt in self.df_cj['체결시간'].values:
+                while dt in self.df_cj['체결시간'].values:
                     dt = str(int(dt) + 1)
                 on = dt
 
