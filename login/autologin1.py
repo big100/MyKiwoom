@@ -29,35 +29,31 @@ class Window(QtWidgets.QMainWindow):
         self.AutoLoginOn()
 
     def AutoLoginOn(self):
-        print('\n 자동 로그인 설정 대기 중 ...\n')
+        print('\n자동 로그인 설정 대기 중 ...\n')
         QTimer.singleShot(3000, lambda: auto_on(1))
         self.ocx.dynamicCall('KOA_Functions(QString, QString)', 'ShowAccountWindow', '')
-        print(' 자동 로그인 설정 완료\n')
+        print('자동 로그인 설정 완료\n')
+        print('잔류 프로세스 확인 중 ...\n')
+        os.system('taskkill /f /im opstarter.exe')
+        print('\n')
+        print('프로세스 종료 완료\n')
 
 
 if __name__ == '__main__':
     login_info = f'{OPENAPI_PATH}/system/Autologin.dat'
     if os.path.isfile(login_info):
         os.remove(f'{OPENAPI_PATH}/system/Autologin.dat')
-    print('\n 자동 로그인 설정 파일 삭제 완료\n')
+    print('\n자동 로그인 설정 파일 삭제 완료\n')
 
     Process(target=Window).start()
-    print(' 자동 로그인 설정용 프로세스 시작\n')
+    print('자동 로그인 설정용 프로세스 시작\n')
 
     while find_window('Open API login') == 0:
-        print(' 로그인창 열림 대기 중 ...\n')
+        print('로그인창 열림 대기 중 ...\n')
         time.sleep(1)
 
-    print(' 아이디 및 패스워드 입력 대기 중 ...\n')
+    print('아이디 및 패스워드 입력 대기 중 ...\n')
     time.sleep(5)
 
     manual_login(2)
-    print(' 아이디 및 패스워드 입력 완료\n')
-
-    time.sleep(15)
-    print(' 잔류 프로세스 확인 중 ...\n')
-    os.system('taskkill /f /im nkstarter.exe')
-    print('\n')
-    os.system('taskkill /f /im opstarter.exe')
-    print('\n')
-    print(' 프로세스 종료 완료\n')
+    print('아이디 및 패스워드 입력 완료\n')

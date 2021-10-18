@@ -34,18 +34,18 @@ if __name__ == '__main__':
     if os.path.isfile(login_info):
         autofile = True
         os.remove(f'{OPENAPI_PATH}/system/Autologin.dat')
-    print('\n 자동 로그인 설정 파일 삭제 완료\n')
+    print('\n자동 로그인 설정 파일 삭제 완료\n')
 
     proc = Process(target=Window)
     proc.start()
-    print(' 버전처리용 로그인 프로세스 시작\n')
+    print('버전처리용 로그인 프로세스 시작\n')
     while find_window('Open API login') == 0:
-        print(' 로그인창 열림 대기 중 ...\n')
+        print('로그인창 열림 대기 중 ...\n')
         time.sleep(1)
-    print(' 아이디 및 패스워드 입력 대기 중 ...\n')
+    print('아이디 및 패스워드 입력 대기 중 ...\n')
     time.sleep(5)
     manual_login(4)
-    print(' 아이디 및 패스워드 입력 완료\n')
+    print('아이디 및 패스워드 입력 완료\n')
 
     update = False
     while find_window('Open API login') != 0:
@@ -57,7 +57,7 @@ if __name__ == '__main__':
                 if '버전처리' in text:
                     if proc.is_alive():
                         proc.kill()
-                    print(' 버전처리용 로그인 프로세스 종료\n')
+                    print('버전처리용 로그인 프로세스 종료\n')
                     click_button(win32gui.GetDlgItem(hwnd, 0x2))
                     print(' 버전 업그레이드 완료\n')
                     update = True
@@ -69,7 +69,7 @@ if __name__ == '__main__':
             except pywintypes.error:
                 if proc.is_alive():
                     proc.kill()
-        print(' 버전처리 및 로그인창 닫힘 대기 중 ...\n')
+        print('버전처리 및 로그인창 닫힘 대기 중 ...\n')
         time.sleep(1)
 
     if update:
@@ -77,12 +77,9 @@ if __name__ == '__main__':
         hwnd = find_window('업그레이드 확인')
         if hwnd != 0:
             win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
-        print(' 버전 업그레이드 확인 완료\n')
+        print('버전 업그레이드 확인 완료\n')
 
-    time.sleep(1)
-    print(' 잔류 프로세스 확인 중 ...\n')
-    os.system('taskkill /f /im nkstarter.exe')
-    print('\n')
+    print('잔류 프로세스 확인 중 ...\n')
     os.system('taskkill /f /im opstarter.exe')
     print('\n')
-    print(' 프로세스 종료 완료\n')
+    print('프로세스 종료 완료\n')
