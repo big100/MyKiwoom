@@ -556,7 +556,7 @@ class Window(QtWidgets.QMainWindow):
             smavg = dict_df[code]['초당거래대금'][DICT_SET[f'{구분}평균값계산틱수'] + 1]
             item = QtWidgets.QTableWidgetItem(changeFormat(smavg).split('.')[0])
             item.setTextAlignment(Qt.AlignVCenter | Qt.AlignRight)
-            self.gj_tableWidget.setItem(j, columns_gj.index('smavg'), item)
+            self.gj_tableWidget.setItem(j, columns_gj_.index('smavg'), item)
 
             chavg = dict_df[code]['체결강도'][DICT_SET[f'{구분}평균값계산틱수'] + 1]
             item = QtWidgets.QTableWidgetItem(changeFormat(chavg))
