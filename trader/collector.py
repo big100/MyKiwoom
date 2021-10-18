@@ -80,10 +80,6 @@ class Collector:
     def SaveTickData(self, codes):
         for code in list(self.dict_df.keys()):
             if code in codes:
-                columns = ['현재가', '시가', '고가', '거래대금', '누적거래대금', '상승VID5가격', '매수수량', '매도수량',
-                           '매도호가2', '매도호가1', '매수호가1', '매수호가2', '매도잔량2', '매도잔량1', '매수잔량1', '매수잔량2']
-                self.dict_df[code][columns] = self.dict_df[code][columns].astype(int)
-            else:
                 del self.dict_df[code]
         self.queryQ.put([2, self.dict_df])
 
