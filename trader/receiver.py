@@ -289,7 +289,7 @@ class Receiver:
     def SaveTickData(self):
         self.windowQ.put([2, '틱데이터 저장'])
         con = sqlite3.connect(DB_STG)
-        df = pd.read_sql(f"SELECT * FROM tradelist WHERE 체결시간 LIKE '{self.str_tday}%'", con).set_index('index')
+        df = pd.read_sql(f"SELECT * FROM chegeollist WHERE 체결시간 LIKE '{self.str_tday}%'", con).set_index('index')
         con.close()
         codes = []
         for index in df.index:
