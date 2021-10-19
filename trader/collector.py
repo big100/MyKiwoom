@@ -5,7 +5,8 @@ import pandas as pd
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.static import now, strf_time, timedelta_sec, thread_decorator
 
-DIVIDE_SAVE = True     # 틱데이터 저장방식 선택 - True: 경우 10초에 한번 저장, False: 장마감 후 거래종목만 저장
+DIVIDE_SAVE = False     # 틱데이터 저장방식 선택 - True: 10초에 한번 저장(전체종목저장), False: 장마감 후 저장(저장종목선택)
+DTRADE_SAVE = False     # 장마감 후 저장일 경우 - True: 당일거래목록만 저장, False: 전체종목 저장
 
 
 class Collector:
@@ -78,9 +79,10 @@ class Collector:
             self.dict_time['저장시간'] = timedelta_sec(10)
 
     def SaveTickData(self, codes):
-        for code in list(self.dict_df.keys()):
-            if code in codes:
-                del self.dict_df[code]
+        if DTRADE_SAVE:
+            for code in list(self.dict_df.keys()):
+                if code not in codes:
+                    del self.dict_df[code]
         self.queryQ.put([2, self.dict_df])
 
     @thread_decorator
