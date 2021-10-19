@@ -367,7 +367,8 @@ class UpdaterChart:
                     columns = ['현재가', '시가', '고가', '저가', '거래량', '지수이평05', '지수이평10', '지수이평20',
                                '지수이평40', '지수이평60', '지수이평120', '시종차', '추세']
                     try:
-                        self.df_ct.at[t, columns] = c, o, h, low, v, ema05, ema10, ema20, ema40, ema60, ema120, gap, chuse
+                        self.df_ct.at[t, columns] = \
+                            c, o, h, low, v, ema05, ema10, ema20, ema40, ema60, ema120, gap, chuse
                     except Exception as e:
                         self.windowQ.put([1, f'UpdateRealChart {e}'])
                     else:

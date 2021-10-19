@@ -4,8 +4,9 @@ from utility.setting import DB_STG, DB_TICK
 
 
 class Query:
-    def __init__(self, windowQ, queryQ):
+    def __init__(self, windowQ, traderQ, queryQ):
         self.windowQ = windowQ
+        self.traderQ = traderQ
         self.queryQ = queryQ
         self.con1 = sqlite3.connect(DB_STG)
         self.cur1 = self.con1.cursor()
@@ -43,6 +44,13 @@ class Query:
                         if k % 4 == 0:
                             save_time = float2str1p6((now() - start).total_seconds())
                             self.windowQ.put([1, f'시스템 명령 실행 알림 - 틱데이터 저장 쓰기소요시간은 [{save_time}]초입니다.'])
+                    elif len(query) == 3:
+                        start = now()
+                        for code in list(query[1].keys()):
+                            query[1][code].to_sql(code, self.con2, if_exists='append', chunksize=1000)
+                        save_time = float2str1p6((now() - start).total_seconds())
+                        self.windowQ.put([1, f'시스템 명령 실행 알림 - 틱데이터 저장 쓰기소요시간은 [{save_time}]초입니다.'])
+                        self.traderQ.put('틱데이터저장완료')
                     elif len(query) == 4:
                         query[1].to_sql(query[2], self.con2, if_exists=query[3], chunksize=1000)
                 except Exception as e:

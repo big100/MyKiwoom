@@ -42,6 +42,7 @@ class Window(QtWidgets.QMainWindow):
         self.mode0 = 0
         self.mode1 = 0
         self.mode2 = 0
+        self.ButtonClicked_4(0)
 
         self.list_info = [
             [0., 0, 0.],    # 0 ui
@@ -77,8 +78,6 @@ class Window(QtWidgets.QMainWindow):
         self.writer.data2.connect(self.UpdateGaonsimJongmok)
         self.writer.data3.connect(self.UpdateTablewidget)
         self.writer.start()
-
-        self.ButtonClicked_4(0)
 
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key_Return, Qt.Key_Enter):
@@ -1549,7 +1548,7 @@ if __name__ == '__main__':
         Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue()
 
     Process(target=Sound, args=(soundQ,), daemon=True).start()
-    Process(target=Query, args=(windowQ, queryQ), daemon=True).start()
+    Process(target=Query, args=(windowQ, traderQ, queryQ), daemon=True).start()
     Process(target=TelegramMsg, args=(windowQ, traderQ, queryQ, teleQ), daemon=True).start()
 
     os.system(f'python {SYSTEM_PATH}/login/versionupdater.py')

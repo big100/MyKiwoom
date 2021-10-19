@@ -83,7 +83,7 @@ class Collector:
             for code in list(self.dict_df.keys()):
                 if code not in codes:
                     del self.dict_df[code]
-        self.queryQ.put([2, self.dict_df])
+        self.queryQ.put([2, self.dict_df, '장마감후저장'])
 
     @thread_decorator
     def UpdateInfo(self):

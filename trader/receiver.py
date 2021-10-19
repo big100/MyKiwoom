@@ -52,11 +52,11 @@ class Receiver:
         self.dict_name = {}
         self.dict_code = {}
 
-        self.list_gsjm = []
+        self.list_gsjm1 = []
         self.list_gsjm2 = []
         self.list_trcd = []
         self.list_jang = []
-        self.pre_top = []
+        self.list_prmt = []
         self.list_kosd = None
         self.list_code = None
         self.list_code1 = None
@@ -163,7 +163,7 @@ class Receiver:
             if now() > self.dict_time['거래대금순위기록']:
                 if len(self.dict_vipr) > 0:
                     self.traderQ.put(['VI정보', self.dict_vipr])
-                if len(self.list_gsjm) > 0:
+                if len(self.list_gsjm1) > 0:
                     self.UpdateMoneyTop()
                 self.dict_time['거래대금순위기록'] = timedelta_sec(1)
             if now() > self.dict_time['부가정보']:
@@ -233,7 +233,7 @@ class Receiver:
                 self.list_gsjm2.append(code)
         elif '잔고청산' in data and code in self.list_jang:
             self.list_jang.remove(code)
-            if code not in self.list_gsjm and code in self.list_gsjm2:
+            if code not in self.list_gsjm1 and code in self.list_gsjm2:
                 self.stgQ.put(['조건이탈', code])
                 self.list_gsjm2.remove(code)
 
@@ -241,41 +241,41 @@ class Receiver:
         self.dict_bool['장중단타전략시작'] = True
         self.df_mc.sort_values(by=['최근거래대금'], ascending=False, inplace=True)
         list_top = list(self.df_mc.index[:MONEYTOP_RANK])
-        insert_list = set(list_top) - set(self.list_gsjm)
+        insert_list = set(list_top) - set(self.list_gsjm1)
         if len(insert_list) > 0:
             for code in list(insert_list):
                 self.InsertGsjmlist(code)
-        delete_list = set(self.list_gsjm) - set(list_top)
+        delete_list = set(self.list_gsjm1) - set(list_top)
         if len(delete_list) > 0:
             for code in list(delete_list):
                 self.DeleteGsjmlist(code)
-        self.pre_top = list_top
+        self.list_prmt = list_top
         self.timer.start()
 
     def ConditionSearch(self):
         if len(self.df_mc) > 0:
             self.df_mc.sort_values(by=['최근거래대금'], ascending=False, inplace=True)
             list_top = list(self.df_mc.index[:MONEYTOP_RANK])
-            insert_list = set(list_top) - set(self.pre_top)
+            insert_list = set(list_top) - set(self.list_prmt)
             if len(insert_list) > 0:
                 for code in list(insert_list):
                     self.InsertGsjmlist(code)
-            delete_list = set(self.pre_top) - set(list_top)
+            delete_list = set(self.list_prmt) - set(list_top)
             if len(delete_list) > 0:
                 for code in list(delete_list):
                     self.DeleteGsjmlist(code)
-            self.pre_top = list_top
+            self.list_prmt = list_top
 
     def InsertGsjmlist(self, code):
-        if code not in self.list_gsjm:
-            self.list_gsjm.append(code)
+        if code not in self.list_gsjm1:
+            self.list_gsjm1.append(code)
         if code not in self.list_jang and code not in self.list_gsjm2:
             self.stgQ.put(['조건진입', code])
             self.list_gsjm2.append(code)
 
     def DeleteGsjmlist(self, code):
-        if code in self.list_gsjm:
-            self.list_gsjm.remove(code)
+        if code in self.list_gsjm1:
+            self.list_gsjm1.remove(code)
         if code not in self.list_jang and code in self.list_gsjm2:
             self.stgQ.put(['조건이탈', code])
             self.list_gsjm2.remove(code)
@@ -292,8 +292,8 @@ class Receiver:
         df = pd.read_sql(f"SELECT * FROM chegeollist WHERE 체결시간 LIKE '{self.str_tday}%'", con).set_index('index')
         con.close()
         codes = []
-        for index in df.index:
-            code = self.dict_code[df['종목명'][index]]
+        for name in list(df['종목명'].values):
+            code = self.dict_code[name]
             if code not in codes:
                 codes.append(code)
         self.tick1Q.put(['콜렉터종료', codes])
@@ -303,7 +303,7 @@ class Receiver:
 
     def UpdateMoneyTop(self):
         timetype = '%Y%m%d%H%M%S'
-        list_text = ';'.join(self.list_gsjm)
+        list_text = ';'.join(self.list_gsjm1)
         curr_time = self.str_jcct
         curr_datetime = strp_time(timetype, curr_time)
         if self.dt_mtct is not None:
@@ -372,8 +372,8 @@ class Receiver:
             except Exception as e:
                 self.windowQ.put([1, f'OnReceiveRealData 장시작시간 {e}'])
             else:
-                self.windowQ.put([1, f'장운영 시간 수신 알림 - {self.operation} {current[:2]}:{current[2:4]}:{current[4:]} '
-                                     f'남은시간 {remain[:2]}:{remain[2:4]}:{remain[4:]}'])
+                self.windowQ.put([1, f'장운영 시간 수신 알림 - {self.operation} {current[:2]}:{current[2:4]}:{current[4:]}'
+                                     f' 남은시간 {remain[:2]}:{remain[2:4]}:{remain[4:]}'])
         elif realtype == 'VI발동/해제':
             try:
                 code = self.GetCommRealData(code, 9001).strip('A').strip('Q')
