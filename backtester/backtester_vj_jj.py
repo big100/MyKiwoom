@@ -1,12 +1,13 @@
 import os
 import sys
 import sqlite3
+import datetime
 import pandas as pd
 from matplotlib import pyplot as plt
 from multiprocessing import Process, Queue
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.setting import DB_TICK, DB_BACKTEST
-from utility.static import now, strf_time, strp_time, timedelta_sec, timedelta_day
+from utility.static import strf_time, strp_time, timedelta_sec, timedelta_day
 
 BETTING = 10000000     # 종목당 배팅금액
 TESTPERIOD = 14        # 백테스팅 기간(14일 경우 과거 2주간의 데이터를 백테스팅한다)
@@ -28,7 +29,7 @@ class BackTesterVj:
         self.dm_low = num_[4]
         self.per_low = num_[5]
         self.per_high = num_[6]
-        self.ch_sell = num_[7]
+        self.sell_ratio = num_[7]
 
         self.code = None
         self.df = None
@@ -167,6 +168,8 @@ class BackTesterVj:
         bg = self.buycount * self.buyprice
         cg = self.buycount * self.df['현재가'][self.index]
         eyun, per = self.GetEyunPer(bg, cg)
+        if per > self.highper:
+            self.highper = per
 
         # 전략 비공개
 
@@ -362,7 +365,7 @@ class Total:
 
 
 if __name__ == "__main__":
-    start = now()
+    start = datetime.datetime.now()
 
     con = sqlite3.connect(DB_TICK)
     df = pd.read_sql("SELECT name FROM sqlite_master WHERE TYPE = 'table'", con)
@@ -383,8 +386,8 @@ if __name__ == "__main__":
         dm_low = 30000
         per_low = 5
         per_high = 25
-        ch_sell = 0.5
-        num = [gap_ch, avg_time, gap_sm, ch_low, dm_low, per_low, per_high, ch_sell]
+        sell_ratio = 0.5
+        num = [gap_ch, avg_time, gap_sm, ch_low, dm_low, per_low, per_high, sell_ratio]
 
         q = Queue()
         w = Process(target=Total, args=(q, last, num, df1))
@@ -400,5 +403,5 @@ if __name__ == "__main__":
             p.join()
         w.join()
 
-    end = now()
+    end = datetime.datetime.now()
     print(f" 백테스팅 소요시간 {end - start}")

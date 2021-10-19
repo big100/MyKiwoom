@@ -1,12 +1,13 @@
 import os
 import sys
 import sqlite3
+import datetime
 import pandas as pd
 from matplotlib import pyplot as plt
 from multiprocessing import Process, Queue
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.setting import DB_STG, DB_TICK, DB_BACKTEST, GRAPH_PATH
-from utility.static import now, strf_time, strp_time, timedelta_sec, timedelta_day, telegram_msg
+from utility.static import strf_time, strp_time, timedelta_sec, timedelta_day, telegram_msg
 
 BETTING = 10000000     # 종목당 배팅금액
 TESTPERIOD = 14        # 백테스팅 기간(14일 경우 과거 2주간의 데이터를 백테스팅한다)
@@ -30,7 +31,7 @@ class BackTesterVc:
             self.dm_low = num_[4][0]
             self.per_low = num_[5][0]
             self.per_high = num_[6][0]
-            self.ch_sell = num_[7][0]
+            self.sell_ratio = num_[7][0]
         else:
             self.gap_ch = num_[0]
             self.avg_time = num_[1]
@@ -39,7 +40,7 @@ class BackTesterVc:
             self.dm_low = num_[4]
             self.per_low = num_[5]
             self.per_high = num_[6]
-            self.ch_sell = num_[7]
+            self.sell_ratio = num_[7]
 
         self.code = None
         self.df = None
@@ -178,6 +179,8 @@ class BackTesterVc:
         bg = self.buycount * self.buyprice
         cg = self.buycount * self.df['현재가'][self.index]
         eyun, per = self.GetEyunPer(bg, cg)
+        if per > self.highper:
+            self.highper = per
 
         # 전략 비공개
 
@@ -311,7 +314,7 @@ class Total:
             self.dm_low = num_[4][0]
             self.per_low = num_[5][0]
             self.per_high = num_[6][0]
-            self.ch_sell = num_[7][0]
+            self.sell_ratio = num_[7][0]
         else:
             self.gap_ch = num_[0]
             self.avg_time = num_[1]
@@ -320,7 +323,7 @@ class Total:
             self.dm_low = num_[4]
             self.per_low = num_[5]
             self.per_high = num_[6]
-            self.ch_sell = num_[7]
+            self.sell_ratio = num_[7]
 
         self.Start()
 
@@ -352,7 +355,7 @@ class Total:
         if len(df_back) > 0:
             tc = df_back['거래횟수'].sum()
             text = [self.gap_ch, self.avg_time, self.gap_sm, self.ch_low, self.dm_low,
-                    self.per_low, self.per_high, self.ch_sell]
+                    self.per_low, self.per_high, self.sell_ratio]
             print(f' {text}')
             if tc != 0:
                 pc = df_back['익절'].sum()
@@ -373,7 +376,7 @@ class Total:
                 print(text)
                 df_back = pd.DataFrame(
                     [[onegm, onedaycount, tc, avghold, pc, mc, pper, avgsp, tsp, tsg, self.gap_ch, self.avg_time,
-                      self.gap_sm, self.ch_low, self.dm_low, self.per_low, self.per_high, self.ch_sell]],
+                      self.gap_sm, self.ch_low, self.dm_low, self.per_low, self.per_high, self.sell_ratio]],
                     columns=columns2, index=[strf_time('%Y%m%d%H%M%S')])
                 conn = sqlite3.connect(DB_BACKTEST)
                 df_back.to_sql(f"vc_{strf_time('%Y%m%d')}_1", conn, if_exists='append', chunksize=1000)
@@ -388,12 +391,12 @@ class Total:
             df_tsg.to_sql(f"vc_{strf_time('%Y%m%d')}_2", conn, if_exists='append', chunksize=1000)
             conn.close()
             df_tsg.plot(figsize=(12, 9), rot=45)
-            plt.savefig(f"{GRAPH_PATH}/vc_{strf_time('%Y%m%d')}.png")
+            plt.savefig(f"{GRAPH_PATH}/vc_jj_{strf_time('%Y%m%d')}.png")
             conn = sqlite3.connect(DB_STG)
             cur = conn.cursor()
-            query = f"UPDATE setting SET 장중체결강도차이 = {self.gap_ch}, 장중평균값계산틱수 = {self.avg_time}, "\
-                    f"장중초당거래대금차이 = {self.gap_sm}, 장중체결강도하한 = {self.ch_low}, 장중당일거래대금하한 = {self.dm_low}, "\
-                    f"장중등락율하한 = {self.per_low}, 장중등락율상한 = {self.per_high}, '장중매도비율' = {self.ch_sell}"
+            query = f"UPDATE setting SET 장중체결강도차이={self.gap_ch}, 장중평균값계산틱수={self.avg_time}, "\
+                    f"장중초당거래대금차이={self.gap_sm}, 장중체결강도하한={self.ch_low}, 장중당일거래대금하한={self.dm_low}, "\
+                    f"장중등락율하한={self.per_low}, 장중등락율상한={self.per_high}, '장중수익보존비율'={self.sell_ratio}"
             cur.execute(query)
             conn.commit()
             conn.close()
@@ -402,7 +405,7 @@ class Total:
 
 
 if __name__ == "__main__":
-    start = now()
+    start = datetime.datetime.now()
 
     con = sqlite3.connect(DB_TICK)
     df = pd.read_sql("SELECT name FROM sqlite_master WHERE TYPE = 'table'", con)
@@ -446,13 +449,13 @@ if __name__ == "__main__":
 
         gap_ch = [high_var[0] - 0.9, high_var[0] + 0.9, 0.1, 0.1]
         avg_time = [high_var[1], high_var[1], 30, 3]
-        gap_sm = [0, 500, 50, 10]
+        gap_sm = [50, 500, 50, 10]
         ch_low = [50, 100, 10, 10]
         dm_low = [0, 100000, 10000, 1000]
         per_low = [0, 10, 1, 0.1]
         per_high = [25, 15, -1, -1]
-        ch_sell = [0.5, 1.0, 0.1, 0.1]
-        num = [gap_ch, avg_time, gap_sm, ch_low, dm_low, per_low, per_high, ch_sell]
+        sell_ratio = [0.5, 0.9, 0.1, 0.1]
+        num = [gap_ch, avg_time, gap_sm, ch_low, dm_low, per_low, per_high, sell_ratio]
 
         ogin_var = high_var[0]
         high_var = high_var[0]
@@ -492,7 +495,7 @@ if __name__ == "__main__":
                         num[i][1] = round(num[i][0] + num[i][2] * 2 - num[i][3], 1)
                         num[i][2] = num[i][3]
                     elif i == 7:
-                        num[i][0] = num[i][2]
+                        num[i][0] = 0.
                     ogin_var = num[i][0]
                     high_var = num[i][0]
                 else:
@@ -512,6 +515,6 @@ if __name__ == "__main__":
             p.join()
         w.join()
 
-    end = now()
+    end = datetime.datetime.now()
     print(f" 백테스팅 소요시간 {end - start}")
     telegram_msg('백테스트을 완료하였습니다.')
