@@ -81,6 +81,8 @@ class Strategy:
         elif gubun in ['매도완료', '매도취소']:
             if code in self.list_sell:
                 self.list_sell.remove(code)
+            if code in self.dict_high.keys():
+                del self.dict_high[code]
 
     def BuyStrategy(self, 현재가, 시가, 고가, 저가, 등락율, 당일거래대금, 체결강도,
                     초당매수수량, 초당매도수량, VI해제시간, VI아래5호가, 매도총잔량, 매수총잔량,
