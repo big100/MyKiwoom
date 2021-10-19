@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.setting import ui_num, DICT_SET, columns_gj
-from utility.static import now, timedelta_sec, thread_decorator, strf_time
+from utility.static import now, timedelta_sec, thread_decorator, strf_time, float2str1p6
 
 
 class Strategy:
@@ -148,7 +148,7 @@ class Strategy:
                         self.traderQ.put(['매수', 종목코드, 종목명, 예상체결가, 매수수량])
 
         if now() > self.dict_time['연산시간']:
-            gap = (now() - 틱수신시간).total_seconds()
+            gap = float2str1p6((now() - 틱수신시간).total_seconds())
             self.windowQ.put([1, f'전략스 연산 시간 알림 - 수신시간과 연산시간의 차이는 [{gap}]초입니다.'])
             self.dict_time['연산시간'] = timedelta_sec(60)
 

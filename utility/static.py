@@ -93,6 +93,21 @@ def float2str2p2(t):
     return t
 
 
+def float2str1p6(t):
+    t = str(t)
+    if len(t.split('.')[1]) == 1:
+        t += '00000'
+    elif len(t.split('.')[1]) == 2:
+        t += '0000'
+    elif len(t.split('.')[1]) == 3:
+        t += '000'
+    elif len(t.split('.')[1]) == 4:
+        t += '00'
+    elif len(t.split('.')[1]) == 5:
+        t += '0'
+    return t
+
+
 def readEnc(trcode):
     enc = zipfile.ZipFile(f'{OPENAPI_PATH}/data/{trcode}.enc')
     lines = enc.read(trcode.upper() + '.dat').decode('cp949')
