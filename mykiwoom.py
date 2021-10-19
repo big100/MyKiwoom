@@ -250,9 +250,9 @@ class Window(QtWidgets.QMainWindow):
             )
             label07text = f"Collector Process - Memory {float_memory}MB | Threads {int_thread}EA | CPU {float_cpuper}%"
 
-            float_memory = float2str3p2(self.list_info[7][0] + self.list_info[8][0])
+            float_memory = float2str3p2(round(self.list_info[7][0] + self.list_info[8][0], 2))
             int_thread = self.list_info[7][1] + self.list_info[8][1]
-            float_cpuper = float2str2p2(self.list_info[7][2] + self.list_info[8][2])
+            float_cpuper = float2str2p2(round(self.list_info[7][2] + self.list_info[8][2], 2))
             label03text = f"Hoga Process - Memory {float_memory}MB | Threads {int_thread}EA | CPU {float_cpuper}%"
 
             float_memory = float2str3p2(
