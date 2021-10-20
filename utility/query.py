@@ -1,6 +1,6 @@
 import sqlite3
-from utility.static import now, float2str1p6
 from utility.setting import DB_STG, DB_TICK
+from utility.static import now, float2str1p6, timedelta_sec
 
 
 class Query:
@@ -18,6 +18,7 @@ class Query:
         self.con2.close()
 
     def Start(self):
+        writetime = now()
         k = 0
         while True:
             query = self.queryQ.get()
@@ -41,9 +42,10 @@ class Query:
                         for code in list(query[1].keys()):
                             query[1][code].to_sql(code, self.con2, if_exists='append', chunksize=1000)
                         k += 1
-                        if k % 4 == 0:
+                        if k % 4 == 0 and now() > writetime:
                             save_time = float2str1p6((now() - start).total_seconds())
                             self.windowQ.put([1, f'시스템 명령 실행 알림 - 틱데이터 저장 쓰기소요시간은 [{save_time}]초입니다.'])
+                            writetime = timedelta_sec(60)
                     elif len(query) == 3:
                         start = now()
                         for code in list(query[1].keys()):
