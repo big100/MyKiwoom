@@ -379,7 +379,7 @@ class Total:
                       self.gap_sm, self.ch_low, self.dm_low, self.per_low, self.per_high, self.sell_ratio]],
                     columns=columns2, index=[strf_time('%Y%m%d%H%M%S')])
                 conn = sqlite3.connect(DB_BACKTEST)
-                df_back.to_sql(f"vc_{strf_time('%Y%m%d')}_1", conn, if_exists='append', chunksize=1000)
+                df_back.to_sql(f"vc_jj_code_{strf_time('%Y%m%d')}", conn, if_exists='append', chunksize=1000)
                 conn.close()
 
         if len(df_tsg) > 0:
@@ -388,7 +388,7 @@ class Total:
             df_tsg['ttsg_cumsum'] = df_tsg['ttsg'].cumsum()
             df_tsg[['ttsg', 'ttsg_cumsum']] = df_tsg[['ttsg', 'ttsg_cumsum']].astype(int)
             conn = sqlite3.connect(DB_BACKTEST)
-            df_tsg.to_sql(f"vc_{strf_time('%Y%m%d')}_2", conn, if_exists='append', chunksize=1000)
+            df_tsg.to_sql(f"vc_jj_time_{strf_time('%Y%m%d')}", conn, if_exists='append', chunksize=1000)
             conn.close()
             df_tsg.plot(figsize=(12, 9), rot=45)
             plt.savefig(f"{GRAPH_PATH}/vc_jj_{strf_time('%Y%m%d')}.png")
