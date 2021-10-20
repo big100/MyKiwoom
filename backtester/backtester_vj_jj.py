@@ -120,7 +120,7 @@ class BackTesterVj:
                 self.ccond += 1
         except KeyError:
             return False
-        if self.ccond < self.avg_time:
+        if self.ccond < self.avg_time + 1:
             return False
 
         # 전략 비공개
@@ -301,7 +301,7 @@ class Total:
         self.dm_low = num_[4]
         self.per_low = num_[5]
         self.per_high = num_[6]
-        self.ch_sell = num_[7]
+        self.sell_ratio = num_[7]
 
         self.Start()
 
@@ -328,7 +328,7 @@ class Total:
 
         if len(df_back) > 0:
             text = [self.gap_ch, self.avg_time, self.gap_sm, self.ch_low,
-                    self.dm_low, self.per_low, self.per_high, self.ch_sell]
+                    self.dm_low, self.per_low, self.per_high, self.sell_ratio]
             print(f' {text}')
             tc = df_back['거래횟수'].sum()
             if tc != 0:
