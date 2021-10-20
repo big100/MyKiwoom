@@ -131,7 +131,7 @@ class BackTesterVc:
                 self.ccond += 1
         except KeyError:
             return False
-        if self.ccond < self.avg_time:
+        if self.ccond < self.avg_time +1:
             return False
 
         # 전략 비공개
