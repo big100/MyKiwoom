@@ -304,16 +304,17 @@ class Receiver:
     def UpdateMoneyTop(self):
         timetype = '%Y%m%d%H%M%S'
         list_text = ';'.join(self.list_gsjm1)
-        curr_time = self.str_jcct
-        curr_datetime = strp_time(timetype, curr_time)
+        curr_strtime = self.str_jcct
+        curr_datetime = strp_time(timetype, curr_strtime)
         if self.dt_mtct is not None:
             gap_seconds = (curr_datetime - self.dt_mtct).total_seconds()
             while gap_seconds > 1:
                 gap_seconds -= 1
                 pre_time = strf_time(timetype, timedelta_sec(-gap_seconds, curr_datetime))
                 self.df_mt.at[pre_time] = list_text
-        self.df_mt.at[curr_time] = list_text
-        self.dt_mtct = curr_datetime
+        if curr_datetime != self.dt_mtct:
+            self.df_mt.at[curr_strtime] = list_text
+            self.dt_mtct = curr_datetime
 
         if now() > self.dict_time['거래대금순위저장']:
             self.queryQ.put([2, self.df_mt, 'moneytop', 'append'])
