@@ -376,6 +376,14 @@ if __name__ == "__main__":
     table_list = list(df['name'].values)
     table_list.remove('moneytop')
     table_list.remove('codename')
+    if 'dist' in table_list:
+        table_list.remove('dist')
+    if 'dist_chk' in table_list:
+        table_list.remove('dist_chk')
+    if 'sqlite_sequence' in table_list:
+        table_list.remove('sqlite_sequence')
+    if 'temp' in table_list:
+        table_list.remove('temp')
     last = len(table_list)
 
     if len(table_list) > 0:
