@@ -76,7 +76,6 @@ class Trader:
             '장중전략잔고청산': False,
             '실시간데이터수신중단': False,
             '일별거래목록저장': False,
-            '틱데이터저장완료': False,
 
             '테스트': False,
             '모의투자': False,
@@ -198,7 +197,10 @@ class Trader:
                         self.UpdateJango(data[0], data[1], data[2], data[3], data[4], data[5])
                         continue
                 elif type(data) == str:
-                    self.RunWork(data)
+                    if data != '틱데이터저장완료':
+                        self.RunWork(data)
+                    else:
+                        break
 
             if self.dict_intg['장운영상태'] == 1 and now() > self.dict_time['휴무종료']:
                 break
@@ -209,7 +211,6 @@ class Trader:
             if self.dict_intg['장운영상태'] == 8:
                 self.AllRemoveRealreg()
                 self.SaveDayData()
-                break
 
             if now() > self.dict_time['호가정보']:
                 self.PutHogaJanngo()
@@ -409,7 +410,7 @@ class Trader:
         elif work == '시스템 종료':
             if not self.dict_bool['일별거래목록저장']:
                 self.SaveDayData()
-            self.SysExit(gubun=True)
+            self.SysExit()
         elif work == '/당일체결목록':
             if len(self.df_cj) > 0:
                 self.teleQ.put(self.df_cj)
@@ -477,8 +478,6 @@ class Trader:
                 self.windowQ.put([2, '알림소리 ON'])
                 if self.dict_bool['알림소리']:
                     self.soundQ.put('알림소리 설정이 ON으로 변경되었습니다.')
-        elif work == '틱데이터저장완료':
-            self.dict_bool['틱데이터저장완료'] = True
 
     def GetChart(self, gubun, code, name, tradeday=None):
         prec = self.GetMasterLastPrice(code)
@@ -1206,10 +1205,7 @@ class Trader:
     def GetChejanData(self, fid):
         return self.ocx.dynamicCall('GetChejanData(int)', fid)
 
-    def SysExit(self, gubun=False):
-        if not gubun and not self.dict_bool['틱데이터저장완료']:
-            Timer(5, self.SysExit).start()
-            return
+    def SysExit(self):
         self.windowQ.put([2, '시스템 종료'])
         self.teleQ.put('10초 후 시스템을 종료합니다.')
         if self.dict_bool['알림소리']:
