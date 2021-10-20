@@ -16,7 +16,7 @@ class TelegramMsg:
         con = sqlite3.connect(DB_STG)
         df = pd.read_sql('SELECT * FROM telegram', con)
         con.close()
-        if len(df) > 0:
+        if len(df) > 0 and df['str_bot'][0] != '':
             self.str_botn = df['str_bot'][0]
             self.int_usid = int(df['int_id'][0])
             self.bot = telegram.Bot(self.str_botn)

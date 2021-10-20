@@ -9,7 +9,7 @@ from utility.setting import DB_STG, OPENAPI_PATH
 connn = sqlite3.connect(DB_STG)
 df_tg = pd.read_sql('SELECT * FROM telegram', connn)
 connn.close()
-if len(df_tg) > 0:
+if len(df_tg) > 0 and df_tg['str_bot'][0] != '':
     bot = df_tg['str_bot'][0]
     user_id = int(df_tg['int_id'][0])
 else:
