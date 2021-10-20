@@ -1086,10 +1086,10 @@ class Trader:
     def UpdateTradelist(self, name, oc, sp, sg, bg, pg, on):
         dt = strf_time('%Y%m%d%H%M%S%f')
         if self.dict_bool['모의투자'] and len(self.df_td) > 0:
-            if dt in self.df_td['체결시간'].values:
-                while dt in self.df_td['체결시간'].values:
-                    dt = str(int(dt) + 1)
-                on = dt
+            if on in self.df_td.index:
+                while on in self.df_td.index:
+                    on = str(int(on) + 1)
+                dt = on
 
         self.df_td.at[on] = name, bg, pg, oc, sp, sg, dt
         self.df_td.sort_values(by=['체결시간'], ascending=False, inplace=True)
@@ -1121,10 +1121,10 @@ class Trader:
     def UpdateChegeollist(self, name, og, oc, omc, op, cp, on):
         dt = strf_time('%Y%m%d%H%M%S%f')
         if self.dict_bool['모의투자'] and len(self.df_cj) > 0:
-            if dt in self.df_cj['체결시간'].values:
-                while dt in self.df_cj['체결시간'].values:
-                    dt = str(int(dt) + 1)
-                on = dt
+            if on in self.df_cj.index:
+                while on in self.df_cj.index:
+                    on = str(int(on) + 1)
+                dt = on
 
         if on in self.df_cj.index:
             self.df_cj.at[on, ['미체결수량', '체결가', '체결시간']] = omc, cp, dt
