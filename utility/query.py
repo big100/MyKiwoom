@@ -19,7 +19,7 @@ class Query:
 
     def Start(self):
         writetime = now()
-        k = 0
+        k, j = 0, 0
         while True:
             query = self.queryQ.get()
             if query[0] == 1:
@@ -49,6 +49,8 @@ class Query:
                     elif len(query) == 3:
                         start = now()
                         for code in list(query[1].keys()):
+                            j += 1
+                            self.windowQ.put([1, f'시스템 명령 실행 알림 - 틱데이터 저장 중 ... {j}/4'])
                             query[1][code].to_sql(code, self.con2, if_exists='append', chunksize=1000)
                         save_time = float2str1p6((now() - start).total_seconds())
                         self.windowQ.put([1, f'시스템 명령 실행 알림 - 틱데이터 저장 쓰기소요시간은 [{save_time}]초입니다.'])
