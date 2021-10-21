@@ -23,6 +23,8 @@ class Query:
         self.con2.close()
 
     def Start(self):
+        k = 0
+        df = pd.DataFrame()
         while True:
             query = self.queryQ.get()
             if query[0] == 1:
@@ -41,22 +43,23 @@ class Query:
             elif query[0] == 2:
                 try:
                     if len(query) == 2:
-                        start = now()
-                        new_codes = set(list(query[1].keys())) - set(self.list_table)
-                        if len(new_codes) > 0:
-                            for code in list(query[1].keys()):
-                                query[1][code].to_sql(code, self.con2, if_exists='append', chunksize=1000, method='multi')
-                            self.remove_trigger()
-                            self.create_trigger()
+                        if type(query[1]) == str:
+                            self.con2.execute(query[1])
+                            self.con2.commit()
                         else:
-                            df = pd.DataFrame()
+                            k += 1
                             for code in list(query[1].keys()):
                                 query[1][code]['종목코드'] = code
                                 df = df.append(query[1][code])
-                            df.to_sql("temp", self.con2, if_exists='append', method='multi')
-                            self.cur2.execute('insert into "dist" ("cnt") values (1);')
-                        save_time = float2str1p6((now() - start).total_seconds())
-                        self.windowQ.put([1, f'시스템 명령 실행 알림 - 틱데이터 저장 쓰기소요시간은 [{save_time}]초입니다.'])
+                            if k == 4:
+                                start = now()
+                                df.to_sql("temp", self.con2, if_exists='append', method='multi')
+                                self.con2.execute('insert into "dist" ("cnt") values (1);')
+                                save_time = float2str1p6((now() - start).total_seconds())
+                                text = f'시스템 명령 실행 알림 - 틱데이터 저장 쓰기소요시간은 [{save_time}]초입니다.'
+                                self.windowQ.put([1, text])
+                                k = 0
+                                df = pd.DataFrame()
                     elif len(query) == 3:
                         start = now()
                         j = 0

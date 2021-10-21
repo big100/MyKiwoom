@@ -110,15 +110,29 @@ class Receiver:
         while not self.dict_bool['CD수신']:
             pythoncom.PumpWaitingMessages()
 
+        con = sqlite3.connect(DB_TICK)
+        df = pd.read_sql("SELECT name FROM sqlite_master WHERE TYPE = 'table'", con)
+        con.close()
+        table_list = list(df['name'].values)
+
         self.list_kosd = self.GetCodeListByMarket('10')
         list_code = self.GetCodeListByMarket('0') + self.list_kosd
+
         df = pd.DataFrame(columns=['종목명'])
         for code in list_code:
             name = self.GetMasterCodeName(code)
             df.at[code] = name
             self.dict_name[code] = name
             self.dict_code[name] = code
-
+            if code not in table_list:
+                query = f'CREATE TABLE "{code}" ("index" TEXT, "현재가" REAL, "시가" REAL, "고가" REAL,' \
+                         '"저가" REAL, "등락율" REAL, "당일거래대금" REAL, "체결강도" REAL, "초당매수수량" REAL,' \
+                         '"초당매도수량" REAL, "VI해제시간" REAL, "VI아래5호가" REAL, "매도총잔량" REAL, "매수총잔량" REAL,' \
+                         '"매도호가5" REAL, "매도호가4" REAL, "매도호가3" REAL, "매도호가2" REAL, "매도호가1" REAL,' \
+                         '"매수호가1" REAL, "매수호가2" REAL, "매수호가3" REAL, "매수호가4" REAL, "매수호가5" REAL,' \
+                         '"매도잔량5" REAL, "매도잔량4" REAL, "매도잔량3" REAL, "매도잔량2" REAL, "매도잔량1" REAL,' \
+                         '"매수잔량1" REAL, "매수잔량2" REAL, "매수잔량3" REAL, "매수잔량4" REAL, "매수잔량5" REAL);'
+                self.queryQ.put([2, query])
         self.queryQ.put([2, df, 'codename', 'replace'])
         self.windowQ.put([3, self.dict_code])
         self.windowQ.put([4, self.dict_name])
