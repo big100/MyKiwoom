@@ -14,6 +14,7 @@ TESTPERIOD = 14        # 백테스팅 기간(14일 경우 과거 2주간의 데�
 TOTALTIME = 36000      # 백테스팅 기간 동안 9시부터 10시까지의 시간 총합, 단위 초
 START_TIME = 90000
 END_TIME = 100000
+MULTI_COUNT = 6
 
 
 class BackTesterVj:
@@ -401,7 +402,7 @@ if __name__ == "__main__":
         w = Process(target=Total, args=(q, last, num, df1))
         w.start()
         procs = []
-        workcount = int(last / 6) + 1
+        workcount = int(last / MULTI_COUNT) + 1
         for j in range(0, last, workcount):
             code_list = table_list[j:j + workcount]
             p = Process(target=BackTesterVj, args=(q, code_list, num, df2))
