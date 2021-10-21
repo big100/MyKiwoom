@@ -133,6 +133,8 @@ class Receiver:
                          '"매도잔량5" REAL, "매도잔량4" REAL, "매도잔량3" REAL, "매도잔량2" REAL, "매도잔량1" REAL,' \
                          '"매수잔량1" REAL, "매수잔량2" REAL, "매수잔량3" REAL, "매수잔량4" REAL, "매수잔량5" REAL);'
                 self.queryQ.put([2, query])
+                query = f'CREATE INDEX "ix_{code}_index" ON "{code}"("index")'
+                self.queryQ.put([2, query])
         self.queryQ.put([2, df, 'codename', 'replace'])
         self.windowQ.put([3, self.dict_code])
         self.windowQ.put([4, self.dict_name])
