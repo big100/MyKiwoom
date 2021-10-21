@@ -208,7 +208,7 @@ class Trader:
                 self.JangoChungsan1()
             if int(strf_time('%H%M%S')) >= 152900 and not self.dict_bool['장중전략잔고청산']:
                 self.JangoChungsan2()
-            if self.dict_intg['장운영상태'] == 8:
+            if self.dict_intg['장운영상태'] == 8 and not self.dict_bool['일별거래목록저장']:
                 self.AllRemoveRealreg()
                 self.SaveDayData()
 
@@ -662,6 +662,7 @@ class Trader:
             self.soundQ.put('실시간 데이터의 수신을 중단하였습니다.')
 
     def SaveDayData(self):
+        self.dict_bool['일별거래목록저장'] = True
         if len(self.df_td) > 0:
             df = self.df_tt[['총매수금액', '총매도금액', '총수익금액', '총손실금액', '수익률', '수익금합계']].copy()
             self.queryQ.put([1, df, 'totaltradelist', 'append'])
