@@ -128,4 +128,7 @@ class Query:
         self.cur2.execute(query_create_trigger)
 
     def remove_trigger(self):
-        self.cur2.execute('drop trigger dist_trigger;')
+        try:
+            self.cur2.execute('drop trigger dist_trigger;')
+        except sqlite3.OperationalError:
+            pass
