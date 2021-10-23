@@ -1,9 +1,10 @@
 import sqlite3
 import pandas as pd
 from PyQt5.QtGui import QFont, QColor
+import os
 
 OPENAPI_PATH = 'D:/OpenAPI'
-SYSTEM_PATH = 'D:/PythonProjects/MyKiwoom'
+SYSTEM_PATH = os.path.dirname(os.path.dirname(__file__))
 GRAPH_PATH = f'{SYSTEM_PATH}/backtester/graph'
 DB_STG = f'{SYSTEM_PATH}/database/stg.db'
 DB_TICK = f'{SYSTEM_PATH}/database/tick.db'
