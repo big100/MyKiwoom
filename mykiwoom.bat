@@ -1,4 +1,4 @@
 @echo off
-cd /D D:/PythonProjects/MyKiwoom
+cd /D %~dp0
 python mykiwoom.py
 pause
