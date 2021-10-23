@@ -1,6 +1,7 @@
 import sqlite3
 import pandas as pd
 from PyQt5.QtGui import QFont, QColor
+import os
 
 OPENAPI_PATH = 'D:/OpenAPI'
 SYSTEM_PATH = os.getcwd()
