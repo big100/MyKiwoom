@@ -354,7 +354,7 @@ class Total:
                        f" 손절 {mc}회, 승률 {pper}%, 평균수익률 {avgsp}%, 수익률합계 {tsp}%, 수익금합계 {format(tsg, ',')}원"
                 print(text)
                 conn = sqlite3.connect(DB_BACKTEST)
-                df_back.to_sql(f"vj_code_{strf_time('%Y%m%d')}", conn, if_exists='append', chunksize=1000)
+                df_back.to_sql(f"vj_jj_code_{strf_time('%Y%m%d')}", conn, if_exists='append', chunksize=1000)
                 conn.close()
 
         if len(df_tsg) > 0:
@@ -362,7 +362,7 @@ class Total:
             df_tsg['sgm_cumsum'] = df_tsg['sgm'].cumsum()
             df_tsg[['sgm', 'sgm_cumsum']] = df_tsg[['sgm', 'sgm_cumsum']].astype(int)
             conn = sqlite3.connect(DB_BACKTEST)
-            df_tsg.to_sql(f"vj_time_{strf_time('%Y%m%d')}", conn, if_exists='append', chunksize=1000)
+            df_tsg.to_sql(f"vj_jj_time_{strf_time('%Y%m%d')}", conn, if_exists='append', chunksize=1000)
             conn.close()
             df_tsg.plot(figsize=(12, 9), rot=45)
             plt.show()
