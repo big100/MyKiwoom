@@ -132,7 +132,7 @@ class BackTesterVc:
                 self.ccond += 1
         except KeyError:
             return False
-        if self.ccond < self.avg_time +1:
+        if self.ccond < self.avg_time + 1:
             return False
 
         # 전략 비공개
@@ -231,7 +231,7 @@ class BackTesterVc:
         else:
             self.totalcount_m += 1
         if self.high:
-            self.q.put([self.index, self.code, per, eyun])
+            self.q.put([self.code, self.df.index[self.indexb], self.index, self.buyprice, self.sellprice, per, eyun])
 
     # noinspection PyMethodMayBeStatic
     def GetEyunPer(self, bg, cg):
@@ -334,18 +334,22 @@ class Total:
                     '평균수익률', '수익률합계', '수익금합계', '체결강도차이', '평균값계산틱수', '초당거래대금차이',
                     '체결강도하한', '당일거래대금하한', '등락율하한', '등락율상한', '청산수익률']
         df_back = pd.DataFrame(columns=columns1)
-        df_tsg = pd.DataFrame(columns=['종목명', 'per', 'ttsg'])
+        df_tsg = pd.DataFrame(columns=['종목명', '매수시간', '매도시간', '매수가', '매도가', '수익률', 'sgm'])
         k = 0
         while True:
             data = self.q.get()
-            if len(data) == 4:
-                name = self.name['종목명'][data[1]]
-                if data[0] in df_tsg.index:
-                    df_tsg.at[data[0]] = df_tsg['종목명'][data[0]] + ';' + name, \
-                                         df_tsg['per'][data[0]] + data[2], \
-                                         df_tsg['ttsg'][data[0]] + data[3]
+            if len(data) == 7:
+                name = self.name['종목명'][data[0]]
+                if data[2] in df_tsg.index:
+                    df_tsg.at[data[2]] = df_tsg['종목명'][data[2]] + ';' + name, \
+                                         df_tsg['매수시간'][data[2]] + ';' + data[1], \
+                                         df_tsg['매도시간'][data[2]] + ';' + data[2], \
+                                         df_tsg['매수가'][data[2]] + ';' + str(data[3]), \
+                                         df_tsg['매도가'][data[2]] + ';' + str(data[4]), \
+                                         df_tsg['수익률'][data[2]] + ';' + str(data[5]), \
+                                         df_tsg['sgm'][data[2]] + data[6]
                 else:
-                    df_tsg.at[data[0]] = name, data[2], data[3]
+                    df_tsg.at[data[2]] = name, data[1], data[2], str(data[3]), str(data[4]), str(data[5]), data[6]
             else:
                 df_back.at[data[0]] = data[1], data[2], data[3], data[4], data[5], data[6], data[7]
                 k += 1
@@ -354,10 +358,11 @@ class Total:
 
         tsp = 0
         if len(df_back) > 0:
-            tc = df_back['거래횟수'].sum()
             text = [self.gap_ch, self.avg_time, self.gap_sm, self.ch_low, self.dm_low,
                     self.per_low, self.per_high, self.sell_ratio]
             print(f' {text}')
+            df_back = df_back[df_back['거래횟수'] > 0]
+            tc = df_back['거래횟수'].sum()
             if tc != 0:
                 pc = df_back['익절'].sum()
                 mc = df_back['손절'].sum()
@@ -371,8 +376,8 @@ class Total:
                 if onegm < BETTING:
                     onegm = BETTING
                 tsp = round(tsg / onegm * 100, 4)
-                text = f" 종목당 배팅금액 {format(BETTING, ',')}원, 필요자금 {format(onegm, ',')}원, "\
-                       f" 종목출현빈도수 {onedaycount}개/초, 거래횟수 {tc}회, 평균보유기간 {avghold}초,\n 익절 {pc}회, "\
+                text = f" 종목당 배팅금액 {format(BETTING, ',')}원, 필요자금 {format(onegm, ',')}원,"\
+                       f" 종목출현빈도수 {onedaycount}개/초, 거래횟수 {tc}회, 평균보유기간 {avghold}초,\n 익절 {pc}회,"\
                        f" 손절 {mc}회, 승률 {pper}%, 평균수익률 {avgsp}%, 수익률합계 {tsp}%, 수익금합계 {format(tsg, ',')}원"
                 print(text)
                 df_back = pd.DataFrame(
@@ -380,14 +385,13 @@ class Total:
                       self.gap_sm, self.ch_low, self.dm_low, self.per_low, self.per_high, self.sell_ratio]],
                     columns=columns2, index=[strf_time('%Y%m%d%H%M%S')])
                 conn = sqlite3.connect(DB_BACKTEST)
-                df_back.to_sql(f"vc_jj_code_{strf_time('%Y%m%d')}", conn, if_exists='append', chunksize=1000)
+                df_back.to_sql(f"vc_jj_vars_{strf_time('%Y%m%d')}", conn, if_exists='append', chunksize=1000)
                 conn.close()
 
         if len(df_tsg) > 0:
-            df_tsg['체결시간'] = df_tsg.index
-            df_tsg.sort_values(by=['체결시간'], inplace=True)
-            df_tsg['ttsg_cumsum'] = df_tsg['ttsg'].cumsum()
-            df_tsg[['ttsg', 'ttsg_cumsum']] = df_tsg[['ttsg', 'ttsg_cumsum']].astype(int)
+            df_tsg.sort_values(by=['매도시간'], inplace=True)
+            df_tsg['sgm_cumsum'] = df_tsg['sgm'].cumsum()
+            df_tsg[['sgm', 'sgm_cumsum']] = df_tsg[['sgm', 'sgm_cumsum']].astype(int)
             conn = sqlite3.connect(DB_BACKTEST)
             df_tsg.to_sql(f"vc_jj_time_{strf_time('%Y%m%d')}", conn, if_exists='append', chunksize=1000)
             conn.close()

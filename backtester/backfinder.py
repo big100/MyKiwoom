@@ -92,8 +92,7 @@ if __name__ == "__main__":
 
     con = sqlite3.connect(DB_TICK)
     df_name = pd.read_sql("SELECT name FROM sqlite_master WHERE TYPE = 'table'", con)
-    df_mt = pd.read_sql('SELECT * FROM moneytop', con)
-    df_mt = df_mt.set_index('index')
+    df_mt = pd.read_sql('SELECT * FROM moneytop', con).set_index('index')
     con.close()
     table_list = list(df_name['name'].values)
     table_list.remove('moneytop')
