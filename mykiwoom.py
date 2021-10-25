@@ -159,7 +159,7 @@ class Window(QtWidgets.QMainWindow):
                 app.quit()
         elif msg[0] == 2:
             pushbutton = None
-            if msg[1] == '데이터베이스 불러오기':
+            if msg[1] == '데이터베이스 로딩':
                 pushbutton = self.sj_pushButton_02
             elif msg[1] == '트레이더 OPENAPI 로그인':
                 pushbutton = self.sj_pushButton_03
@@ -177,14 +177,22 @@ class Window(QtWidgets.QMainWindow):
                 pushbutton = self.sj_pushButton_09
             elif msg[1] == '실시간 조건검색식 등록':
                 pushbutton = self.sj_pushButton_10
-            elif msg[1] == '잔고청산':
+            elif msg[1] == '장초전략 잔고청산':
                 pushbutton = self.sj_pushButton_11
-            elif msg[1] == '실시간 데이터 수신 중단':
+            elif msg[1] == '실시간 조건검색식 중단':
                 pushbutton = self.sj_pushButton_12
-            elif msg[1] == '틱데이터 저장':
+            elif msg[1] == '장중전략 시작':
                 pushbutton = self.sj_pushButton_13
-            elif msg[1] == '시스템 종료':
+            elif msg[1] == '장중전략 잔고청산':
+                pushbutton = self.sj_pushButton_14
+            elif msg[1] == '실시간 데이터 수신 중단':
+                pushbutton = self.sj_pushButton_15
+            elif msg[1] == '당일거래목록 저장':
+                pushbutton = self.sj_pushButton_16
+            elif msg[1] == '틱데이터 저장':
                 pushbutton = self.sj_pushButton_17
+            elif msg[1] == '시스템 종료':
+                pushbutton = self.sj_pushButton_21
             if pushbutton is not None:
                 pushbutton.setStyleSheet(style_bc_dk)
                 pushbutton.setFont(qfont12)
@@ -192,13 +200,13 @@ class Window(QtWidgets.QMainWindow):
             pushbutton = None
             text = None
             if '테스트모드' in msg[1]:
-                pushbutton = self.sj_pushButton_14
+                pushbutton = self.sj_pushButton_18
                 text = '테스트모드 ON' if msg[1].split(' ')[-1] in ['ON', '1'] else '테스트모드 OFF'
             elif '모의투자' in msg[1]:
-                pushbutton = self.sj_pushButton_15
+                pushbutton = self.sj_pushButton_19
                 text = '모의투자 ON' if msg[1].split(' ')[-1] in ['ON', '1'] else '모의투자 OFF'
             elif '알림소리' in msg[1]:
-                pushbutton = self.sj_pushButton_16
+                pushbutton = self.sj_pushButton_20
                 text = '알림소리 ON' if msg[1].split(' ')[-1] in ['ON', '1'] else '알림소리 OFF'
 
             if pushbutton is not None and text is not None:

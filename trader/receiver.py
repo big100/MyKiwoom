@@ -85,7 +85,7 @@ class Receiver:
 
         self.timer = QTimer()
         self.timer.setInterval(60000)
-        self.timer.timeout.connect(self.ConditionSearch)
+        self.timer.timeout.connect(self.MoneyTopSearch)
 
         self.ocx = QAxWidget('KHOPENAPI.KHOpenAPICtrl.1')
         self.ocx.OnEventConnect.connect(self.OnEventConnect)
@@ -208,6 +208,7 @@ class Receiver:
                 self.windowQ.put([1, f"실시간 알림 등록 {result} - 리시버 [{sn}] 종목갯수 {len(rreg[1].split(';'))}"])
 
     def OperationRealreg(self):
+        self.windowQ.put([2, '장운영시간 알림 등록'])
         self.receivQ.put([sn_oper, ' ', '215;20;214', 0])
         self.list_code = self.SendCondition(sn_oper, self.dict_cond[1], 1, 0)
         self.list_code1 = [code for i, code in enumerate(self.list_code) if i % 4 == 0]
@@ -218,7 +219,7 @@ class Receiver:
         for i in range(0, len(self.list_code), 100):
             self.receivQ.put([sn_jchj + k, ';'.join(self.list_code[i:i + 100]), '10;12;14;30;228;41;61;71;81', 1])
             k += 1
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 장운영시간 등록 완료'])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 장운영시간 및 실시간주식체결 등록 완료'])
 
     def ViRealreg(self):
         self.windowQ.put([2, 'VI발동해제 등록'])
@@ -238,8 +239,46 @@ class Receiver:
 
     def ConditionSearchStop(self):
         self.dict_bool['실시간조건검색중단'] = True
+        self.windowQ.put([2, '실시간 조건검색식 중단'])
         self.ocx.dynamicCall("SendConditionStop(QString, QString, int)", sn_cond, self.dict_cond[0], 0)
         self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 실시간조건검색 중단 완료'])
+
+    def StartJangjungStrategy(self):
+        self.dict_bool['장중단타전략시작'] = True
+        self.windowQ.put([2, '장중전략 시작'])
+        self.df_mc.sort_values(by=['최근거래대금'], ascending=False, inplace=True)
+        list_top = list(self.df_mc.index[:MONEYTOP_RANK])
+        insert_list = set(list_top) - set(self.list_gsjm1)
+        if len(insert_list) > 0:
+            for code in list(insert_list):
+                self.InsertGsjmlist(code)
+        delete_list = set(self.list_gsjm1) - set(list_top)
+        if len(delete_list) > 0:
+            for code in list(delete_list):
+                self.DeleteGsjmlist(code)
+        self.list_prmt = list_top
+        self.timer.start()
+
+    def AllRemoveRealreg(self):
+        self.dict_bool['실시간데이터수신중단'] = True
+        self.windowQ.put([2, '실시간 데이터 수신 중단'])
+        self.receivQ.put(['ALL', 'ALL'])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 실시간 데이터 중단 완료'])
+
+    def SaveTickData(self):
+        self.windowQ.put([2, '틱데이터 저장'])
+        con = sqlite3.connect(DB_STG)
+        df = pd.read_sql(f"SELECT * FROM chegeollist WHERE 체결시간 LIKE '{self.str_tday}%'", con).set_index('index')
+        con.close()
+        codes = []
+        for name in list(df['종목명'].values):
+            code = self.dict_code[name]
+            if code not in codes:
+                codes.append(code)
+        self.tick1Q.put(['콜렉터종료', codes])
+        self.tick2Q.put(['콜렉터종료', codes])
+        self.tick3Q.put(['콜렉터종료', codes])
+        self.tick4Q.put(['콜렉터종료', codes])
 
     def UpdateJangolist(self, data):
         code = data.split(' ')[1]
@@ -254,22 +293,7 @@ class Receiver:
                 self.stgQ.put(['조건이탈', code])
                 self.list_gsjm2.remove(code)
 
-    def StartJangjungStrategy(self):
-        self.dict_bool['장중단타전략시작'] = True
-        self.df_mc.sort_values(by=['최근거래대금'], ascending=False, inplace=True)
-        list_top = list(self.df_mc.index[:MONEYTOP_RANK])
-        insert_list = set(list_top) - set(self.list_gsjm1)
-        if len(insert_list) > 0:
-            for code in list(insert_list):
-                self.InsertGsjmlist(code)
-        delete_list = set(self.list_gsjm1) - set(list_top)
-        if len(delete_list) > 0:
-            for code in list(delete_list):
-                self.DeleteGsjmlist(code)
-        self.list_prmt = list_top
-        self.timer.start()
-
-    def ConditionSearch(self):
+    def MoneyTopSearch(self):
         if len(self.df_mc) > 0:
             self.df_mc.sort_values(by=['최근거래대금'], ascending=False, inplace=True)
             list_top = list(self.df_mc.index[:MONEYTOP_RANK])
@@ -296,27 +320,6 @@ class Receiver:
         if code not in self.list_jang and code in self.list_gsjm2:
             self.stgQ.put(['조건이탈', code])
             self.list_gsjm2.remove(code)
-
-    def AllRemoveRealreg(self):
-        self.dict_bool['실시간데이터수신중단'] = True
-        self.windowQ.put([2, '실시간 데이터 수신 중단'])
-        self.receivQ.put(['ALL', 'ALL'])
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 실시간 데이터 중단 완료'])
-
-    def SaveTickData(self):
-        self.windowQ.put([2, '틱데이터 저장'])
-        con = sqlite3.connect(DB_STG)
-        df = pd.read_sql(f"SELECT * FROM chegeollist WHERE 체결시간 LIKE '{self.str_tday}%'", con).set_index('index')
-        con.close()
-        codes = []
-        for name in list(df['종목명'].values):
-            code = self.dict_code[name]
-            if code not in codes:
-                codes.append(code)
-        self.tick1Q.put(['콜렉터종료', codes])
-        self.tick2Q.put(['콜렉터종료', codes])
-        self.tick3Q.put(['콜렉터종료', codes])
-        self.tick4Q.put(['콜렉터종료', codes])
 
     def UpdateMoneyTop(self):
         timetype = '%Y%m%d%H%M%S'
@@ -401,8 +404,7 @@ class Receiver:
                 self.windowQ.put([1, f'OnReceiveRealData VI발동/해제 {e}'])
             else:
                 if gubun == '1' and code in self.list_code and \
-                        (code not in self.dict_vipr.keys() or
-                         (self.dict_vipr[code][0] and now() > self.dict_vipr[code][1])):
+                        (code not in self.dict_vipr.keys() or (self.dict_vipr[code][0] and now() > self.dict_vipr[code][1])):
                     self.UpdateViPrice(code, name)
         elif realtype == '주식체결':
             try:
@@ -417,10 +419,12 @@ class Receiver:
                     self.operation = 3
                 if dt != self.str_jcct and int(dt) > int(self.str_jcct):
                     self.str_jcct = dt
+
                 if code not in self.dict_vipr.keys():
                     self.InsertViPrice(code, o)
-                if code in self.dict_vipr.keys() and not self.dict_vipr[code][0] and now() > self.dict_vipr[code][1]:
+                elif not self.dict_vipr[code][0] and now() > self.dict_vipr[code][1]:
                     self.UpdateViPrice(code, c)
+
                 try:
                     pret = self.dict_tick[code][0]
                     bid_volumns = self.dict_tick[code][1]
@@ -433,6 +437,7 @@ class Receiver:
                     self.dict_tick[code] = [dt, bid_volumns + abs(v), ask_volumns]
                 else:
                     self.dict_tick[code] = [dt, bid_volumns, ask_volumns + abs(v)]
+
                 if dt != pret:
                     bids = self.dict_tick[code][1]
                     asks = self.dict_tick[code][2]
@@ -484,6 +489,17 @@ class Receiver:
         uvi, dvi, vid5price = self.GetVIPrice(code, o)
         self.dict_vipr[code] = [True, timedelta_sec(-180), uvi, dvi, vid5price]
 
+    def UpdateViPrice(self, code, key):
+        if type(key) == str:
+            try:
+                self.dict_vipr[code][:2] = False, timedelta_sec(5)
+            except KeyError:
+                self.dict_vipr[code] = [False, timedelta_sec(5), 0, 0, 0]
+            self.windowQ.put([1, f'변동성 완화 장치 발동 - [{code}] {key}'])
+        elif type(key) == int:
+            uvi, dvi, vid5price = self.GetVIPrice(code, key)
+            self.dict_vipr[code] = [True, timedelta_sec(5), uvi, dvi, vid5price]
+
     def GetVIPrice(self, code, std_price):
         uvi = std_price * 1.1
         x = self.GetHogaunit(code, uvi)
@@ -514,17 +530,6 @@ class Receiver:
         else:
             x = 1000
         return x
-
-    def UpdateViPrice(self, code, key):
-        if type(key) == str:
-            try:
-                self.dict_vipr[code][:2] = False, timedelta_sec(5)
-            except KeyError:
-                self.dict_vipr[code] = [False, timedelta_sec(5), 0, 0, 0]
-            self.windowQ.put([1, f'변동성 완화 장치 발동 - [{code}] {key}'])
-        elif type(key) == int:
-            uvi, dvi, vid5price = self.GetVIPrice(code, key)
-            self.dict_vipr[code] = [True, timedelta_sec(5), uvi, dvi, vid5price]
 
     def UpdateTickData(self, code, name, c, o, h, low, per, dm, ch, bids, asks, dt, receivetime):
         dt_ = dt[:13]

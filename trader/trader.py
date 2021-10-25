@@ -75,7 +75,7 @@ class Trader:
             '장초전략잔고청산': False,
             '장중전략잔고청산': False,
             '실시간데이터수신중단': False,
-            '일별거래목록저장': False,
+            '당일거래목록저장': False,
 
             '테스트': False,
             '모의투자': False,
@@ -113,7 +113,7 @@ class Trader:
 
     def LoadDatabase(self):
         self.dict_bool['데이터베이스로딩'] = True
-        self.windowQ.put([2, '데이터베이스 불러오기'])
+        self.windowQ.put([2, '데이터베이스 로딩'])
         con = sqlite3.connect(DB_STG)
         df = pd.read_sql('SELECT * FROM setting', con)
         df = df.set_index('index')
@@ -138,7 +138,7 @@ class Trader:
         if len(self.df_td) > 0:
             self.windowQ.put([ui_num['거래목록'], self.df_td])
 
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 DB 정보 불러오기 완료'])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 DB 정보 로딩 완료'])
 
     def CommConnect(self):
         self.windowQ.put([2, '트레이더 OPENAPI 로그인'])
@@ -204,12 +204,14 @@ class Trader:
 
             if self.dict_intg['장운영상태'] == 1 and now() > self.dict_time['휴무종료']:
                 break
-            if int(strf_time('%H%M%S')) >= 100000 and not self.dict_bool['장초전략잔고청산']:
-                self.JangoChungsan1()
-            if int(strf_time('%H%M%S')) >= 152900 and not self.dict_bool['장중전략잔고청산']:
-                self.JangoChungsan2()
-            if self.dict_intg['장운영상태'] == 8 and not self.dict_bool['일별거래목록저장']:
+            if self.dict_intg['장운영상태'] == 3:
+                if int(strf_time('%H%M%S')) >= 100000 and not self.dict_bool['장초전략잔고청산']:
+                    self.JangoChungsan1()
+                if int(strf_time('%H%M%S')) >= 152900 and not self.dict_bool['장중전략잔고청산']:
+                    self.JangoChungsan2()
+            if self.dict_intg['장운영상태'] == 8 and not self.dict_bool['실시간데이터수신중단']:
                 self.AllRemoveRealreg()
+            if self.dict_intg['장운영상태'] == 8 and not self.dict_bool['당일거래목록저장']:
                 self.SaveDayData()
 
             if now() > self.dict_time['호가정보']:
@@ -372,8 +374,8 @@ class Trader:
                 omc = df['미체결수량'][on]
                 order = ['매도취소', '4989', self.dict_strg['계좌번호'], 4, code, omc, 0, '00', on, name]
                 self.traderQ.put(order)
-        elif work == '데이터베이스 불러오기':
-            if not self.dict_bool['데이터베이스 로딩']:
+        elif work == '데이터베이스 로딩':
+            if not self.dict_bool['데이터베이스로딩']:
                 self.LoadDatabase()
         elif work == 'OPENAPI 로그인':
             if self.ocx.dynamicCall('GetConnectState()') == 0:
@@ -385,31 +387,36 @@ class Trader:
             if not self.dict_bool['업종차트조회']:
                 self.GetKospiKosdaqChart()
         elif work == '장운영시간 알림 등록':
-            if not self.dict_bool['장운영시간등록']:
-                self.OperationRealreg()
+            self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 리시버에서 자동실행됩니다.'])
         elif work == '업종지수 주식체결 등록':
             if not self.dict_bool['업종지수등록']:
                 self.UpjongjisuRealreg()
+        elif work == 'VI발동해제 등록':
+            self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 리시버에서 자동실행됩니다.'])
         elif work == '장운영상태':
             if self.dict_intg['장운영상태'] != 3:
                 self.windowQ.put([2, '장운영상태'])
                 self.dict_intg['장운영상태'] = 3
         elif work == '실시간 조건검색식 등록':
             self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 리시버에서 자동실행됩니다.'])
-        elif work == '장초전략잔고청산':
+        elif work == '장초전략 잔고청산':
             if not self.dict_bool['장초전략잔고청산']:
                 self.JangoChungsan1()
-        elif work == '장중전략잔고청산':
+        elif work == '실시간 조건검색식 중단':
+            self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 리시버에서 자동실행됩니다.'])
+        elif work == '장중전략 시작':
+            self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 리시버에서 자동실행됩니다.'])
+        elif work == '장중전략 잔고청산':
             if not self.dict_bool['장중전략잔고청산']:
                 self.JangoChungsan2()
         elif work == '실시간 데이터 수신 중단':
-            if not self.dict_bool['실시간데이터수신중단']:
-                self.AllRemoveRealreg()
+            self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 리시버에서 자동실행됩니다.'])
+        elif work == '당일거래목록 저장':
+            if not self.dict_bool['당일거래목록저장']:
+                self.SaveDayData()
         elif work == '틱데이터 저장':
             self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 콜렉터에서 자동실행됩니다.'])
         elif work == '시스템 종료':
-            if not self.dict_bool['일별거래목록저장']:
-                self.SaveDayData()
             self.SysExit()
         elif work == '/당일체결목록':
             if len(self.df_cj) > 0:
@@ -603,7 +610,6 @@ class Trader:
 
     def OperationRealreg(self):
         self.dict_bool['장운영시간등록'] = True
-        self.windowQ.put([2, '장운영시간 알림 등록'])
         self.traderQ.put([sn_oper, ' ', '215;20;214', 0])
 
     def UpjongjisuRealreg(self):
@@ -619,7 +625,7 @@ class Trader:
 
     def JangoChungsan1(self):
         self.dict_bool['장초전략잔고청산'] = True
-        self.windowQ.put([2, '장초전략잔고청산'])
+        self.windowQ.put([2, '장초전략 잔고청산'])
         if len(self.df_jg) > 0:
             for code in self.df_jg.index:
                 if code in self.list_sell:
@@ -638,7 +644,7 @@ class Trader:
 
     def JangoChungsan2(self):
         self.dict_bool['장중전략잔고청산'] = True
-        self.windowQ.put([2, '장중전략잔고청산'])
+        self.windowQ.put([2, '장중전략 잔고청산'])
         if len(self.df_jg) > 0:
             for code in self.df_jg.index:
                 if code in self.list_sell:
@@ -656,13 +662,14 @@ class Trader:
         self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 장중전략 잔고청산 주문 완료'])
 
     def AllRemoveRealreg(self):
-        self.windowQ.put([2, '실시간 데이터 수신 중단'])
+        self.dict_bool['실시간데이터수신중단'] = True
         self.traderQ.put(['ALL', 'ALL'])
         if self.dict_bool['알림소리']:
             self.soundQ.put('실시간 데이터의 수신을 중단하였습니다.')
 
     def SaveDayData(self):
-        self.dict_bool['일별거래목록저장'] = True
+        self.dict_bool['당일거래목록저장'] = True
+        self.windowQ.put([2, '당일거래목록 저장'])
         if len(self.df_td) > 0:
             df = self.df_tt[['총매수금액', '총매도금액', '총수익금액', '총손실금액', '수익률', '수익금합계']].copy()
             self.queryQ.put([1, df, 'totaltradelist', 'append'])
