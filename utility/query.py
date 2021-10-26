@@ -34,23 +34,19 @@ class Query:
                 self.create_trigger()
                 self.trigger = True
             elif query[0] == 1:
-                if len(query) == 2:
-                    try:
+                try:
+                    if len(query) == 2:
                         self.cur1.execute(query[1])
-                    except Exception as e:
-                        self.windowQ.put([1, f'시스템 명령 오류 알림 - con1 execute {e}'])
-                    else:
                         self.con1.commit()
-                elif len(query) == 4:
-                    try:
+                    elif len(query) == 4:
                         query[1].to_sql(query[2], self.con1, if_exists=query[3], chunksize=1000, method='multi')
-                    except Exception as e:
-                        self.windowQ.put([1, f'시스템 명령 오류 알림 - con1 to_sql {e}'])
+                except Exception as e:
+                    self.windowQ.put([1, f'시스템 명령 오류 알림 - con1 {e}'])
             elif query[0] == 2:
                 try:
                     if len(query) == 2:
                         if type(query[1]) == str:
-                            self.con2.execute(query[1])
+                            self.cur2.execute(query[1])
                             self.con2.commit()
                         else:
                             start = now()
@@ -60,7 +56,7 @@ class Query:
                                 df = df.append(query[1][code])
                             if k == 4 and self.trigger:
                                 df.to_sql("temp", self.con2, if_exists='append', chunksize=1000, method='multi')
-                                self.con2.execute('insert into "dist" ("cnt") values (1);')
+                                self.cur2.execute('insert into "dist" ("cnt") values (1);')
                                 save_time = float2str1p6((now() - start).total_seconds())
                                 text = f'시스템 명령 실행 알림 - 틱데이터 저장 쓰기소요시간은 [{save_time}]초입니다.'
                                 self.windowQ.put([1, text])
@@ -81,7 +77,7 @@ class Query:
                     elif len(query) == 4:
                         query[1].to_sql(query[2], self.con2, if_exists=query[3], chunksize=1000, method='multi')
                 except Exception as e:
-                    self.windowQ.put([1, f'시스템 명령 오류 알림 - con2 to_sql {e}'])
+                    self.windowQ.put([1, f'시스템 명령 오류 알림 - con2 {e}'])
 
     def create_trigger(self):
         res = self.cur2.execute("SELECT name FROM sqlite_master WHERE type='table';")
