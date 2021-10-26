@@ -204,11 +204,10 @@ class Trader:
 
             if self.dict_intg['장운영상태'] == 1 and now() > self.dict_time['휴무종료']:
                 break
-            if self.dict_intg['장운영상태'] == 3:
-                if int(strf_time('%H%M%S')) >= 100000 and not self.dict_bool['장초전략잔고청산']:
-                    self.JangoChungsan1()
-                if int(strf_time('%H%M%S')) >= 152900 and not self.dict_bool['장중전략잔고청산']:
-                    self.JangoChungsan2()
+            if self.dict_intg['장운영상태'] == 3 and int(strf_time('%H%M%S')) >= 100000 and not self.dict_bool['장초전략잔고청산']:
+                self.JangoChungsan1()
+            if self.dict_intg['장운영상태'] == 2 and int(strf_time('%H%M%S')) >= 152900 and not self.dict_bool['장중전략잔고청산']:
+                self.JangoChungsan2()
             if self.dict_intg['장운영상태'] == 8 and not self.dict_bool['실시간데이터수신중단']:
                 self.AllRemoveRealreg()
             if self.dict_intg['장운영상태'] == 8 and not self.dict_bool['당일거래목록저장']:
