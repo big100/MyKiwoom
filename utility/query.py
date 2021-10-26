@@ -49,12 +49,12 @@ class Query:
                             self.cur2.execute(query[1])
                             self.con2.commit()
                         else:
-                            start = now()
                             k += 1
                             for code in list(query[1].keys()):
                                 query[1][code]['종목코드'] = code
                                 df = df.append(query[1][code])
                             if k == 4 and self.trigger:
+                                start = now()
                                 df.to_sql("temp", self.con2, if_exists='append', chunksize=1000, method='multi')
                                 self.cur2.execute('insert into "dist" ("cnt") values (1);')
                                 save_time = float2str1p6((now() - start).total_seconds())
