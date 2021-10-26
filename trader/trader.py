@@ -179,23 +179,19 @@ class Trader:
         self.OperationRealreg()
         self.UpjongjisuRealreg()
         while True:
+            pythoncom.PumpWaitingMessages()
+
             if not self.traderQ.empty():
                 data = self.traderQ.get()
                 if type(data) == list:
-                    if len(data) == 10:
-                        self.SendOrder(data)
-                    elif len(data) == 5:
+                    if len(data) == 5:
                         self.BuySell(data[0], data[1], data[2], data[3], data[4])
                         continue
-                    elif len(data) in [2, 4]:
-                        if data[0] == 'VI정보':
-                            self.dict_vipr = data[1]
-                        else:
-                            self.UpdateRealreg(data)
-                            continue
                     elif len(data) == 6:
                         self.UpdateJango(data[0], data[1], data[2], data[3], data[4], data[5])
                         continue
+                    elif len(data) == 2:
+                        self.dict_vipr = data[1]
                 elif type(data) == str:
                     if data != '틱데이터저장완료':
                         self.RunWork(data)
@@ -204,12 +200,12 @@ class Trader:
 
             if self.dict_intg['장운영상태'] == 1 and now() > self.dict_time['휴무종료']:
                 break
-            if self.dict_intg['장운영상태'] == 3 and int(strf_time('%H%M%S')) >= 100000 and not self.dict_bool['장초전략잔고청산']:
+            if int(strf_time('%H%M%S')) >= 100000 and not self.dict_bool['장초전략잔고청산']:
                 self.JangoChungsan1()
-            if self.dict_intg['장운영상태'] == 2 and int(strf_time('%H%M%S')) >= 152900 and not self.dict_bool['장중전략잔고청산']:
+            if int(strf_time('%H%M%S')) >= 152900 and not self.dict_bool['장중전략잔고청산']:
                 self.JangoChungsan2()
             if self.dict_intg['장운영상태'] == 8 and not self.dict_bool['실시간데이터수신중단']:
-                self.AllRemoveRealreg()
+                self.RemoveAllRealreg()
             if self.dict_intg['장운영상태'] == 8 and not self.dict_bool['당일거래목록저장']:
                 self.SaveDayData()
 
@@ -223,22 +219,11 @@ class Trader:
                 self.UpdateInfo()
                 self.dict_time['부가정보'] = timedelta_sec(2)
 
-            time_loop = timedelta_sec(0.25)
-            while now() < time_loop:
-                pythoncom.PumpWaitingMessages()
-                time.sleep(0.0001)
+            time.sleep(0.001)
 
         self.stgQ.put('전략프로세스종료')
         self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 종료'])
         self.SysExit()
-
-    def SendOrder(self, order):
-        name = order[-1]
-        del order[-1]
-        ret = self.ocx.dynamicCall(
-            'SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)', order)
-        if ret != 0:
-            self.windowQ.put([1, f'매매 시스템 오류 알림 - {name} {order[5]}주 {order[0]} 주문 실패'])
 
     def BuySell(self, gubun, code, name, c, oc):
         if gubun == '매수':
@@ -281,13 +266,18 @@ class Trader:
         if self.dict_bool['모의투자'] or gubun == '시드부족':
             self.UpdateChejanData(code, name, '체결', gubun, c, c, oc, 0, strf_time('%Y%m%d%H%M%S%f'))
         else:
-            self.traderQ.put([gubun, '4989', self.dict_strg['계좌번호'], on, code, oc, 0, '03', '', name])
+            self.SendOrder([gubun, '4989', self.dict_strg['계좌번호'], on, code, oc, 0, '03', '', name])
 
-    def UpdateRealreg(self, rreg):
-        if len(rreg) == 2:
-            self.ocx.dynamicCall('SetRealRemove(QString, QString)', rreg)
-        elif len(rreg) == 4:
-            self.ocx.dynamicCall('SetRealReg(QString, QString, QString, QString)', rreg)
+    def SendOrder(self, order):
+        name = order[-1]
+        del order[-1]
+        ret = self.ocx.dynamicCall(
+            'SendOrder(QString, QString, QString, int, QString, int, int, QString, QString)', order)
+        if ret != 0:
+            self.windowQ.put([1, f'매매 시스템 오류 알림 - {name} {order[5]}주 {order[0]} 주문 실패'])
+        sleeptime = timedelta_sec(0.21)
+        while now() < sleeptime:
+            pythoncom.PumpWaitingMessages()
 
     def RunWork(self, work):
         if '현재가' in work:
@@ -307,9 +297,9 @@ class Trader:
                 self.chart8Q.put('종목뉴스 ' + code)
                 self.chart9Q.put('재무제표 ' + code)
                 self.hoga1Q.put('초기화')
-                self.traderQ.put([sn_cthg, code, '10;12;14;30;228;41;61;71;81', 1])
+                self.SetRealReg([sn_cthg, code, '10;12;14;30;228;41;61;71;81', 1])
                 if 0 in self.dict_hoga.keys():
-                    self.traderQ.put([sn_cthg, self.dict_hoga[0][0]])
+                    self.SetRealRemove([sn_cthg, self.dict_hoga[0][0]])
                 self.dict_hoga[0] = [code, True, pd.DataFrame(columns=columns_hj)]
                 self.GetChart(gubun, code, name)
                 self.GetTujajaChegeolH(code)
@@ -322,9 +312,9 @@ class Trader:
                     Timer(self.RemainedTrtime, self.traderQ.put, args=[work]).start()
                     return
                 self.hoga1Q.put('초기화')
-                self.traderQ.put([sn_cthg, code, '10;12;14;30;228;41;61;71;81', 1])
+                self.SetRealReg([sn_cthg, code, '10;12;14;30;228;41;61;71;81', 1])
                 if 0 in self.dict_hoga.keys():
-                    self.traderQ.put([sn_cthg, self.dict_hoga[0][0]])
+                    self.SetRealRemove([sn_cthg, self.dict_hoga[0][0]])
                 self.dict_hoga[0] = [code, True, pd.DataFrame(columns=columns_hj)]
                 self.GetChart(gubun, code, name)
             elif gubun == ui_num['차트P3']:
@@ -336,9 +326,9 @@ class Trader:
                     Timer(self.RemainedTrtime, self.traderQ.put, args=[work]).start()
                     return
                 self.hoga2Q.put('초기화')
-                self.traderQ.put([sn_cthg, code, '10;12;14;30;228;41;61;71;81', 1])
+                self.SetRealReg([sn_cthg, code, '10;12;14;30;228;41;61;71;81', 1])
                 if 1 in self.dict_hoga.keys():
-                    self.traderQ.put([sn_cthg, self.dict_hoga[1][0]])
+                    self.SetRealRemove([sn_cthg, self.dict_hoga[1][0]])
                 self.dict_hoga[1] = [code, True, pd.DataFrame(columns=columns_hj)]
                 self.GetChart(gubun, code, name)
             elif gubun == ui_num['차트P5']:
@@ -362,7 +352,7 @@ class Trader:
                 on = df.index[0]
                 omc = df['미체결수량'][on]
                 order = ['매수취소', '4989', self.dict_strg['계좌번호'], 3, code, omc, 0, '00', on, name]
-                self.traderQ.put(order)
+                self.SendOrder(order)
         elif '매도취소' in work:
             code = work.split(' ')[1]
             name = self.dict_name[code]
@@ -372,7 +362,7 @@ class Trader:
                 on = df.index[0]
                 omc = df['미체결수량'][on]
                 order = ['매도취소', '4989', self.dict_strg['계좌번호'], 4, code, omc, 0, '00', on, name]
-                self.traderQ.put(order)
+                self.SendOrder(order)
         elif work == '데이터베이스 로딩':
             if not self.dict_bool['데이터베이스로딩']:
                 self.LoadDatabase()
@@ -609,13 +599,13 @@ class Trader:
 
     def OperationRealreg(self):
         self.dict_bool['장운영시간등록'] = True
-        self.traderQ.put([sn_oper, ' ', '215;20;214', 0])
+        self.SetRealReg([sn_oper, ' ', '215;20;214', 0])
 
     def UpjongjisuRealreg(self):
         self.dict_bool['업종지수등록'] = True
         self.windowQ.put([2, '업종지수 주식체결 등록'])
-        self.traderQ.put([sn_oper, '001', '10;15;20', 1])
-        self.traderQ.put([sn_oper, '101', '10;15;20', 1])
+        self.SetRealReg([sn_oper, '001', '10;15;20', 1])
+        self.SetRealReg([sn_oper, '101', '10;15;20', 1])
         self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 업종지수 주식체결 등록 완료'])
         if self.dict_bool['알림소리']:
             self.soundQ.put('자동매매 시스템을 시작하였습니다.')
@@ -660,9 +650,9 @@ class Trader:
             self.soundQ.put('장중전략 잔고청산 주문을 전송하였습니다.')
         self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 장중전략 잔고청산 주문 완료'])
 
-    def AllRemoveRealreg(self):
+    def RemoveAllRealreg(self):
         self.dict_bool['실시간데이터수신중단'] = True
-        self.traderQ.put(['ALL', 'ALL'])
+        self.SetRealRemove(['ALL', 'ALL'])
         if self.dict_bool['알림소리']:
             self.soundQ.put('실시간 데이터의 수신을 중단하였습니다.')
 
@@ -924,6 +914,7 @@ class Trader:
         sp = round(sg / bg * 100, 2)
         return pg, sg, sp
 
+    @thread_decorator
     def UpdateChartHoga(self, code, name, c, o, h, low, per, ch, v, t, prec):
         if ui_num['차트P1'] in self.dict_chat.keys() and code == self.dict_chat[ui_num['차트P1']]:
             self.chart1Q.put([code, t, c, per, ch])
@@ -1191,6 +1182,12 @@ class Trader:
     @property
     def RemainedTrtime(self):
         return round((self.dict_time['TR재개'] - now()).total_seconds(), 2)
+
+    def SetRealReg(self, rreg):
+        self.ocx.dynamicCall('SetRealReg(QString, QString, QString, QString)', rreg)
+
+    def SetRealRemove(self, rreg):
+        self.ocx.dynamicCall('SetRealRemove(QString, QString)', rreg)
 
     def DisconnectRealData(self, screen):
         self.ocx.dynamicCall('DisconnectRealData(QString)', screen)

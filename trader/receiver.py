@@ -151,14 +151,12 @@ class Receiver:
 
     def EventLoop(self):
         self.OperationRealreg()
-        self.ViRealreg()
         while True:
+            pythoncom.PumpWaitingMessages()
+
             if not self.receivQ.empty():
                 data = self.receivQ.get()
-                if type(data) == list:
-                    self.UpdateRealreg(data)
-                elif type(data) == str:
-                    self.UpdateJangolist(data)
+                self.UpdateJangolist(data)
                 continue
 
             if self.operation == 1 and now() > self.dict_time['휴무종료']:
@@ -173,7 +171,7 @@ class Receiver:
                     if not self.dict_bool['장중단타전략시작']:
                         self.StartJangjungStrategy()
             if self.operation == 8:
-                self.AllRemoveRealreg()
+                self.RemoveAllRealreg()
                 self.SaveTickData()
                 break
 
@@ -187,51 +185,39 @@ class Receiver:
                 self.UpdateInfo()
                 self.dict_time['부가정보'] = timedelta_sec(2)
 
-            time_loop = timedelta_sec(0.25)
-            while now() < time_loop:
-                pythoncom.PumpWaitingMessages()
-                time.sleep(0.0001)
+            time.sleep(0.001)
 
         self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 종료'])
 
-    def UpdateRealreg(self, rreg):
-        sn = rreg[0]
-        if len(rreg) == 2:
-            self.ocx.dynamicCall('SetRealRemove(QString, QString)', rreg)
-            self.windowQ.put([1, f'실시간 알림 중단 완료 - 모든 실시간 데이터 수신 중단'])
-        elif len(rreg) == 4:
-            ret = self.ocx.dynamicCall('SetRealReg(QString, QString, QString, QString)', rreg)
-            result = '완료' if ret == 0 else '실패'
-            if sn == sn_oper:
-                self.windowQ.put([1, f'실시간 알림 등록 {result} - 리시버 장운영시간 [{sn}]'])
-            else:
-                self.windowQ.put([1, f"실시간 알림 등록 {result} - 리시버 [{sn}] 종목갯수 {len(rreg[1].split(';'))}"])
-
     def OperationRealreg(self):
         self.windowQ.put([2, '장운영시간 알림 등록'])
-        self.receivQ.put([sn_oper, ' ', '215;20;214', 0])
-        self.list_code = self.SendCondition(sn_oper, self.dict_cond[1], 1, 0)
+        self.SetRealReg([sn_oper, ' ', '215;20;214', 0])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 장운영시간 등록 완료'])
+
+        self.windowQ.put([2, 'VI발동해제 등록'])
+        self.Block_Request('opt10054', 시장구분='000', 장전구분='1', 종목코드='', 발동구분='1', 제외종목='111111011',
+                           거래량구분='0', 거래대금구분='0', 발동방향='0', output='발동종목', next=0)
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 VI발동해제 등록 완료'])
+
+        self.list_code = self.SendCondition([sn_oper, self.dict_cond[1], 1, 0])
         self.list_code1 = [code for i, code in enumerate(self.list_code) if i % 4 == 0]
         self.list_code2 = [code for i, code in enumerate(self.list_code) if i % 4 == 1]
         self.list_code3 = [code for i, code in enumerate(self.list_code) if i % 4 == 2]
         self.list_code4 = [code for i, code in enumerate(self.list_code) if i % 4 == 3]
         k = 0
         for i in range(0, len(self.list_code), 100):
-            self.receivQ.put([sn_jchj + k, ';'.join(self.list_code[i:i + 100]), '10;12;14;30;228;41;61;71;81', 1])
+            rreg = [sn_jchj + k, ';'.join(self.list_code[i:i + 100]), '10;12;14;30;228;41;61;71;81', 1]
+            self.SetRealReg(rreg)
+            text = f"실시간 알림 등록 완료 - [{sn_jchj + k}] 종목갯수 {len(rreg[1].split(';'))}"
+            self.windowQ.put([1, text])
             k += 1
         self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 장운영시간 및 실시간주식체결 등록 완료'])
-
-    def ViRealreg(self):
-        self.windowQ.put([2, 'VI발동해제 등록'])
-        self.Block_Request('opt10054', 시장구분='000', 장전구분='1', 종목코드='', 발동구분='1', 제외종목='111111011',
-                           거래량구분='0', 거래대금구분='0', 발동방향='0', output='발동종목', next=0)
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 VI발동해제 등록 완료'])
         self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 시작 완료'])
 
     def ConditionSearchStart(self):
         self.dict_bool['실시간조건검색시작'] = True
         self.windowQ.put([2, '실시간 조건검색식 등록'])
-        codes = self.SendCondition(sn_cond, self.dict_cond[0], 0, 1)
+        codes = self.SendCondition([sn_cond, self.dict_cond[0], 0, 1])
         if len(codes) > 0:
             for code in codes:
                 self.InsertGsjmlist(code)
@@ -240,7 +226,7 @@ class Receiver:
     def ConditionSearchStop(self):
         self.dict_bool['실시간조건검색중단'] = True
         self.windowQ.put([2, '실시간 조건검색식 중단'])
-        self.ocx.dynamicCall("SendConditionStop(QString, QString, int)", sn_cond, self.dict_cond[0], 0)
+        self.SendConditionStop([sn_cond, self.dict_cond[0], 0])
         self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 실시간조건검색 중단 완료'])
 
     def StartJangjungStrategy(self):
@@ -259,10 +245,10 @@ class Receiver:
         self.list_prmt = list_top
         self.timer.start()
 
-    def AllRemoveRealreg(self):
+    def RemoveAllRealreg(self):
         self.dict_bool['실시간데이터수신중단'] = True
         self.windowQ.put([2, '실시간 데이터 수신 중단'])
-        self.receivQ.put(['ALL', 'ALL'])
+        self.SetRealRemove(['ALL', 'ALL'])
         self.windowQ.put([1, '시스템 명령 실행 알림 - 리시버 실시간 데이터 중단 완료'])
 
     def SaveTickData(self):
@@ -419,28 +405,20 @@ class Receiver:
                     self.operation = 3
                 if dt != self.str_jcct and int(dt) > int(self.str_jcct):
                     self.str_jcct = dt
-
                 if code not in self.dict_vipr.keys():
                     self.InsertViPrice(code, o)
                 elif not self.dict_vipr[code][0] and now() > self.dict_vipr[code][1]:
                     self.UpdateViPrice(code, c)
-
                 try:
-                    pret = self.dict_tick[code][0]
-                    bid_volumns = self.dict_tick[code][1]
-                    ask_volumns = self.dict_tick[code][2]
+                    predt, bid_volumns, ask_volumns = self.dict_tick[code]
                 except KeyError:
-                    pret = None
-                    bid_volumns = 0
-                    ask_volumns = 0
+                    predt, bid_volumns, ask_volumns = None, 0, 0
                 if v > 0:
                     self.dict_tick[code] = [dt, bid_volumns + abs(v), ask_volumns]
                 else:
                     self.dict_tick[code] = [dt, bid_volumns, ask_volumns + abs(v)]
-
-                if dt != pret:
-                    bids = self.dict_tick[code][1]
-                    asks = self.dict_tick[code][2]
+                if dt != predt:
+                    bids, asks = self.dict_tick[code][1:]
                     self.dict_tick[code] = [dt, 0, 0]
                     try:
                         h = abs(int(self.GetCommRealData(code, 17)))
@@ -458,26 +436,16 @@ class Receiver:
             try:
                 tsjr = int(self.GetCommRealData(code, 121))
                 tbjr = int(self.GetCommRealData(code, 125))
-                s5hg = abs(int(self.GetCommRealData(code, 45)))
-                s4hg = abs(int(self.GetCommRealData(code, 44)))
-                s3hg = abs(int(self.GetCommRealData(code, 43)))
-                s2hg = abs(int(self.GetCommRealData(code, 42)))
-                s1hg = abs(int(self.GetCommRealData(code, 41)))
-                b1hg = abs(int(self.GetCommRealData(code, 51)))
-                b2hg = abs(int(self.GetCommRealData(code, 52)))
-                b3hg = abs(int(self.GetCommRealData(code, 53)))
-                b4hg = abs(int(self.GetCommRealData(code, 54)))
-                b5hg = abs(int(self.GetCommRealData(code, 55)))
-                s5jr = int(self.GetCommRealData(code, 65))
-                s4jr = int(self.GetCommRealData(code, 64))
-                s3jr = int(self.GetCommRealData(code, 63))
-                s2jr = int(self.GetCommRealData(code, 62))
-                s1jr = int(self.GetCommRealData(code, 61))
-                b1jr = int(self.GetCommRealData(code, 71))
-                b2jr = int(self.GetCommRealData(code, 72))
-                b3jr = int(self.GetCommRealData(code, 73))
-                b4jr = int(self.GetCommRealData(code, 74))
-                b5jr = int(self.GetCommRealData(code, 75))
+                s5hg, b5hg = abs(int(self.GetCommRealData(code, 45))), abs(int(self.GetCommRealData(code, 55)))
+                s4hg, b4hg = abs(int(self.GetCommRealData(code, 44))), abs(int(self.GetCommRealData(code, 54)))
+                s3hg, b3hg = abs(int(self.GetCommRealData(code, 43))), abs(int(self.GetCommRealData(code, 53)))
+                s2hg, b2hg = abs(int(self.GetCommRealData(code, 42))), abs(int(self.GetCommRealData(code, 52)))
+                s1hg, b1hg = abs(int(self.GetCommRealData(code, 41))), abs(int(self.GetCommRealData(code, 51)))
+                s5jr, b5jr = int(self.GetCommRealData(code, 65)), int(self.GetCommRealData(code, 75))
+                s4jr, b4jr = int(self.GetCommRealData(code, 64)), int(self.GetCommRealData(code, 74))
+                s3jr, b3jr = int(self.GetCommRealData(code, 63)), int(self.GetCommRealData(code, 73))
+                s2jr, b2jr = int(self.GetCommRealData(code, 62)), int(self.GetCommRealData(code, 72))
+                s1jr, b1jr = int(self.GetCommRealData(code, 61)), int(self.GetCommRealData(code, 71))
             except Exception as e:
                 self.windowQ.put([1, f'OnReceiveRealData 주식호가잔량 {e}'])
             else:
@@ -608,12 +576,21 @@ class Receiver:
             pythoncom.PumpWaitingMessages()
         return self.df_tr
 
-    def SendCondition(self, screen, cond_name, cond_index, search):
+    def SendCondition(self, cond):
         self.dict_bool['CR수신'] = False
-        self.ocx.dynamicCall('SendCondition(QString, QString, int, int)', screen, cond_name, cond_index, search)
+        self.ocx.dynamicCall('SendCondition(QString, QString, int, int)', cond)
         while not self.dict_bool['CR수신']:
             pythoncom.PumpWaitingMessages()
         return self.list_trcd
+
+    def SendConditionStop(self, cond):
+        self.ocx.dynamicCall("SendConditionStop(QString, QString, int)", cond)
+
+    def SetRealReg(self, rreg):
+        self.ocx.dynamicCall('SetRealReg(QString, QString, QString, QString)', rreg)
+
+    def SetRealRemove(self, rreg):
+        self.ocx.dynamicCall('SetRealRemove(QString, QString)', rreg)
 
     def GetMasterCodeName(self, code):
         return self.ocx.dynamicCall('GetMasterCodeName(QString)', code)
