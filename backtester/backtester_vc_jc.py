@@ -123,13 +123,15 @@ class BackTesterVc:
         conn.close()
 
     def BuyTerm(self):
-        if type(self.df['현재가'][self.index]) == pd.Series or type(self.df_mt['거래대금순위'][self.index]) == pd.Series:
+        if type(self.df['현재가'][self.index]) == pd.Series:
             return False
-
-        if self.code not in self.df_mt['거래대금순위'][self.index]:
-            self.ccond = 0
-        else:
-            self.ccond += 1
+        try:
+            if self.code not in self.df_mt['거래대금순위'][self.index]:
+                self.ccond = 0
+            else:
+                self.ccond += 1
+        except KeyError:
+            return False
         if self.ccond < self.avg_time + 1:
             return False
 
@@ -507,7 +509,6 @@ if __name__ == "__main__":
                     elif i == 7:
                         num[i][0] = 0.
                     ogin_var = num[i][0]
-                    high_var = num[i][0]
                 else:
                     break
             num[i][0] = round(num[i][0] + num[i][2], 1)
