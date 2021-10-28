@@ -153,7 +153,7 @@ class Receiver:
             if code not in table_list:
                 query = f'CREATE TABLE "{code}" ("index" TEXT, "현재가" REAL, "시가" REAL, "고가" REAL,' \
                          '"저가" REAL, "등락율" REAL, "당일거래대금" REAL, "체결강도" REAL, "초당매수수량" REAL,' \
-                         '"초당매도수량" REAL, "VI해제시간" REAL, "VI아래5호가" REAL, "매도총잔량" REAL, "매수총잔량" REAL,' \
+                         '"초당매도수량" REAL, "VI해제시간" TEXT, "VI아래5호가" REAL, "매도총잔량" REAL, "매수총잔량" REAL,' \
                          '"매도호가5" REAL, "매도호가4" REAL, "매도호가3" REAL, "매도호가2" REAL, "매도호가1" REAL,' \
                          '"매수호가1" REAL, "매수호가2" REAL, "매수호가3" REAL, "매수호가4" REAL, "매수호가5" REAL,' \
                          '"매도잔량5" REAL, "매도잔량4" REAL, "매도잔량3" REAL, "매도잔량2" REAL, "매도잔량1" REAL,' \
