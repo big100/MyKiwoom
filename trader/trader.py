@@ -3,6 +3,7 @@ import sys
 import time
 import psutil
 import pythoncom
+from PyQt5 import QtCore
 from PyQt5 import QtWidgets
 from threading import Timer
 from PyQt5.QAxContainer import QAxWidget
@@ -10,32 +11,53 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.static import *
 from utility.setting import *
 
-TUJAGMDIVIDE = 5    # 종목당 투자금 분할계수
+TUJAGMDIVIDE = 10    # 종목당 투자금 분할계수
+
+
+class Updater(QtCore.QThread):
+    data1 = QtCore.pyqtSignal(list)
+    data2 = QtCore.pyqtSignal(str)
+
+    def __init__(self, traderQ):
+        super().__init__()
+        self.traderQ = traderQ
+
+    def run(self):
+        while True:
+            data = self.traderQ.get()
+            if type(data) == list:
+                self.data1.emit(data)
+            elif type(data) == str:
+                self.data2.emit(data)
 
 
 class Trader:
-    app = QtWidgets.QApplication(sys.argv)
-
-    def __init__(self, windowQ, traderQ, stgQ, receivQ, soundQ, queryQ, teleQ, hoga1Q, hoga2Q,
-                 chart1Q, chart2Q, chart3Q, chart4Q, chart5Q, chart6Q, chart7Q, chart8Q, chart9Q):
-        self.windowQ = windowQ
-        self.traderQ = traderQ
-        self.stgQ = stgQ
-        self.soundQ = soundQ
-        self.receivQ = receivQ
-        self.queryQ = queryQ
-        self.teleQ = teleQ
-        self.hoga1Q = hoga1Q
-        self.hoga2Q = hoga2Q
-        self.chart1Q = chart1Q
-        self.chart2Q = chart2Q
-        self.chart3Q = chart3Q
-        self.chart4Q = chart4Q
-        self.chart5Q = chart5Q
-        self.chart6Q = chart6Q
-        self.chart7Q = chart7Q
-        self.chart8Q = chart8Q
-        self.chart9Q = chart9Q
+    def __init__(self, qlist):
+        app = QtWidgets.QApplication(sys.argv)
+        """
+           0        1        2      3      4       5       6      7       8        9       10       11
+        windowQ, traderQ, receivQ, stgQ, soundQ, queryQ, teleQ, hoga1Q, hoga2Q, chart1Q, chart2Q, chart3Q,
+        chart4Q, chart5Q, chart6Q, chart7Q, chart8Q, chart9Q, chart10Q, tick1Q, tick2Q, tick3Q, tick4Q
+          12       13       14       15       16       17       18        19      20      21      22
+        """
+        self.windowQ = qlist[0]
+        self.traderQ = qlist[1]
+        self.receivQ = qlist[2]
+        self.stgQ = qlist[3]
+        self.soundQ = qlist[4]
+        self.queryQ = qlist[5]
+        self.teleQ = qlist[6]
+        self.hoga1Q = qlist[7]
+        self.hoga2Q = qlist[8]
+        self.chart1Q = qlist[9]
+        self.chart2Q = qlist[10]
+        self.chart3Q = qlist[11]
+        self.chart4Q = qlist[12]
+        self.chart5Q = qlist[13]
+        self.chart6Q = qlist[14]
+        self.chart7Q = qlist[15]
+        self.chart8Q = qlist[16]
+        self.chart9Q = qlist[17]
 
         self.df_cj = pd.DataFrame(columns=columns_cj)   # 체결목록
         self.df_jg = pd.DataFrame(columns=columns_jg)   # 잔고목록
@@ -70,6 +92,7 @@ class Trader:
         self.dict_bool = {
             '데이터베이스로딩': False,
             '계좌잔고조회': False,
+            '장운영시간등록': False,
             '업종차트조회': False,
             '업종지수등록': False,
             '장초전략잔고청산': False,
@@ -104,12 +127,21 @@ class Trader:
         self.ocx.OnReceiveTrData.connect(self.OnReceiveTrData)
         self.ocx.OnReceiveRealData.connect(self.OnReceiveRealData)
         self.ocx.OnReceiveChejanData.connect(self.OnReceiveChejanData)
-        self.Start()
 
-    def Start(self):
         self.LoadDatabase()
         self.CommConnect()
-        self.EventLoop()
+
+        self.updater = Updater(self.traderQ)
+        self.updater.data1.connect(self.UpdateList)
+        self.updater.data2.connect(self.UpdateStr)
+        self.updater.start()
+
+        self.qtimer = QtCore.QTimer()
+        self.qtimer.setInterval(1000)
+        self.qtimer.timeout.connect(self.Scheduler)
+        self.qtimer.start()
+
+        app.exec_()
 
     def LoadDatabase(self):
         self.dict_bool['데이터베이스로딩'] = True
@@ -173,57 +205,13 @@ class Trader:
             self.windowQ.put([2, '장운영상태'])
             self.dict_intg['장운영상태'] = 3
 
-    def EventLoop(self):
-        self.GetAccountjanGo()
-        self.GetKospiKosdaqChart()
-        self.OperationRealreg()
-        self.UpjongjisuRealreg()
-        while True:
-            pythoncom.PumpWaitingMessages()
-
-            if not self.traderQ.empty():
-                data = self.traderQ.get()
-                if type(data) == list:
-                    if len(data) == 5:
-                        self.BuySell(data[0], data[1], data[2], data[3], data[4])
-                        continue
-                    elif len(data) == 6:
-                        self.UpdateJango(data[0], data[1], data[2], data[3], data[4], data[5])
-                        continue
-                    elif len(data) == 2:
-                        self.dict_vipr = data[1]
-                elif type(data) == str:
-                    if data != '틱데이터저장완료':
-                        self.RunWork(data)
-                    else:
-                        break
-
-            if self.dict_intg['장운영상태'] == 1 and now() > self.dict_time['휴무종료']:
-                break
-            if int(strf_time('%H%M%S')) >= 100000 and not self.dict_bool['장초전략잔고청산']:
-                self.JangoChungsan1()
-            if int(strf_time('%H%M%S')) >= 152900 and not self.dict_bool['장중전략잔고청산']:
-                self.JangoChungsan2()
-            if self.dict_intg['장운영상태'] == 8 and not self.dict_bool['실시간데이터수신중단']:
-                self.RemoveAllRealreg()
-            if self.dict_intg['장운영상태'] == 8 and not self.dict_bool['당일거래목록저장']:
-                self.SaveDayData()
-
-            if now() > self.dict_time['호가정보']:
-                self.PutHogaJanngo()
-                self.dict_time['호가정보'] = timedelta_sec(0.25)
-            if now() > self.dict_time['거래정보']:
-                self.UpdateTotaljango()
-                self.dict_time['거래정보'] = timedelta_sec(1)
-            if now() > self.dict_time['부가정보']:
-                self.UpdateInfo()
-                self.dict_time['부가정보'] = timedelta_sec(2)
-
-            time.sleep(0.001)
-
-        self.stgQ.put('전략프로세스종료')
-        self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 종료'])
-        self.SysExit()
+    def UpdateList(self, data):
+        if len(data) == 5:
+            self.BuySell(data[0], data[1], data[2], data[3], data[4])
+        elif len(data) == 6:
+            self.UpdateJango(data[0], data[1], data[2], data[3], data[4], data[5])
+        elif len(data) == 2:
+            self.dict_vipr = data[1]
 
     def BuySell(self, gubun, code, name, c, oc):
         if gubun == '매수':
@@ -279,10 +267,21 @@ class Trader:
         while now() < sleeptime:
             pythoncom.PumpWaitingMessages()
 
-    def RunWork(self, work):
-        if '현재가' in work:
-            gubun = int(work.split(' ')[0][3:5])
-            code = work.split(' ')[-1]
+    def UpdateJango(self, code, name, c, o, h, low):
+        prec = self.df_jg['현재가'][code]
+        if prec != c:
+            bg = self.df_jg['매입금액'][code]
+            oc = int(self.df_jg['보유수량'][code])
+            pg, sg, sp = self.GetPgSgSp(bg, oc * c)
+            columns = ['현재가', '수익률', '평가손익', '평가금액', '시가', '고가', '저가']
+            self.df_jg.at[code, columns] = c, sp, sg, pg, o, h, low
+            if code in self.dict_buyt.keys():
+                self.stgQ.put([code, name, sp, oc, c, self.dict_buyt[code]])
+
+    def UpdateStr(self, data):
+        if '현재가' in data:
+            gubun = int(data.split(' ')[0][3:5])
+            code = data.split(' ')[-1]
             name = self.dict_name[code]
             if gubun == ui_num['차트P0']:
                 gubun = ui_num['차트P1']
@@ -290,7 +289,7 @@ class Trader:
                     return
                 if not self.TrtimeCondition:
                     self.windowQ.put([1, f'시스템 명령 오류 알림 - 트레이더 해당 명령은 {self.RemainedTrtime}초 후에 실행됩니다.'])
-                    Timer(self.RemainedTrtime, self.traderQ.put, args=[work]).start()
+                    Timer(self.RemainedTrtime, self.traderQ.put, args=[data]).start()
                     return
                 self.chart6Q.put('기업개요 ' + code)
                 self.chart7Q.put('기업공시 ' + code)
@@ -309,7 +308,7 @@ class Trader:
                     return
                 if not self.TrtimeCondition:
                     self.windowQ.put([1, f'시스템 명령 오류 알림 - 트레이더 해당 명령은 {self.RemainedTrtime}초 후에 실행됩니다.'])
-                    Timer(self.RemainedTrtime, self.traderQ.put, args=[work]).start()
+                    Timer(self.RemainedTrtime, self.traderQ.put, args=[data]).start()
                     return
                 self.hoga1Q.put('초기화')
                 self.SetRealReg([sn_cthg, code, '10;12;14;30;228;41;61;71;81', 1])
@@ -323,7 +322,7 @@ class Trader:
                     return
                 if not self.TrtimeCondition:
                     self.windowQ.put([1, f'시스템 명령 오류 알림 - 트레이더 해당 명령은 {self.RemainedTrtime}초 후에 실행됩니다.'])
-                    Timer(self.RemainedTrtime, self.traderQ.put, args=[work]).start()
+                    Timer(self.RemainedTrtime, self.traderQ.put, args=[data]).start()
                     return
                 self.hoga2Q.put('초기화')
                 self.SetRealReg([sn_cthg, code, '10;12;14;30;228;41;61;71;81', 1])
@@ -332,7 +331,7 @@ class Trader:
                 self.dict_hoga[1] = [code, True, pd.DataFrame(columns=columns_hj)]
                 self.GetChart(gubun, code, name)
             elif gubun == ui_num['차트P5']:
-                tradeday = work.split(' ')[-2]
+                tradeday = data.split(' ')[-2]
                 if ui_num['차트P5'] in self.dict_chat.keys() and code == self.dict_chat[ui_num['차트P5']]:
                     return
                 if int(tradeday) < int(strf_time('%Y%m%d', timedelta_day(-5))):
@@ -340,11 +339,11 @@ class Trader:
                     return
                 if not self.TrtimeCondition:
                     self.windowQ.put([1, f'시스템 명령 오류 알림 - 트레이더 해당 명령은 {self.RemainedTrtime}초 후에 실행됩니다.'])
-                    Timer(self.RemainedTrtime, self.traderQ.put, args=[work]).start()
+                    Timer(self.RemainedTrtime, self.traderQ.put, args=[data]).start()
                     return
                 self.GetChart(gubun, code, name, tradeday)
-        elif '매수취소' in work:
-            code = work.split(' ')[1]
+        elif '매수취소' in data:
+            code = data.split(' ')[1]
             name = self.dict_name[code]
             term = (self.df_cj['종목명'] == name) & (self.df_cj['미체결수량'] > 0) & (self.df_cj['주문구분'] == '매수')
             df = self.df_cj[term]
@@ -353,8 +352,8 @@ class Trader:
                 omc = df['미체결수량'][on]
                 order = ['매수취소', '4989', self.dict_strg['계좌번호'], 3, code, omc, 0, '00', on, name]
                 self.SendOrder(order)
-        elif '매도취소' in work:
-            code = work.split(' ')[1]
+        elif '매도취소' in data:
+            code = data.split(' ')[1]
             name = self.dict_name[code]
             term = (self.df_cj['종목명'] == name) & (self.df_cj['미체결수량'] > 0) & (self.df_cj['주문구분'] == '매도')
             df = self.df_cj[term]
@@ -363,79 +362,79 @@ class Trader:
                 omc = df['미체결수량'][on]
                 order = ['매도취소', '4989', self.dict_strg['계좌번호'], 4, code, omc, 0, '00', on, name]
                 self.SendOrder(order)
-        elif work == '데이터베이스 로딩':
+        elif data == '데이터베이스 로딩':
             if not self.dict_bool['데이터베이스로딩']:
                 self.LoadDatabase()
-        elif work == 'OPENAPI 로그인':
+        elif data == 'OPENAPI 로그인':
             if self.ocx.dynamicCall('GetConnectState()') == 0:
                 self.CommConnect()
-        elif work == '계좌평가 및 잔고':
+        elif data == '계좌평가 및 잔고':
             if not self.dict_bool['계좌잔고조회']:
                 self.GetAccountjanGo()
-        elif work == '코스피 코스닥 차트':
+        elif data == '코스피 코스닥 차트':
             if not self.dict_bool['업종차트조회']:
                 self.GetKospiKosdaqChart()
-        elif work == '장운영시간 알림 등록':
+        elif data == '장운영시간 알림 등록':
             self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 리시버에서 자동실행됩니다.'])
-        elif work == '업종지수 주식체결 등록':
+        elif data == '업종지수 주식체결 등록':
             if not self.dict_bool['업종지수등록']:
                 self.UpjongjisuRealreg()
-        elif work == 'VI발동해제 등록':
+        elif data == 'VI발동해제 등록':
             self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 리시버에서 자동실행됩니다.'])
-        elif work == '장운영상태':
+        elif data == '장운영상태':
             if self.dict_intg['장운영상태'] != 3:
                 self.windowQ.put([2, '장운영상태'])
                 self.dict_intg['장운영상태'] = 3
-        elif work == '실시간 조건검색식 등록':
+        elif data == '실시간 조건검색식 등록':
             self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 리시버에서 자동실행됩니다.'])
-        elif work == '장초전략 잔고청산':
+        elif data == '장초전략 잔고청산':
             if not self.dict_bool['장초전략잔고청산']:
                 self.JangoChungsan1()
-        elif work == '실시간 조건검색식 중단':
+        elif data == '실시간 조건검색식 중단':
             self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 리시버에서 자동실행됩니다.'])
-        elif work == '장중전략 시작':
+        elif data == '장중전략 시작':
             self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 리시버에서 자동실행됩니다.'])
-        elif work == '장중전략 잔고청산':
+        elif data == '장중전략 잔고청산':
             if not self.dict_bool['장중전략잔고청산']:
                 self.JangoChungsan2()
-        elif work == '실시간 데이터 수신 중단':
+        elif data == '실시간 데이터 수신 중단':
             self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 리시버에서 자동실행됩니다.'])
-        elif work == '당일거래목록 저장':
+        elif data == '당일거래목록 저장':
             if not self.dict_bool['당일거래목록저장']:
                 self.SaveDayData()
-        elif work == '틱데이터 저장':
+        elif data == '틱데이터 저장':
             self.windowQ.put([1, '시스템 명령 오류 알림 - 트레이더 해당 명령은 콜렉터에서 자동실행됩니다.'])
-        elif work == '시스템 종료':
+        elif data == '시스템 종료':
             self.SysExit()
-        elif work == '/당일체결목록':
+        elif data == '/당일체결목록':
             if len(self.df_cj) > 0:
                 self.teleQ.put(self.df_cj)
             else:
                 self.teleQ.put('현재는 거래목록이 없습니다.')
-        elif work == '/당일거래목록':
+        elif data == '/당일거래목록':
             if len(self.df_td) > 0:
                 self.teleQ.put(self.df_td)
             else:
                 self.teleQ.put('현재는 거래목록이 없습니다.')
-        elif work == '/계좌잔고평가':
+        elif data == '/계좌잔고평가':
             if len(self.df_jg) > 0:
                 self.teleQ.put(self.df_jg)
             else:
                 self.teleQ.put('현재는 잔고목록이 없습니다.')
-        elif work == '/잔고청산주문':
+        elif data == '/잔고청산주문':
             if not self.dict_bool['장초전략잔고청산']:
                 self.JangoChungsan1()
             elif not self.dict_bool['장중전략잔고청산']:
                 self.JangoChungsan2()
-        elif '설정' in work:
-            bot_number = work.split(' ')[1]
-            chat_id = int(work.split(' ')[2])
+        elif '설정' in data:
+            bot_number = data.split(' ')[1]
+            chat_id = int(data.split(' ')[2])
             self.queryQ.put([1, f"UPDATE telegram SET str_bot = '{bot_number}', int_id = '{chat_id}'"])
             if self.dict_bool['알림소리']:
                 self.soundQ.put('텔레그램 봇넘버 및 아이디가 변경되었습니다.')
             else:
                 self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 텔레그램 봇넘버 및 아이디 설정 완료'])
-        elif work == '테스트모드 ON/OFF':
+        elif data == '테스트모드 ON/OFF':
             if self.dict_bool['테스트']:
                 self.dict_bool['테스트'] = False
                 self.queryQ.put([1, 'UPDATE setting SET 테스트 = 0'])
@@ -448,7 +447,7 @@ class Trader:
                 self.windowQ.put([2, '테스트모드 ON'])
                 if self.dict_bool['알림소리']:
                     self.soundQ.put('테스트모드 설정이 ON으로 변경되었습니다.')
-        elif work == '모의투자 ON/OFF':
+        elif data == '모의투자 ON/OFF':
             if self.dict_bool['모의투자']:
                 self.dict_bool['모의투자'] = False
                 self.queryQ.put([1, 'UPDATE setting SET 모의투자 = 0'])
@@ -461,7 +460,7 @@ class Trader:
                 self.windowQ.put([2, '모의투자 ON'])
                 if self.dict_bool['알림소리']:
                     self.soundQ.put('모의투자 설정이 ON으로 변경되었습니다.')
-        elif work == '알림소리 ON/OFF':
+        elif data == '알림소리 ON/OFF':
             if self.dict_bool['알림소리']:
                 self.dict_bool['알림소리'] = False
                 self.queryQ.put([1, 'UPDATE setting SET 알림소리 = 0'])
@@ -474,6 +473,8 @@ class Trader:
                 self.windowQ.put([2, '알림소리 ON'])
                 if self.dict_bool['알림소리']:
                     self.soundQ.put('알림소리 설정이 ON으로 변경되었습니다.')
+        elif data == '틱데이터저장완료':
+            self.SysExit()
 
     def GetChart(self, gubun, code, name, tradeday=None):
         prec = self.GetMasterLastPrice(code)
@@ -498,6 +499,36 @@ class Trader:
         df2 = self.Block_Request('opt10046', 종목코드=code, 틱구분=1, 체결강도구분=1, output='체결강도추이', next=0)
         self.chart1Q.put([code, df1, df2])
 
+    def Scheduler(self):
+        if not self.dict_bool['계좌잔고조회']:
+            self.GetAccountjanGo()
+        if not self.dict_bool['업종차트조회']:
+            self.GetKospiKosdaqChart()
+        if not self.dict_bool['장운영시간등록']:
+            self.OperationRealreg()
+        if not self.dict_bool['업종지수등록']:
+            self.UpjongjisuRealreg()
+        if self.dict_intg['장운영상태'] == 1 and now() > self.dict_time['휴무종료']:
+            self.SysExit()
+        if int(strf_time('%H%M%S')) >= 100000 and not self.dict_bool['장초전략잔고청산']:
+            self.JangoChungsan1()
+        if int(strf_time('%H%M%S')) >= 152900 and not self.dict_bool['장중전략잔고청산']:
+            self.JangoChungsan2()
+        if self.dict_intg['장운영상태'] == 8 and not self.dict_bool['실시간데이터수신중단']:
+            self.RemoveAllRealreg()
+        if self.dict_intg['장운영상태'] == 8 and not self.dict_bool['당일거래목록저장']:
+            self.SaveDayData()
+
+        if now() > self.dict_time['호가정보']:
+            self.PutHogaJanngo()
+            self.dict_time['호가정보'] = timedelta_sec(0.25)
+        if now() > self.dict_time['거래정보']:
+            self.UpdateTotaljango()
+            self.dict_time['거래정보'] = timedelta_sec(1)
+        if now() > self.dict_time['부가정보']:
+            self.UpdateInfo()
+            self.dict_time['부가정보'] = timedelta_sec(2)
+
     def GetAccountjanGo(self):
         self.dict_bool['계좌잔고조회'] = True
         self.windowQ.put([2, '계좌평가 및 잔고'])
@@ -510,8 +541,7 @@ class Trader:
                     con = sqlite3.connect(DB_STG)
                     df = pd.read_sql('SELECT * FROM tradelist', con)
                     con.close()
-                    self.dict_intg['예수금'] = \
-                        100000000 - self.df_jg['매입금액'].sum() + df['수익금'].sum()
+                    self.dict_intg['예수금'] = 100000000 - self.df_jg['매입금액'].sum() + df['수익금'].sum()
                 else:
                     self.dict_intg['예수금'] = int(df['D+2추정예수금'][0])
                 self.dict_intg['추정예수금'] = self.dict_intg['예수금']
@@ -600,6 +630,7 @@ class Trader:
     def OperationRealreg(self):
         self.dict_bool['장운영시간등록'] = True
         self.SetRealReg([sn_oper, ' ', '215;20;214', 0])
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 장운영시간 등록 완료'])
 
     def UpjongjisuRealreg(self):
         self.dict_bool['업종지수등록'] = True
@@ -675,7 +706,6 @@ class Trader:
             self.windowQ.put([ui_num['호가잔고1'], self.dict_hoga[1][2]])
             self.dict_hoga[1][1] = False
 
-    @thread_decorator
     def UpdateTotaljango(self):
         if len(self.df_jg) > 0:
             tsg = self.df_jg['평가손익'].sum()
@@ -848,7 +878,6 @@ class Trader:
                 else:
                     self.UpdateHogajanryang(code, vp, jc, hg, per)
 
-    @thread_decorator
     def OperationAlert(self, current):
         if self.dict_intg['장운영상태'] == 3:
             self.windowQ.put([2, '장운영상태'])
@@ -885,21 +914,6 @@ class Trader:
             elif current == '153000':
                 self.soundQ.put(f"{self.dict_strg['당일날짜'][:4]}년 {self.dict_strg['당일날짜'][4:6]}월 "
                                 f"{self.dict_strg['당일날짜'][6:]}일 장이 종료되었습니다.")
-
-    def UpdateJango(self, code, name, c, o, h, low):
-        try:
-            prec = self.df_jg['현재가'][code]
-        except KeyError:
-            return
-
-        if prec != c:
-            bg = self.df_jg['매입금액'][code]
-            oc = int(self.df_jg['보유수량'][code])
-            pg, sg, sp = self.GetPgSgSp(bg, oc * c)
-            columns = ['현재가', '수익률', '평가손익', '평가금액', '시가', '고가', '저가']
-            self.df_jg.at[code, columns] = c, sp, sg, pg, o, h, low
-            if code in self.dict_buyt.keys():
-                self.stgQ.put([code, name, sp, oc, c, self.dict_buyt[code]])
 
     # noinspection PyMethodMayBeStatic
     def GetPgSgSp(self, bg, cg):
@@ -1210,7 +1224,8 @@ class Trader:
         return self.ocx.dynamicCall('GetChejanData(int)', fid)
 
     def SysExit(self):
-        self.windowQ.put([2, '시스템 종료'])
+        self.stgQ.put('전략프로세스종료')
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 트레이더 종료'])
         self.teleQ.put('10초 후 시스템을 종료합니다.')
         if self.dict_bool['알림소리']:
             self.soundQ.put('10초 후 시스템을 종료합니다.')
@@ -1222,3 +1237,4 @@ class Trader:
             i -= 1
             time.sleep(1)
         self.windowQ.put([1, '시스템 명령 실행 알림 - 시스템 종료'])
+        sys.exit()

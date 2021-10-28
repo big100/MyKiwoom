@@ -9,10 +9,16 @@ from utility.static import now, timedelta_sec, thread_decorator, strf_time, floa
 
 
 class Strategy:
-    def __init__(self, windowQ, traderQ, stgQ):
-        self.windowQ = windowQ
-        self.traderQ = traderQ
-        self.stgQ = stgQ
+    def __init__(self, qlist):
+        """
+           0        1        2      3      4       5       6      7       8        9       10       11
+        windowQ, traderQ, receivQ, stgQ, soundQ, queryQ, teleQ, hoga1Q, hoga2Q, chart1Q, chart2Q, chart3Q,
+        chart4Q, chart5Q, chart6Q, chart7Q, chart8Q, chart9Q, chart10Q, tick1Q, tick2Q, tick3Q, tick4Q
+          12       13       14       15       16       17       18        19      20      21      22
+        """
+        self.windowQ = qlist[0]
+        self.traderQ = qlist[1]
+        self.stgQ = qlist[3]
 
         self.list_buy = []          # 매수주문리스트
         self.list_sell = []         # 매도주문리스트
@@ -62,6 +68,7 @@ class Strategy:
                 self.dict_time['부가정보'] = timedelta_sec(2)
 
         self.windowQ.put([1, '시스템 명령 실행 알림 - 전략 연산 프로세스 종료'])
+        sys.exit()
 
     def UpdateList(self, gubun, code):
         if '조건진입' in gubun:

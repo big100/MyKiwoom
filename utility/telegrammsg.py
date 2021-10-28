@@ -6,11 +6,17 @@ from telegram.ext import Updater, MessageHandler, Filters
 
 
 class TelegramMsg:
-    def __init__(self, windowQ, traderQ, queryQ, teleQ):
-        self.windowQ = windowQ
-        self.traderQ = traderQ
-        self.queryQ = queryQ
-        self.teleQ = teleQ
+    def __init__(self, qlist):
+        """
+           0        1        2      3      4       5       6      7       8        9       10       11
+        windowQ, traderQ, receivQ, stgQ, soundQ, queryQ, teleQ, hoga1Q, hoga2Q, chart1Q, chart2Q, chart3Q,
+        chart4Q, chart5Q, chart6Q, chart7Q, chart8Q, chart9Q, chart10Q, tick1Q, tick2Q, tick3Q, tick4Q
+          12       13       14       15       16       17       18        19      20      21      22
+        """
+        self.windowQ = qlist[0]
+        self.traderQ = qlist[1]
+        self.queryQ = qlist[5]
+        self.teleQ = qlist[6]
         self.updater = None
 
         con = sqlite3.connect(DB_STG)

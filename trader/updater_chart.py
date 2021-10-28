@@ -9,11 +9,35 @@ from utility.static import now, timedelta_sec, strf_time, strp_time, thread_deco
 
 
 class UpdaterChart:
-    def __init__(self, windowQ, traderQ, chartQ, gubun):
+    def __init__(self, gubun, qlist):
+        """
+           0        1        2      3      4       5       6      7       8        9       10       11
+        windowQ, traderQ, receivQ, stgQ, soundQ, queryQ, teleQ, hoga1Q, hoga2Q, chart1Q, chart2Q, chart3Q,
+        chart4Q, chart5Q, chart6Q, chart7Q, chart8Q, chart9Q, chart10Q, tick1Q, tick2Q, tick3Q, tick4Q
+          12       13       14       15       16       17       18        19      20      21      22
+        """
         self.gubun = gubun
-        self.windowQ = windowQ
-        self.traderQ = traderQ
-        self.chartQ = chartQ
+        self.windowQ = qlist[0]
+        self.traderQ = qlist[1]
+        if self.gubun == ui_num['차트P1']:
+            self.chartQ = qlist[9]
+        elif self.gubun == ui_num['차트P2']:
+            self.chartQ = qlist[10]
+        elif self.gubun == ui_num['차트P3']:
+            self.chartQ = qlist[11]
+        elif self.gubun == ui_num['차트P4']:
+            self.chartQ = qlist[12]
+        elif self.gubun == ui_num['차트P5']:
+            self.chartQ = qlist[13]
+        elif self.gubun == ui_num['차트P6']:
+            self.chartQ = qlist[14]
+        elif self.gubun == ui_num['차트P7']:
+            self.chartQ = qlist[15]
+        elif self.gubun == ui_num['차트P8']:
+            self.chartQ = qlist[16]
+        elif self.gubun == ui_num['차트P9']:
+            self.chartQ = qlist[17]
+
         self.df_ct = None
         self.df_ch = None
         self.bool_ctup = False

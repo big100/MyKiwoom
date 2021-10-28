@@ -1536,7 +1536,7 @@ class Writer(QtCore.QThread):
     def run(self):
         tlist = [ui_num['단타설정'], ui_num['관심종목'], ui_num['관심종목'] + 100]
         clist = [ui_num['차트P1'], ui_num['차트P2'], ui_num['차트P3'], ui_num['차트P4'], ui_num['차트P5'],
-                 ui_num['차트P6'], ui_num['차트P7'], ui_num['차트P8'], ui_num['차트P9']]
+                 ui_num['차트P6'], ui_num['차트P7'], ui_num['차트P8'], ui_num['차트P9'], ui_num['차트P10']]
         while True:
             data = windowQ.get()
             if data[0] not in tlist and type(data[1]) != pd.DataFrame:
@@ -1551,42 +1551,41 @@ class Writer(QtCore.QThread):
 
 if __name__ == '__main__':
     windowQ, traderQ, receivQ, stgQ, soundQ, queryQ, teleQ, hoga1Q, hoga2Q, chart1Q, chart2Q, chart3Q, chart4Q, \
-        chart5Q, chart6Q, chart7Q, chart8Q, chart9Q, tick1Q, tick2Q, tick3Q, tick4Q = \
+        chart5Q, chart6Q, chart7Q, chart8Q, chart9Q, chart10Q, tick1Q, tick2Q, tick3Q, tick4Q = \
         Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(),  Queue(), Queue(), Queue(), \
-        Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue()
+        Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue(), Queue()
+    qlist = [windowQ, traderQ, receivQ, stgQ, soundQ, queryQ, teleQ, hoga1Q, hoga2Q, chart1Q, chart2Q, chart3Q,
+             chart4Q, chart5Q, chart6Q, chart7Q, chart8Q, chart9Q, chart10Q, tick1Q, tick2Q, tick3Q, tick4Q]
 
-    Process(target=Sound, args=(soundQ,), daemon=True).start()
-    Process(target=Query, args=(windowQ, traderQ, queryQ), daemon=True).start()
-    Process(target=TelegramMsg, args=(windowQ, traderQ, queryQ, teleQ), daemon=True).start()
+    Process(target=Sound, args=(qlist,), daemon=True).start()
+    Process(target=Query, args=(qlist,), daemon=True).start()
+    Process(target=TelegramMsg, args=(qlist,), daemon=True).start()
 
     os.system(f'python {SYSTEM_PATH}/login/versionupdater.py')
     os.system(f'python {SYSTEM_PATH}/login/autologin2.py')
 
-    Process(target=Collector, args=(1, windowQ, queryQ, tick1Q), daemon=True).start()
-    Process(target=Collector, args=(2, windowQ, queryQ, tick2Q), daemon=True).start()
-    Process(target=Collector, args=(3, windowQ, queryQ, tick3Q), daemon=True).start()
-    Process(target=Collector, args=(4, windowQ, queryQ, tick4Q), daemon=True).start()
-    Process(target=Receiver,
-            args=(windowQ, receivQ, traderQ, stgQ, queryQ, tick1Q, tick2Q, tick3Q, tick4Q), daemon=True).start()
+    Process(target=Collector, args=(1, qlist), daemon=True).start()
+    Process(target=Collector, args=(2, qlist), daemon=True).start()
+    Process(target=Collector, args=(3, qlist), daemon=True).start()
+    Process(target=Collector, args=(4, qlist), daemon=True).start()
+    Process(target=Receiver, args=(qlist,), daemon=True).start()
     time.sleep(15)
 
     os.system(f'python {SYSTEM_PATH}/login/autologin1.py')
 
-    Process(target=UpdaterHoga, args=(windowQ, hoga1Q, ui_num['호가P0']), daemon=True).start()
-    Process(target=UpdaterHoga, args=(windowQ, hoga2Q, ui_num['호가P1']), daemon=True).start()
-    Process(target=UpdaterChart, args=(windowQ, traderQ, chart1Q, ui_num['차트P1']), daemon=True).start()
-    Process(target=UpdaterChart, args=(windowQ, traderQ, chart2Q, ui_num['차트P2']), daemon=True).start()
-    Process(target=UpdaterChart, args=(windowQ, traderQ, chart3Q, ui_num['차트P3']), daemon=True).start()
-    Process(target=UpdaterChart, args=(windowQ, traderQ, chart4Q, ui_num['차트P4']), daemon=True).start()
-    Process(target=UpdaterChart, args=(windowQ, traderQ, chart5Q, ui_num['차트P5']), daemon=True).start()
-    Process(target=UpdaterChart, args=(windowQ, traderQ, chart6Q, ui_num['차트P6']), daemon=True).start()
-    Process(target=UpdaterChart, args=(windowQ, traderQ, chart7Q, ui_num['차트P7']), daemon=True).start()
-    Process(target=UpdaterChart, args=(windowQ, traderQ, chart8Q, ui_num['차트P8']), daemon=True).start()
-    Process(target=UpdaterChart, args=(windowQ, traderQ, chart9Q, ui_num['차트P9']), daemon=True).start()
-    Process(target=Strategy, args=(windowQ, traderQ, stgQ), daemon=True).start()
-    Process(target=Trader,
-            args=(windowQ, traderQ, stgQ, receivQ, soundQ, queryQ, teleQ, hoga1Q, hoga2Q, chart1Q,
-                  chart2Q, chart3Q, chart4Q, chart5Q, chart6Q, chart7Q, chart8Q, chart9Q), daemon=True).start()
+    Process(target=UpdaterHoga, args=(ui_num['호가P0'], qlist), daemon=True).start()
+    Process(target=UpdaterHoga, args=(ui_num['호가P1'], qlist), daemon=True).start()
+    Process(target=UpdaterChart, args=(ui_num['차트P1'], qlist), daemon=True).start()
+    Process(target=UpdaterChart, args=(ui_num['차트P2'], qlist), daemon=True).start()
+    Process(target=UpdaterChart, args=(ui_num['차트P3'], qlist), daemon=True).start()
+    Process(target=UpdaterChart, args=(ui_num['차트P4'], qlist), daemon=True).start()
+    Process(target=UpdaterChart, args=(ui_num['차트P5'], qlist), daemon=True).start()
+    Process(target=UpdaterChart, args=(ui_num['차트P6'], qlist), daemon=True).start()
+    Process(target=UpdaterChart, args=(ui_num['차트P7'], qlist), daemon=True).start()
+    Process(target=UpdaterChart, args=(ui_num['차트P8'], qlist), daemon=True).start()
+    Process(target=UpdaterChart, args=(ui_num['차트P9'], qlist), daemon=True).start()
+    Process(target=Strategy, args=(qlist,), daemon=True).start()
+    Process(target=Trader, args=(qlist,), daemon=True).start()
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle('fusion')
@@ -1612,9 +1611,9 @@ if __name__ == '__main__':
         os.system('shutdown /s /t 60')
         sys.exit()
 
-    time.sleep(10)
+    os.system('timeout 10')
     os.system(f'python {SYSTEM_PATH}/backtester/backtester_vc_jc.py')
-    time.sleep(10)
+    os.system('timeout 10')
     os.system(f'python {SYSTEM_PATH}/backtester/backtester_vc_jj.py')
     os.system('shutdown /s /t 60')
     sys.exit()

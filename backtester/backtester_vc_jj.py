@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from utility.setting import DB_STG, DB_TICK, DB_BACKTEST, GRAPH_PATH
 from utility.static import strf_time, strp_time, timedelta_sec, timedelta_day, telegram_msg
 
-BETTING = 10000000     # 종목당 배팅금액
+BETTING = 20000000     # 종목당 배팅금액
 TESTPERIOD = 14        # 백테스팅 기간(14일 경우 과거 2주간의 데이터를 백테스팅한다)
 TOTALTIME = 198000     # 백테스팅 기간 동안 10시부터 15시30분까지의 시간 총합, 단위 초
 START_TIME = 100000
@@ -108,7 +108,7 @@ class BackTesterVc:
             for h, index in enumerate(self.df.index):
                 if h != 0 and index[:8] != self.df.index[h - 1][:8]:
                     self.ccond = 0
-                if int(index[:8]) < int_daylimit or \
+                if int(index[:8]) <= int_daylimit or \
                         (not self.hold and (END_TIME <= int(index[8:]) or int(index[8:]) < START_TIME)):
                     continue
                 self.index = index
@@ -249,26 +249,25 @@ class BackTesterVc:
     def Report(self, count, tcount):
         if self.totalcount > 0:
             plus_per = round((self.totalcount_p / self.totalcount) * 100, 2)
-            avgholdday = round(self.totalholdday / self.totalcount, 2)
-            self.q.put([self.code, self.totalcount, avgholdday, self.totalcount_p, self.totalcount_m,
+            self.q.put([self.code, self.totalcount, self.totalholdday, self.totalcount_p, self.totalcount_m,
                         plus_per, self.totalper, self.totaleyun])
-            totalcount, avgholdday, totalcount_p, totalcount_m, plus_per, totalper, totaleyun = \
-                self.GetTotal(plus_per, avgholdday)
-            print(f" 종목코드 {self.code} | 평균보유기간 {avgholdday}초 | 거래횟수 {totalcount}회 | "
+            totalcount, totalholdday, totalcount_p, totalcount_m, plus_per, totalper, totaleyun = \
+                self.GetTotal(plus_per, self.totalholdday)
+            print(f" 종목코드 {self.code} | 보유기간합계 {totalholdday}초 | 거래횟수 {totalcount}회 | "
                   f" 익절 {totalcount_p}회 | 손절 {totalcount_m}회 | 승률 {plus_per}% |"
                   f" 수익률 {totalper}% | 수익금 {totaleyun}원 [{count}/{tcount}]")
         else:
             self.q.put([self.code, 0, 0, 0, 0, 0., 0., 0])
 
-    def GetTotal(self, plus_per, avgholdday):
+    def GetTotal(self, plus_per, totalholdday):
         totalcount = str(self.totalcount)
         totalcount = '  ' + totalcount if len(totalcount) == 1 else totalcount
         totalcount = ' ' + totalcount if len(totalcount) == 2 else totalcount
-        avgholdday = str(avgholdday)
-        avgholdday = '   ' + avgholdday if len(avgholdday.split('.')[0]) == 1 else avgholdday
-        avgholdday = '  ' + avgholdday if len(avgholdday.split('.')[0]) == 2 else avgholdday
-        avgholdday = ' ' + avgholdday if len(avgholdday.split('.')[0]) == 3 else avgholdday
-        avgholdday = avgholdday + '0' if len(avgholdday.split('.')[1]) == 1 else avgholdday
+        totalholdday = str(totalholdday)
+        totalholdday = '   ' + totalholdday if len(totalholdday) == 1 else totalholdday
+        totalholdday = '  ' + totalholdday if len(totalholdday) == 2 else totalholdday
+        totalholdday = ' ' + totalholdday if len(totalholdday) == 3 else totalholdday
+        totalholdday = totalholdday + '0' if len(totalholdday) == 1 else totalholdday
         totalcount_p = str(self.totalcount_p)
         totalcount_p = '  ' + totalcount_p if len(totalcount_p) == 1 else totalcount_p
         totalcount_p = ' ' + totalcount_p if len(totalcount_p) == 2 else totalcount_p
@@ -297,7 +296,7 @@ class BackTesterVc:
             totaleyun = '  ' + totaleyun if len(totaleyun.split(',')[0]) == 4 else totaleyun
         elif len(totaleyun.split(',')) == 3:
             totaleyun = ' ' + totaleyun if len(totaleyun.split(',')[0]) == 1 else totaleyun
-        return totalcount, avgholdday, totalcount_p, totalcount_m, plus_per, totalper, totaleyun
+        return totalcount, totalholdday, totalcount_p, totalcount_m, plus_per, totalper, totaleyun
 
 
 class Total:
@@ -329,7 +328,7 @@ class Total:
         self.Start()
 
     def Start(self):
-        columns1 = ['거래횟수', '평균보유기간', '익절', '손절', '승률', '수익률', '수익금']
+        columns1 = ['거래횟수', '보유기간합계', '익절', '손절', '승률', '수익률', '수익금']
         columns2 = ['필요자금', '종목출현빈도수', '거래횟수', '평균보유기간', '익절', '손절', '승률',
                     '평균수익률', '수익률합계', '수익금합계', '체결강도차이', '평균값계산틱수', '초당거래대금차이',
                     '체결강도하한', '당일거래대금하한', '등락율하한', '등락율상한', '청산수익률']
@@ -367,8 +366,7 @@ class Total:
                 pc = df_back['익절'].sum()
                 mc = df_back['손절'].sum()
                 pper = round(pc / tc * 100, 2)
-                df_back_ = df_back[df_back['평균보유기간'] != 0]
-                avghold = round(df_back_['평균보유기간'].sum() / len(df_back_), 2)
+                avghold = round(df_back['보유기간합계'].sum() / len(df_back), 2)
                 avgsp = round(df_back['수익률'].sum() / tc, 2)
                 tsg = int(df_back['수익금'].sum())
                 onedaycount = round(tc / TOTALTIME, 4)
@@ -461,7 +459,7 @@ if __name__ == "__main__":
                     print(f' 최고수익률 갱신 {htsp}%')
 
         gap_ch = [high_var[0] - 0.5, high_var[0] + 0.5, 0.5, 0.5]
-        avg_time = [high_var[1], high_var[1], 60, 30]
+        avg_time = [high_var[1], high_var[1] + 30, 30, 30]
         gap_sm = [50, 500, 50, 10]
         ch_low = [50, 100, 10, 10]
         dm_low = [0, 100000, 10000, 10000]
@@ -469,7 +467,7 @@ if __name__ == "__main__":
         per_high = [25, 15, -1, -1]
         sell_ratio = [0.5, 0.9, 0.1, 0.1]
         num = [gap_ch, avg_time, gap_sm, ch_low, dm_low, per_low, per_high, sell_ratio]
-        ogin_var = high_var[0]
+        high_var = high_var[0]
 
         i = 0
         while True:
@@ -493,21 +491,16 @@ if __name__ == "__main__":
             if num[i][0] == num[i][1]:
                 num[i][0] = high_var
                 if num[i][2] != num[i][3]:
-                    if num[i][0] != ogin_var:
-                        num[i][0] -= num[i][2]
-                        num[i][1] = round(num[i][0] + num[i][2] * 2 - num[i][3], 1)
-                    else:
-                        num[i][1] = round(num[i][0] + num[i][2] - num[i][3], 1)
+                    num[i][0] -= num[i][2]
+                    num[i][1] = round(num[i][0] + num[i][2] * 2 - num[i][3], 1)
                     num[i][2] = num[i][3]
                 elif i < len(num) - 1:
                     i += 1
+                    high_var = num[i][0]
                     if i == 1:
-                        num[i][0] -= num[i][2]
-                        num[i][1] = round(num[i][0] + num[i][2] * 2 - num[i][3], 1)
-                        num[i][2] = num[i][3]
+                        num[i][0] -= num[i][2] * 2
                     elif i == 7:
                         num[i][0] = 0.
-                    ogin_var = num[i][0]
                 else:
                     break
             num[i][0] = round(num[i][0] + num[i][2], 1)

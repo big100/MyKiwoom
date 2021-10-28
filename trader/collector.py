@@ -10,11 +10,25 @@ DTRADE_SAVE = False     # 장마감 후 저장일 경우 - True: 당일거래목
 
 
 class Collector:
-    def __init__(self, gubun, windowQ, queryQ, tickQ):
+    def __init__(self, gubun, qlist):
+        """
+           0        1        2      3      4       5       6      7       8        9       10       11
+        windowQ, traderQ, receivQ, stgQ, soundQ, queryQ, teleQ, hoga1Q, hoga2Q, chart1Q, chart2Q, chart3Q,
+        chart4Q, chart5Q, chart6Q, chart7Q, chart8Q, chart9Q, chart10Q, tick1Q, tick2Q, tick3Q, tick4Q
+          12       13       14       15       16       17       18        19      20      21      22
+        """
         self.gubun = gubun
-        self.windowQ = windowQ
-        self.queryQ = queryQ
-        self.tickQ = tickQ
+        self.windowQ = qlist[0]
+        self.traderQ = qlist[1]
+        self.queryQ = qlist[5]
+        if self.gubun == 1:
+            self.tickQ = qlist[19]
+        elif self.gubun == 2:
+            self.tickQ = qlist[20]
+        elif self.gubun == 3:
+            self.tickQ = qlist[21]
+        elif self.gubun == 4:
+            self.tickQ = qlist[22]
 
         self.dict_df = {}
         self.dict_dm = {}
@@ -40,6 +54,8 @@ class Collector:
             elif data[0] == '콜렉터종료':
                 if not DIVIDE_SAVE:
                     self.SaveTickData(data[1])
+                else:
+                    self.traderQ.put('틱데이터저장완료')
                 break
 
             if now() > self.dict_time['부가정보']:
@@ -48,6 +64,7 @@ class Collector:
 
         if self.gubun == 4:
             self.windowQ.put([1, '시스템 명령 실행 알림 - 콜렉터 종료'])
+        sys.exit()
 
     def UpdateTickData(self, data):
         code = data[-3]

@@ -3,14 +3,24 @@ import sys
 import psutil
 import pandas as pd
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+from utility.setting import ui_num
 from utility.static import now, timedelta_sec, thread_decorator
 
 
 class UpdaterHoga:
-    def __init__(self, windowQ, hogaQ, gubun):
-        self.windowQ = windowQ
-        self.hogaQ = hogaQ
+    def __init__(self, gubun, qlist):
+        """
+           0        1        2      3      4       5       6      7       8        9       10       11
+        windowQ, traderQ, receivQ, stgQ, soundQ, queryQ, teleQ, hoga1Q, hoga2Q, chart1Q, chart2Q, chart3Q,
+        chart4Q, chart5Q, chart6Q, chart7Q, chart8Q, chart9Q, chart10Q, tick1Q, tick2Q, tick3Q, tick4Q
+          12       13       14       15       16       17       18        19      20      21      22
+        """
         self.gubun = gubun
+        self.windowQ = qlist[0]
+        if self.gubun == ui_num['호가P0']:
+            self.hogaQ = qlist[7]
+        elif self.gubun == ui_num['호가P1']:
+            self.hogaQ = qlist[8]
 
         self.df_hc = None
         self.df_hg = None
