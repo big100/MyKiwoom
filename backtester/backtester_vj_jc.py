@@ -161,8 +161,10 @@ class BackTesterVj:
                 self.hold = True
                 self.indexb = self.indexn
                 self.buytime = strp_time('%Y%m%d%H%M%S', self.index)
+                self.q.put(self.index)
 
     def SellTerm(self):
+        self.q.put(self.index)
         if type(self.df['현재가'][self.index]) == pd.Series:
             return False
 
@@ -255,7 +257,6 @@ class BackTesterVj:
         totalholdday = '   ' + totalholdday if len(totalholdday) == 1 else totalholdday
         totalholdday = '  ' + totalholdday if len(totalholdday) == 2 else totalholdday
         totalholdday = ' ' + totalholdday if len(totalholdday) == 3 else totalholdday
-        totalholdday = totalholdday + '0' if len(totalholdday) == 1 else totalholdday
         totalcount_p = str(self.totalcount_p)
         totalcount_p = '  ' + totalcount_p if len(totalcount_p) == 1 else totalcount_p
         totalcount_p = ' ' + totalcount_p if len(totalcount_p) == 2 else totalcount_p
@@ -308,11 +309,17 @@ class Total:
     def Start(self):
         columns = ['거래횟수', '보유기간합계', '익절', '손절', '승률', '수익률', '수익금']
         df_back = pd.DataFrame(columns=columns)
+        df_bct = pd.DataFrame(columns=['보유종목수'])
         df_tsg = pd.DataFrame(columns=['종목명', '매수시간', '매도시간', '매수가', '매도가', '수익률', 'sgm'])
         k = 0
         while True:
             data = self.q.get()
-            if len(data) == 7:
+            if type(data) == str:
+                if data in df_bct.index:
+                    df_bct.at[data] = df_bct['보유종목수'][data] + 1
+                else:
+                    df_bct.at[data] = 1
+            elif len(data) == 7:
                 name = self.name['종목명'][data[0]]
                 if data[2] in df_tsg.index:
                     df_tsg.at[data[2]] = df_tsg['종목명'][data[2]] + ';' + name, \
@@ -342,24 +349,27 @@ class Total:
                 avghold = round(df_back['보유기간합계'].sum() / tc, 2)
                 avgsp = round(df_back['수익률'].sum() / tc, 2)
                 tsg = int(df_back['수익금'].sum())
-                onedaycount = round(tc / TOTALTIME, 4)
-                onegm = int(BETTING * onedaycount * avghold)
+                avgholdcount = round(df_bct['보유종목수'].mean(), 2)
+                onegm = int(BETTING * avgholdcount)
                 if onegm < BETTING:
                     onegm = BETTING
                 tsp = round(tsg / onegm * 100, 4)
                 text = f" 종목당 배팅금액 {format(BETTING, ',')}원, 필요자금 {format(onegm, ',')}원,"\
-                       f" 종목출현빈도수 {onedaycount}개/초, 거래횟수 {tc}회, 평균보유기간 {avghold}초,\n 익절 {pc}회,"\
+                       f" 거래횟수 {tc}회, 평균동시보유종목수 {avgholdcount}개, 평균보유기간 {avghold}초,\n 익절 {pc}회,"\
                        f" 손절 {mc}회, 승률 {pper}%, 평균수익률 {avgsp}%, 수익률합계 {tsp}%, 수익금합계 {format(tsg, ',')}원"
                 print(text)
                 conn = sqlite3.connect(DB_BACKTEST)
                 df_back.to_sql(f"vj_jc_code_{strf_time('%Y%m%d')}", conn, if_exists='append', chunksize=1000)
                 conn.close()
+                if len(df_tsg) == 0:
+                    df_bct = pd.DataFrame(columns=['보유종목수'])
 
         if len(df_tsg) > 0:
             df_tsg.sort_values(by=['매도시간'], inplace=True)
             df_tsg['sgm_cumsum'] = df_tsg['sgm'].cumsum()
             df_tsg[['sgm', 'sgm_cumsum']] = df_tsg[['sgm', 'sgm_cumsum']].astype(int)
             conn = sqlite3.connect(DB_BACKTEST)
+            df_bct.to_sql(f"vj_jc_hold_{strf_time('%Y%m%d')}", conn, if_exists='append', chunksize=1000)
             df_tsg.to_sql(f"vj_jc_time_{strf_time('%Y%m%d')}", conn, if_exists='append', chunksize=1000)
             conn.close()
             df_tsg.plot(figsize=(12, 9), rot=45)
