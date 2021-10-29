@@ -268,7 +268,10 @@ class Trader:
             pythoncom.PumpWaitingMessages()
 
     def UpdateJango(self, code, name, c, o, h, low):
-        prec = self.df_jg['현재가'][code]
+        try:
+            prec = self.df_jg['현재가'][code]
+        except KeyError:
+            return
         if prec != c:
             bg = self.df_jg['매입금액'][code]
             oc = int(self.df_jg['보유수량'][code])
@@ -1033,6 +1036,7 @@ class Trader:
                 cp = 0
             self.UpdateChejanData(code, name, ot, og, op, cp, oc, omc, on)
 
+    @thread_decorator
     def UpdateChejanData(self, code, name, ot, og, op, cp, oc, omc, on):
         if ot == '체결' and omc == 0 and cp != 0:
             if og == '매수':
