@@ -10,8 +10,8 @@ from utility.setting import DB_STG, DB_TICK, DB_BACKTEST, GRAPH_PATH
 from utility.static import strf_time, strp_time, timedelta_sec, timedelta_day, telegram_msg
 
 BETTING = 20000000     # 종목당 배팅금액
-TESTPERIOD = 14        # 백테스팅 기간(14일 경우 과거 2주간의 데이터를 백테스팅한다)
-TOTALTIME = 198000     # 백테스팅 기간 동안 10시부터 15시30분까지의 시간 총합, 단위 초
+STARTDAY = 0           # 시작날짜(일전)
+TESTPERIOD = 14        # 백스팅할 기간 : 시작날짜 기준 이전 기간
 START_TIME = 100000
 END_TIME = 153000
 MULTI_COUNT = 6
@@ -69,7 +69,9 @@ class BackTesterVc:
     def Start(self):
         conn = sqlite3.connect(DB_TICK)
         tcount = len(self.code_list)
-        int_daylimit = int(strf_time('%Y%m%d', timedelta_day(-TESTPERIOD)))
+        end_day_dt = timedelta_day(-STARTDAY)
+        end_day = int(strf_time('%Y%m%d', end_day_dt))
+        start_day = int(strf_time('%Y%m%d', timedelta_day(-TESTPERIOD, end_day_dt)))
         for k, code in enumerate(self.code_list):
             self.code = code
             self.df = pd.read_sql(f"SELECT * FROM '{code}'", conn).set_index('index')
@@ -108,7 +110,7 @@ class BackTesterVc:
             for h, index in enumerate(self.df.index):
                 if h != 0 and index[:8] != self.df.index[h - 1][:8]:
                     self.ccond = 0
-                if int(index[:8]) <= int_daylimit or \
+                if int(index[:8]) <= start_day or int(index[:8]) > end_day or \
                         (not self.hold and (END_TIME <= int(index[8:]) or int(index[8:]) < START_TIME)):
                     continue
                 self.index = index
