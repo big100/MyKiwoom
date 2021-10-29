@@ -115,9 +115,9 @@ class BackTesterVj:
         conn.close()
 
     def BuyTerm(self):
-        if type(self.df['현재가'][self.index]) == pd.Series or type(self.df_mt['거래대금순위'][self.index]) == pd.Series:
-            return False
         try:
+            if type(self.df['현재가'][self.index]) == pd.Series or type(self.df_mt['거래대금순위'][self.index]) == pd.Series:
+                return False
             if self.code not in self.df_mt['거래대금순위'][self.index]:
                 self.ccond = 0
             else:
