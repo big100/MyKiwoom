@@ -429,7 +429,7 @@ class Total:
             plt.legend(loc='best')
             plt.grid()
             plt.subplot(gs[1])
-            plt.plot(df_bct.index, df_bct['hold_count'], label='hold_count')
+            plt.plot(df_bct.index, df_bct['hold_count'], color='g', label='hold_count')
             plt.xticks(list(df_tsg.index[::12]), rotation=45)
             plt.legend(loc='best')
             plt.tight_layout()
