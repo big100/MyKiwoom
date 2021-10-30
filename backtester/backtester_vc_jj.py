@@ -379,7 +379,7 @@ class Total:
                 avghold = round(df_back['보유기간합계'].sum() / tc, 2)
                 avgsp = round(df_back['수익률'].sum() / tc, 2)
                 tsg = int(df_back['수익금'].sum())
-                avgholdcount = round(df_bct['hold_count'].mean(), 2)
+                avgholdcount = round(df_bct['hold_count'].max(), 2)
                 onegm = int(BETTING * avgholdcount)
                 if onegm < BETTING:
                     onegm = BETTING
