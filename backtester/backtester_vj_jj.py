@@ -224,7 +224,7 @@ class BackTesterVj:
             self.totalcount_p += 1
         else:
             self.totalcount_m += 1
-        self.q.put([self.index, self.code, per, eyun])
+        self.q.put([self.code, self.df.index[self.indexb], self.index, self.buyprice, self.sellprice, per, eyun])
 
     # noinspection PyMethodMayBeStatic
     def GetEyunPer(self, bg, cg):
