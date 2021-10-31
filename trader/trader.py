@@ -1036,7 +1036,6 @@ class Trader:
                 cp = 0
             self.UpdateChejanData(code, name, ot, og, op, cp, oc, omc, on)
 
-    @thread_decorator
     def UpdateChejanData(self, code, name, ot, og, op, cp, oc, omc, on):
         if ot == '체결' and omc == 0 and cp != 0:
             if og == '매수':
