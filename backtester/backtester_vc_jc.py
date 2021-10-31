@@ -333,7 +333,7 @@ class Total:
 
     def Start(self):
         columns1 = ['거래횟수', '보유기간합계', '익절', '손절', '승률', '수익률', '수익금']
-        columns2 = ['거래횟수', '필요자금', '평균보유종목수', '평균보유기간', '익절', '손절', '승률',
+        columns2 = ['거래횟수', '필요자금', '최대보유종목수', '평균보유기간', '익절', '손절', '승률',
                     '평균수익률', '수익률합계', '수익금합계', '체결강도차이', '평균값계산틱수', '초당거래대금차이',
                     '체결강도하한', '당일거래대금하한', '등락율하한', '등락율상한', '청산수익률']
         df_back = pd.DataFrame(columns=columns1)
@@ -378,17 +378,17 @@ class Total:
                 avghold = round(df_back['보유기간합계'].sum() / tc, 2)
                 avgsp = round(df_back['수익률'].sum() / tc, 2)
                 tsg = int(df_back['수익금'].sum())
-                avgholdcount = round(df_bct['hold_count'].max(), 2)
-                onegm = int(BETTING * avgholdcount)
+                maxholdcount = round(df_bct['hold_count'].max(), 2)
+                onegm = int(BETTING * maxholdcount)
                 if onegm < BETTING:
                     onegm = BETTING
                 tsp = round(tsg / onegm * 100, 4)
                 text = f" 종목당 배팅금액 {format(BETTING, ',')}원, 필요자금 {format(onegm, ',')}원,"\
-                       f" 거래횟수 {tc}회, 최대보유종목수 {avgholdcount}개, 평균보유기간 {avghold}초,\n 익절 {pc}회,"\
+                       f" 거래횟수 {tc}회, 최대보유종목수 {maxholdcount}개, 평균보유기간 {avghold}초,\n 익절 {pc}회,"\
                        f" 손절 {mc}회, 승률 {pper}%, 평균수익률 {avgsp}%, 수익률합계 {tsp}%, 수익금합계 {format(tsg, ',')}원"
                 print(text)
                 df_back = pd.DataFrame(
-                    [[tc, onegm, avgholdcount, avghold, pc, mc, pper, avgsp, tsp, tsg, self.gap_ch, self.avg_time,
+                    [[tc, onegm, maxholdcount, avghold, pc, mc, pper, avgsp, tsp, tsg, self.gap_ch, self.avg_time,
                       self.gap_sm, self.ch_low, self.dm_low, self.per_low, self.per_high, self.sell_ratio]],
                     columns=columns2, index=[strf_time('%Y%m%d%H%M%S')])
                 conn = sqlite3.connect(DB_BACKTEST)
