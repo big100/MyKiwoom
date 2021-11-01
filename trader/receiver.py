@@ -273,6 +273,7 @@ class Receiver:
                 self.DeleteGsjmlist(code)
         self.list_prmt = list_top
         self.qtimer2.start()
+        self.windowQ.put([1, '시스템 명령 실행 알림 - 장중 단타 전략 시작'])
 
     def RemoveAllRealreg(self):
         self.dict_bool['실시간데이터수신중단'] = True
