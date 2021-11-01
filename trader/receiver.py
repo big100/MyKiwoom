@@ -433,7 +433,10 @@ class Receiver:
                 elif '-' in v:
                     self.dict_tick[code] = [dt, bid_volumns, ask_volumns + abs(int(v))]
                 if dt != predt:
-                    bids, asks = self.dict_tick[code][1:]
+                    try:
+                        bids, asks = self.dict_tick[code][1:]
+                    except KeyError:
+                        bids, asks = 0, 0
                     self.dict_tick[code] = [dt, 0, 0]
                     try:
                         h = abs(int(self.GetCommRealData(code, 17)))
